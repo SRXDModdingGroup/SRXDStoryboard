@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+    <PropertyGroup>
+        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+        <ProjectGuid>{BC58D23F-55AA-4975-82B8-076C9AA478DF}</ProjectGuid>
+        <OutputType>Library</OutputType>
+        <AppDesignerFolder>Properties</AppDesignerFolder>
+        <RootNamespace>SRXDStoryboard.Plugin</RootNamespace>
+        <AssemblyName>SRXDStoryboard.Plugin</AssemblyName>
+        <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+        <FileAlignment>512</FileAlignment>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>full</DebugType>
+        <Optimize>false</Optimize>
+        <OutputPath>bin\Debug\</OutputPath>
+        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <DebugType>pdbonly</DebugType>
+        <Optimize>true</Optimize>
+        <OutputPath>bin\Release\</OutputPath>
+        <DefineConstants>TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+    <ItemGroup>
+        <Reference Include="0Harmony, Version=2.4.2.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\0Harmony.dll</HintPath>
+        </Reference>
+        <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Assembly-CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="BepInEx, Version=5.4.17.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\BepInEx.dll</HintPath>
+        </Reference>
+        <Reference Include="SpinCore, Version=0.0.1.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SpinCore.dll</HintPath>
+        </Reference>
+        <Reference Include="SpinModdingUtilities, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SpinModdingUtilities.dll</HintPath>
+        </Reference>
+        <Reference Include="SRXDHelperEvents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SRXDHelperEvents.dll</HintPath>
+        </Reference>
+        <Reference Include="SRXDScoreMod, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SRXDScoreMod.dll</HintPath>
+        </Reference>
+        <Reference Include="SSD.Game, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SSD.Game.dll</HintPath>
+        </Reference>
+        <Reference Include="SSD.Types, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SSD.Types.dll</HintPath>
+        </Reference>
+        <Reference Include="SSD.Utility, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SSD.Utility.dll</HintPath>
+        </Reference>
+        <Reference Include="System" />
+        <Reference Include="System.Core" />
+        <Reference Include="System.Data" />
+        <Reference Include="System.Xml" />
+        <Reference Include="Unity.RenderPipeline.Universal.ShaderLibrary, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Unity.RenderPipeline.Universal.ShaderLibrary.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.RenderPipelines.Core.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.RenderPipelines.Core.ShaderLibrary, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Unity.RenderPipelines.Core.ShaderLibrary.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.RenderPipelines.Universal.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.RenderPipelines.Universal.Shaders, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Unity.RenderPipelines.Universal.Shaders.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Unity.TextMeshPro.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.AnimationModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.AnimationModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.AssetBundleModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.InputLegacyModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.InputLegacyModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.UI.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="Compiler\Compiler.cs" />
+        <Compile Include="Compiler\Tokens\Timestamp.cs" />
+        <Compile Include="Plugin.cs" />
+        <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="Storyboard\Curve.cs" />
+        <Compile Include="Storyboard\Event.cs" />
+        <Compile Include="Storyboard\IEvaluable.cs" />
+        <Compile Include="Storyboard\InterpType.cs" />
+        <Compile Include="Storyboard\Keyframe.cs" />
+        <Compile Include="Storyboard\Property.cs" />
+        <Compile Include="Storyboard\Storyboard.cs" />
+    </ItemGroup>
+    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+         Other similar extension points exist, see Microsoft.Common.targets.
+    <Target Name="BeforeBuild">
+    </Target>
+    <Target Name="AfterBuild">
+    </Target>
+    -->
+
+</Project>
