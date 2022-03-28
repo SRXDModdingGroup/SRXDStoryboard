@@ -74,56 +74,43 @@ public static class Compiler {
                 if (string.IsNullOrWhiteSpace(tokenString))
                     return;
 
-                object token;
+                object token = null;
 
                 if (quotesCount > 0) {
-                    if (quotesCount != 2 || tokenString[0] != '\"' || tokenString[tokenString.Length - 1] != '\"') {
+                    if (quotesCount == 2 && tokenString[0] == '\"' && tokenString[tokenString.Length - 1] == '\"')
+                        token = tokenString.Substring(1, tokenString.Length - 2);
+                    else
                         ThrowParseError(index, tokens.Count, "Incorrectly formatted string");
-                        lineError = true;
-                        quotesCount = 0;
 
-                        return;
-                    }
-
-                    token = tokenString.Substring(1, tokenString.Length - 2);
                     quotesCount = 0;
                 }
                 else if (parenthesisCount > 0) {
                     if (parenthesisCount != 2 || tokenString[0] != '(' || tokenString[tokenString.Length - 1] != ')'
                         || !TryParseVector(tokenString.Substring(1, tokenString.Length - 2), builder, out token)) {
                         ThrowParseError(index, tokens.Count, "Incorrectly formatted vector");
-                        lineError = true;
-                        parenthesisCount = 0;
-
-                        return;
                     }
+                    
+                    parenthesisCount = 0;
                 }
-                else if (!TryParseKeyword(tokenString, out token)
-                         && !TryParseTimestamp(tokenString, builder, out token)
-                         && !TryParseVariable(tokenString, out token)) {
+                else if (Enum.TryParse<Keyword>(tokenString, out var keyword))
+                    token = keyword;
+                else if (bool.TryParse(tokenString, out bool boolVal))
+                    token = boolVal;
+                else if (int.TryParse(tokenString, out int intVal))
+                    token = intVal;
+                else if (float.TryParse(tokenString, out float floatVal))
+                    token = floatVal;
+                else if (!TryParseTimestamp(tokenString, builder, out token) && !TryParseVariable(tokenString, out token))
                     ThrowParseError(index, tokens.Count, "No valid format found");
+
+                if (token == null)
                     lineError = true;
-
-                    return;
-                }
-
+                
                 tokens.Add(token);
             }
         }
 
         return anyError;
-    }
-
-    private static bool TryParseKeyword(string token, out object keyword) {
-        if (!Enum.TryParse<Keyword>(token, out var keywordEnum)) {
-            keyword = null;
-
-            return false;
-        }
-
-        keyword = keywordEnum;
-
-        return true;
     }
 
     private static bool TryParseTimestamp(string token, StringBuilder builder, out object timestamp) {
