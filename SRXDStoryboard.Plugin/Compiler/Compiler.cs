@@ -20,94 +20,94 @@ public static class Compiler {
     private static void ThrowParseError(int lineIndex, int tokenIndex, string message) => Plugin.Logger.LogWarning($"Failed to parse storyboard line {lineIndex}, token {tokenIndex}: {message}");
 
     private static bool TryParseFile(string path, out List<List<object>> lines) {
-        bool anyError;
+        using var reader = new StreamReader(path);
+        bool anyError = false;
+        int index = 0;
+        
         lines = new List<List<object>>();
 
-        using (var reader = new StreamReader(path)) {
-            int index = 0;
+        while (!reader.EndOfStream) {
+            string line = reader.ReadLine();
 
-            while (!reader.EndOfStream) {
-                string line = reader.ReadLine();
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
 
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
+            var builder = new StringBuilder();
+            var tokens = new List<object>();
+            int quotesCount = 0;
+            int parenthesisCount = 0;
+            bool lineError = false;
 
-                var builder = new StringBuilder();
-                var tokens = new List<object>();
-                int quotesCount = 0;
-                int parenthesisCount = 0;
-                bool lineError = false;
-
-                foreach (char c in line) {
-                    if (char.IsWhiteSpace(c) && quotesCount != 1 && parenthesisCount != 1) {
-                        PopToken();
-                        builder.Clear();
-
-                        continue;
-                    }
-
-                    if (c == '\"')
-                        quotesCount++;
-                    else if (c is '(' or ')')
-                        parenthesisCount++;
-
-                    builder.Append(c);
-                }
-
-                PopToken();
-
-                if (lineError)
-                    anyError = true;
-                else
-                    lines.Add(tokens);
-
-                index++;
-
-                void PopToken() {
-                    if (builder.Length == 0)
-                        return;
-
-                    string tokenString = builder.ToString();
-
+            foreach (char c in line) {
+                if (char.IsWhiteSpace(c) && quotesCount != 1 && parenthesisCount != 1) {
+                    PopToken();
                     builder.Clear();
 
-                    if (string.IsNullOrWhiteSpace(tokenString))
-                        return;
-
-                    object token;
-
-                    if (quotesCount > 0) {
-                        if (quotesCount != 2 || tokenString[0] != '\"' || tokenString[tokenString.Length - 1] != '\"') {
-                            ThrowParseError(index, tokens.Count, "Incorrectly formatted string");
-                            lineError = true;
-                            quotesCount = 0;
-
-                            return;
-                        }
-
-                        token = tokenString.Substring(1, tokenString.Length - 2);
-                        quotesCount = 0;
-                    }
-                    else if (parenthesisCount > 0) {
-                        if (parenthesisCount != 2 || tokenString[0] != '(' || tokenString[tokenString.Length - 1] != ')'
-                            || !TryParseVector(tokenString.Substring(1, tokenString.Length - 2), builder, out token)) {
-                            ThrowParseError(index, tokens.Count, "Incorrectly formatted vector");
-                            lineError = true;
-                            parenthesisCount = 0;
-
-                            return;
-                        }
-                    }
-                    else if (!TryParseKeyword(tokenString, out token)
-                             && !TryParseTimestamp(tokenString, builder, out token)) {
-                        ThrowParseError(index, tokens.Count, "No valid format found");
-                        lineError = true;
-
-                        return;
-                    }
-
-                    tokens.Add(token);
+                    continue;
                 }
+
+                if (c == '\"')
+                    quotesCount++;
+                else if (c is '(' or ')')
+                    parenthesisCount++;
+
+                builder.Append(c);
+            }
+
+            PopToken();
+
+            if (lineError)
+                anyError = true;
+            else
+                lines.Add(tokens);
+
+            index++;
+
+            void PopToken() {
+                if (builder.Length == 0)
+                    return;
+
+                string tokenString = builder.ToString();
+
+                builder.Clear();
+
+                if (string.IsNullOrWhiteSpace(tokenString))
+                    return;
+
+                object token;
+
+                if (quotesCount > 0) {
+                    if (quotesCount != 2 || tokenString[0] != '\"' || tokenString[tokenString.Length - 1] != '\"') {
+                        ThrowParseError(index, tokens.Count, "Incorrectly formatted string");
+                        lineError = true;
+                        quotesCount = 0;
+
+                        return;
+                    }
+
+                    token = tokenString.Substring(1, tokenString.Length - 2);
+                    quotesCount = 0;
+                }
+                else if (parenthesisCount > 0) {
+                    if (parenthesisCount != 2 || tokenString[0] != '(' || tokenString[tokenString.Length - 1] != ')'
+                        || !TryParseVector(tokenString.Substring(1, tokenString.Length - 2), builder, out token)) {
+                        ThrowParseError(index, tokens.Count, "Incorrectly formatted vector");
+                        lineError = true;
+                        parenthesisCount = 0;
+
+                        return;
+                    }
+                }
+                else if (!TryParseKeyword(tokenString, out token)
+                         && !TryParseTimestamp(tokenString, builder, out token)
+                         && !TryParseVariable(tokenString, out token)) {
+                    ThrowParseError(index, tokens.Count, "No valid format found");
+                    lineError = true;
+
+                    return;
+                }
+
+                tokens.Add(token);
             }
         }
 
@@ -220,6 +220,35 @@ public static class Compiler {
 
             return true;
         }
+    }
+
+    private static bool TryParseVariable(string token, out object variable) {
+        if (token[0] == '.' || token[token.Length - 1] == '.') {
+            variable = null;
+
+            return false;
+        }
+
+        string[] split = token.Split('.');
+
+        if (split.Length == 0) {
+            variable = null;
+
+            return false;
+        }
+
+        foreach (string s in split) {
+            if (!string.IsNullOrWhiteSpace(s))
+                continue;
+            
+            variable = null;
+
+            return false;
+        }
+
+        variable = split;
+
+        return true;
     }
 
     private static bool TryCompileLines(List<List<object>> lines, out Storyboard storyboard) {
