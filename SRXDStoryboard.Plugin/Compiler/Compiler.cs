@@ -2,29 +2,34 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace SRXDStoryboard.Plugin;
 
 public static class Compiler {
-    public static Storyboard Compile(string path) {
-        if (!TryParseFile(path, out var lines))
-            return null;
-
-        if (!TryCompileLines(lines, out var storyboard))
-            return null;
-
-        return storyboard;
+    private static readonly Regex MATCH_TOKEN = new(@"//.*|""[^""]*""|\([^()]*\)|[\w.-]+");
+    private static readonly float[] PARSE_VECTOR_VALUES = new float[4];
+    private static readonly StringBuilder PARSE_TIMESTAMP_BUILDER = new();
+    
+    public static bool TryCompile(string path, out Storyboard storyboard) {
+        if (TryParseFile(path, out var instructions))
+            return TryCompileInstructions(instructions, out storyboard);
+        
+        storyboard = null;
+            
+        return false;
     }
 
-    private static void ThrowParseError(int lineIndex, int tokenIndex, string message) => Plugin.Logger.LogWarning($"Failed to parse storyboard line {lineIndex}, token {tokenIndex}: {message}");
+    private static void ThrowParseError(int lineIndex, int tokenIndex, string message)
+        => Plugin.Logger.LogWarning($"Failed to parse storyboard line {lineIndex}, token {tokenIndex}: {message}");
 
-    private static bool TryParseFile(string path, out List<List<object>> lines) {
+    private static bool TryParseFile(string path, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
         bool anyError = false;
         int index = 0;
         
-        lines = new List<List<object>>();
+        instructions = new List<Instruction>();
 
         while (!reader.EndOfStream) {
             string line = reader.ReadLine();
@@ -32,100 +37,145 @@ public static class Compiler {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            var builder = new StringBuilder();
-            var tokens = new List<object>();
-            int quotesCount = 0;
-            int parenthesisCount = 0;
-            bool lineError = false;
+            var matches = MATCH_TOKEN.Matches(line);
+            int count = 0;
 
-            foreach (char c in line) {
-                if (char.IsWhiteSpace(c) && quotesCount != 1 && parenthesisCount != 1) {
-                    PopToken();
-                    builder.Clear();
+            foreach (Match match in matches) {
+                if (match.Value.StartsWith("//"))
+                    break;
 
-                    continue;
-                }
-
-                if (c == '\"')
-                    quotesCount++;
-                else if (c is '(' or ')')
-                    parenthesisCount++;
-
-                builder.Append(c);
+                count++;
             }
 
-            PopToken();
+            if (count == 0)
+                continue;
 
-            if (lineError)
+            object[] tokens = new object[count];
+            bool parseError = false;
+
+            for (int i = 0; i < count; i++) {
+                string match = matches[i].Value;
+
+                if (TryParseToken(match, index, i, out object token))
+                    tokens[i] = token;
+                else
+                    parseError = true;
+            }
+
+            if (parseError) {
                 anyError = true;
-            else
-                lines.Add(tokens);
+                instructions.Add(new Instruction());
+                
+                continue;
+            }
+
+            int shift;
+            Timestamp timestamp;
+
+            if (tokens[0] is Timestamp newTimestamp) {
+                shift = 1;
+                timestamp = newTimestamp;
+            }
+            else {
+                shift = 0;
+                timestamp = Timestamp.Zero;
+            }
+
+            if (shift >= tokens.Length) {
+                ThrowParseError(index, shift, "No keyword found");
+                anyError = true;
+            }
+            else if (tokens[shift] is not Keyword keyword) {
+                ThrowParseError(index, shift, "Argument must be a keyword");
+                anyError = true;
+            }
+            else {
+                object[] arguments = new object[tokens.Length - shift - 1];
+                
+                if (arguments.Length > 0)
+                    Array.Copy(tokens, shift + 1, arguments, 0, arguments.Length);
+                
+                instructions.Add(new Instruction(timestamp, keyword, arguments));
+            }
 
             index++;
-
-            void PopToken() {
-                if (builder.Length == 0)
-                    return;
-
-                string tokenString = builder.ToString();
-
-                builder.Clear();
-
-                if (string.IsNullOrWhiteSpace(tokenString))
-                    return;
-
-                object token = null;
-
-                if (quotesCount > 0) {
-                    if (quotesCount == 2 && tokenString[0] == '\"' && tokenString[tokenString.Length - 1] == '\"')
-                        token = tokenString.Substring(1, tokenString.Length - 2);
-                    else
-                        ThrowParseError(index, tokens.Count, "Incorrectly formatted string");
-
-                    quotesCount = 0;
-                }
-                else if (parenthesisCount > 0) {
-                    if (parenthesisCount != 2 || tokenString[0] != '(' || tokenString[tokenString.Length - 1] != ')'
-                        || !TryParseVector(tokenString.Substring(1, tokenString.Length - 2), builder, out token)) {
-                        ThrowParseError(index, tokens.Count, "Incorrectly formatted vector");
-                    }
-                    
-                    parenthesisCount = 0;
-                }
-                else if (Enum.TryParse<Keyword>(tokenString, out var keyword))
-                    token = keyword;
-                else if (bool.TryParse(tokenString, out bool boolVal))
-                    token = boolVal;
-                else if (int.TryParse(tokenString, out int intVal))
-                    token = intVal;
-                else if (float.TryParse(tokenString, out float floatVal))
-                    token = floatVal;
-                else if (!TryParseTimestamp(tokenString, builder, out token) && !TryParseVariable(tokenString, out token))
-                    ThrowParseError(index, tokens.Count, "No valid format found");
-
-                if (token == null)
-                    lineError = true;
-                
-                tokens.Add(token);
-            }
         }
 
         return anyError;
     }
 
-    private static bool TryParseTimestamp(string token, StringBuilder builder, out object timestamp) {
+    private static bool TryParseToken(string value, int line, int index, out object token) {
+        if (value[0] == '\"' && value[value.Length - 1] == '\"')
+            token = value.Substring(1, value.Length - 2);
+        else if (value[0] == '(' && value[value.Length - 1] == ')') {
+            if (TryParseVector(value, out token))
+                return true;
+            
+            ThrowParseError(line, index, "Incorrectly formatted vector");
+            token = null;
+
+            return false;
+        }
+        else if (Enum.TryParse<Keyword>(value, out var keyword))
+            token = keyword;
+        else if (!TryParseTimestamp(value, out token)
+                 && !TryParsePrimitive(value, out token)
+                 && !TryParseVariable(value, out token)) {
+            ThrowParseError(line, index, "Incorrectly formatted token");
+            token = null;
+            
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryParseVector(string value, out object vector) {
+        string[] split = value.Substring(1, value.Length - 1).Split(new [] {' '}, StringSplitOptions.RemoveEmptyEntries);
+
+        if (split.Length is < 2 or > 4) {
+            vector = null;
+
+            return false;
+        }
+
+        for (int i = 0; i < split.Length; i++) {
+            if (float.TryParse(split[i], out PARSE_VECTOR_VALUES[i]))
+                continue;
+            
+            vector = null;
+
+            return false;
+        }
+
+        switch (split.Length) {
+            case 2:
+                vector = new Vector2(PARSE_VECTOR_VALUES[0], PARSE_VECTOR_VALUES[1]);
+                return true;
+            case 3:
+                vector = new Vector3(PARSE_VECTOR_VALUES[0], PARSE_VECTOR_VALUES[1], PARSE_VECTOR_VALUES[2]);
+                return true;
+            default:
+                vector = new Vector4(PARSE_VECTOR_VALUES[0], PARSE_VECTOR_VALUES[1], PARSE_VECTOR_VALUES[2], PARSE_VECTOR_VALUES[3]);
+                return true;
+        }
+    }
+
+    private static bool TryParseTimestamp(string value, out object timestamp) {
         float beats = 0f;
         float ticks = 0f;
         float seconds = 0f;
         
-        foreach (char c in token) {
+        PARSE_TIMESTAMP_BUILDER.Clear();
+        
+        foreach (char c in value) {
             if (c is not ('b' or 't' or 's')) {
-                builder.Append(c);
+                PARSE_TIMESTAMP_BUILDER.Append(c);
                 
                 continue;
             }
 
-            if (!float.TryParse(builder.ToString(), out float value)) {
+            if (!float.TryParse(PARSE_TIMESTAMP_BUILDER.ToString(), out float floatVal)) {
                 timestamp = null;
 
                 return false;
@@ -133,20 +183,20 @@ public static class Compiler {
 
             switch (c) {
                 case 'b':
-                    beats = value;
+                    beats = floatVal;
                     break;
                 case 't':
-                    ticks = value;
+                    ticks = floatVal;
                     break;
                 case 's':
-                    seconds = value;
+                    seconds = floatVal;
                     break;
             }
 
-            builder.Clear();
+            PARSE_TIMESTAMP_BUILDER.Clear();
         }
 
-        if (builder.Length > 0) {
+        if (PARSE_TIMESTAMP_BUILDER.Length > 0) {
             timestamp = null;
 
             return false;
@@ -157,60 +207,24 @@ public static class Compiler {
         return true;
     }
 
-    private static bool TryParseVector(string subString, StringBuilder builder, out object vector) {
-        float[] values = new float[4];
-        int count = 0;
-        string token;
-        
-        foreach (char c in subString) {
-            if (!char.IsWhiteSpace(c))
-                builder.Append(c);
-            else {
-                token = builder.ToString();
-                
-                if (!string.IsNullOrWhiteSpace(token) && !TryPopValue()) {
-                    vector = null;
-                    
-                    return false;
-                }
-                
-                builder.Clear();
-            }
-        }
-        
-        token = builder.ToString();
-        
-        if (string.IsNullOrWhiteSpace(token) || !TryPopValue() || values.Length < 2) {
-            vector = null;
-                    
+    private static bool TryParsePrimitive(string value, out object primitive) {
+        if (bool.TryParse(value, out bool boolVal))
+            primitive = boolVal;
+        else if (int.TryParse(value, out int intVal))
+            primitive = intVal;
+        else if (float.TryParse(value, out float floatVal))
+            primitive = floatVal;
+        else {
+            primitive = null;
+
             return false;
         }
 
-        switch (values.Length) {
-            case 2:
-                vector = new Vector2(values[0], values[1]);
-                return true;
-            case 3:
-                vector = new Vector3(values[0], values[1], values[2]);
-                return true;
-            default:
-                vector = new Vector4(values[0], values[1], values[2], values[3]);
-                return true;
-        }
-        
-        bool TryPopValue() {
-            if (values.Length == 4 || !float.TryParse(token, out float value))
-                return false;
-
-            values[count] = value;
-            count++;
-
-            return true;
-        }
+        return true;
     }
 
     private static bool TryParseVariable(string token, out object variable) {
-        if (token[0] == '.' || token[token.Length - 1] == '.') {
+        if (token.Contains("+") || token.Contains("-")) {
             variable = null;
 
             return false;
@@ -238,8 +252,8 @@ public static class Compiler {
         return true;
     }
 
-    private static bool TryCompileLines(List<List<object>> lines, out Storyboard storyboard) {
-        foreach (var line in lines) {
+    private static bool TryCompileInstructions(List<Instruction> instructions, out Storyboard storyboard) {
+        foreach (var instruction in instructions) {
             
         }
     }

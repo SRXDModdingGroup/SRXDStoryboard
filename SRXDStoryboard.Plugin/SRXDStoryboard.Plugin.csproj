@@ -109,6 +109,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Compiler\Compiler.cs" />
+        <Compile Include="Compiler\Instruction.cs" />
         <Compile Include="Compiler\Keyword.cs" />
         <Compile Include="Compiler\Timestamp.cs" />
         <Compile Include="Plugin.cs" />

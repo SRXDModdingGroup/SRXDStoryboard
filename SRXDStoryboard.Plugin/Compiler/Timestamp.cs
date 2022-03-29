@@ -3,6 +3,8 @@
 namespace SRXDStoryboard.Plugin; 
 
 public readonly struct Timestamp {
+    public static Timestamp Zero => new Timestamp(0f, 0f, 0f);
+
     public float Beats { get; }
     
     public float Ticks { get; }
