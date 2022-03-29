@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SRXDStoryboard.Plugin;
@@ -8,12 +9,37 @@ public class Compiler {
 
     private Compiler() { }
 
-    private bool TryCompileInstructions(List<Instruction> instructions, out Storyboard storyboard) {
+    private bool TryCompile(List<Instruction> instructions, out Storyboard storyboard) {
         variables = new Dictionary<string, Variable>();
         
         foreach (var instruction in instructions) {
+            object[] arguments = instruction.Arguments;
+            
             switch (instruction.Opcode) {
-                
+                case Opcode.Def when TryGetArguments(arguments, out string[] str, out Variable variable):
+                    if (str.Length != 1)
+                        break;
+
+                    string name = str[0];
+
+                    if (variables.ContainsKey(name))
+                        break;
+                    
+                    variables.Add(name, variable);
+                    
+                    break;
+                case Opcode.Event:
+                    break;
+                case Opcode.Inst:
+                    break;
+                case Opcode.Key:
+                    break;
+                case Opcode.Load:
+                    break;
+                case Opcode.Post:
+                    break;
+                case Opcode.Proc:
+                    break;
             }
         }
     }
@@ -68,7 +94,7 @@ public class Compiler {
     }
 
     private bool TryResolveImmediateOrVariable<T>(object argument, out T value) {
-        if (TryGetConversion(argument, out value))
+        if (Conversion.TryConvert(argument, out value))
             return true;
 
         if (argument is not string[] hierarchy || !variables.TryGetValue(hierarchy[0], out var variable)) {
@@ -93,7 +119,7 @@ public class Compiler {
             return true;
         }
 
-        if (TryGetConversion(variable.Value, out value))
+        if (Conversion.TryConvert(variable.Value, out value))
             return true;
 
         value = default;
@@ -103,36 +129,10 @@ public class Compiler {
 
     public static bool TryCompileFile(string path, out Storyboard storyboard) {
         if (Parser.TryParseFile(path, out var instructions))
-            return new Compiler().TryCompileInstructions(instructions, out storyboard);
+            return new Compiler().TryCompile(instructions, out storyboard);
         
         storyboard = null;
             
         return false;
-    }
-
-    private static bool TryGetConversion<T>(object value, out T conversion) {
-        if (value is T cast) {
-            conversion = cast;
-
-            return true;
-        }
-
-        conversion = (T) (object) (typeof(T) switch {
-            var type when type == typeof(Quaternion) => value switch {
-                float f => Quaternion.Euler(0f, 0f, f),
-                Vector3 v => Quaternion.Euler(v.x, v.y, v.z),
-                Vector4 v => new Quaternion(v.x, v.y, v.z, v.w),
-                _ => null
-            },
-            var type when type == typeof(Color) => value switch {
-                float f => new Color(f, f, f),
-                Vector3 v => new Color(v.x, v.y, v.z),
-                Vector4 v => new Color(v.x, v.y, v.z, v.w),
-                _ => null
-            },
-            _ => null
-        });
-        
-        return conversion == null;
     }
 }

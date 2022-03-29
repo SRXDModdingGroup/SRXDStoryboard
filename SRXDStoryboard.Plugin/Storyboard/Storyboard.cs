@@ -1,20 +1,26 @@
 ﻿namespace SRXDStoryboard.Plugin; 
 
 public class Storyboard {
-    private string assetBundleName;
     private AssetBundleReference assetBundleReference;
     private ObjectReference[] assetReferences;
     private ObjectReference[] instanceReferences;
     private Event[] events;
     private Curve[] curves;
 
+    public Storyboard(AssetBundleReference assetBundleReference, ObjectReference[] assetReferences, ObjectReference[] instanceReferences, Event[] events, Curve[] curves) {
+        this.assetBundleReference = assetBundleReference;
+        this.assetReferences = assetReferences;
+        this.instanceReferences = instanceReferences;
+        this.events = events;
+        this.curves = curves;
+    }
+
     public void Evaluate(float fromTime, float toTime) {
         if (fromTime == toTime)
             return;
 
-        foreach (var @event in events) {
+        foreach (var @event in events)
             @event.Evaluate(fromTime, toTime);
-        }
 
         foreach (var curve in curves)
             curve.Evaluate(fromTime, toTime);

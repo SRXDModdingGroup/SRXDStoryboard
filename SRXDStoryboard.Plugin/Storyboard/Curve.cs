@@ -12,6 +12,11 @@ public class Curve<T> : Curve {
     
     public Keyframe<T>[] Keyframes { get; }
 
+    public Curve(Property<T> property, Keyframe<T>[] keyframes) {
+        Property = property;
+        Keyframes = keyframes;
+    }
+
     public override void Evaluate(float fromTime, float toTime) {
         int index = Array.BinarySearch(Keyframes, toTime);
 

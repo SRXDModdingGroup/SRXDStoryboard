@@ -110,6 +110,8 @@ public static class Parser {
         }
         else if (Enum.TryParse<Opcode>(value, true, out var opcode))
             token = opcode;
+        else if (Enum.TryParse<InterpType>(value, true, out var interpType))
+            token = interpType;
         else if (!TryParseTimestamp(value, out token)
                  && !TryParsePrimitive(value, out token)
                  && !TryParseVariable(value, out token)) {

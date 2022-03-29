@@ -109,6 +109,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Compiler\Compiler.cs" />
+        <Compile Include="Compiler\Conversion.cs" />
         <Compile Include="Compiler\Instruction.cs" />
         <Compile Include="Compiler\Opcode.cs" />
         <Compile Include="Compiler\Parser.cs" />
