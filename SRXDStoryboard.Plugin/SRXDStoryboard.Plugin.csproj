@@ -112,6 +112,7 @@
         <Compile Include="Compiler\Instruction.cs" />
         <Compile Include="Compiler\Keyword.cs" />
         <Compile Include="Compiler\Timestamp.cs" />
+        <Compile Include="Compiler\Variable.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Storyboard\Curve.cs" />
@@ -119,6 +120,9 @@
         <Compile Include="Storyboard\IEvaluable.cs" />
         <Compile Include="Storyboard\InterpType.cs" />
         <Compile Include="Storyboard\Keyframe.cs" />
+        <Compile Include="Storyboard\UnityAssetReference.cs" />
+        <Compile Include="Storyboard\UnityInstanceReference.cs" />
+        <Compile Include="Storyboard\UnityObjectReference.cs" />
         <Compile Include="Storyboard\Property.cs" />
         <Compile Include="Storyboard\Storyboard.cs" />
     </ItemGroup>

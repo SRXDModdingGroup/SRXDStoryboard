@@ -1,9 +1,7 @@
-﻿using System.Text;
-
-namespace SRXDStoryboard.Plugin; 
+﻿namespace SRXDStoryboard.Plugin; 
 
 public readonly struct Timestamp {
-    public static Timestamp Zero => new Timestamp(0f, 0f, 0f);
+    public static Timestamp Zero => new(0f, 0f, 0f);
 
     public float Beats { get; }
     
