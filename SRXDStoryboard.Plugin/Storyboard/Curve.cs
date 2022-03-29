@@ -1,14 +1,18 @@
 ﻿using System;
 using UnityEngine;
 
-namespace SRXDStoryboard.Plugin; 
+namespace SRXDStoryboard.Plugin;
 
-public class Curve<T> : IEvaluable {
+public abstract class Curve {
+    public abstract void Evaluate(float fromTime, float toTime);
+}
+
+public class Curve<T> : Curve {
     public Property<T> Property { get; }
     
     public Keyframe<T>[] Keyframes { get; }
 
-    public void Evaluate(float fromTime, float toTime) {
+    public override void Evaluate(float fromTime, float toTime) {
         int index = Array.BinarySearch(Keyframes, toTime);
 
         if (index < 0)

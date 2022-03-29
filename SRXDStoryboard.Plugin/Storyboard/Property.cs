@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace SRXDStoryboard.Plugin; 
+﻿namespace SRXDStoryboard.Plugin; 
 
 public abstract class Property<T> {
     public abstract void Set(T value);

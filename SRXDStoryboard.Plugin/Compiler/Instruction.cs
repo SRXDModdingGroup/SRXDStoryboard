@@ -3,13 +3,13 @@
 public readonly struct Instruction {
     public Timestamp Timestamp { get; }
     
-    public Keyword Keyword { get; }
+    public Opcode Opcode { get; }
     
     public object[] Arguments { get; }
 
-    public Instruction(Timestamp timestamp, Keyword keyword, object[] arguments) {
+    public Instruction(Timestamp timestamp, Opcode opcode, object[] arguments) {
         Timestamp = timestamp;
-        Keyword = keyword;
+        Opcode = opcode;
         Arguments = arguments;
     }
 }

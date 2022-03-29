@@ -1,6 +1,6 @@
 ﻿namespace SRXDStoryboard.Plugin; 
 
-public abstract class Event : IEvaluable {
+public abstract class Event {
     public float Time { get; }
 
     public abstract void Execute();

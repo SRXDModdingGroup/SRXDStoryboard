@@ -1,6 +1,6 @@
 ﻿namespace SRXDStoryboard.Plugin; 
 
-public enum Keyword {
+public enum Opcode {
     Def,
     Event,
     Inst,
