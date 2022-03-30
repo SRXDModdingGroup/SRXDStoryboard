@@ -9,7 +9,7 @@ using UnityEngine;
 namespace SRXDStoryboard.Plugin;
 
 public static class Parser {
-    private static readonly Regex MATCH_TOKEN = new(@"//.*|""[^""]*""|\([^()]*\)|[\w.-]+");
+    private static readonly Regex MATCH_TOKEN = new(@"//.*|""[^""]*""|\[[^\[\]]*\]|[\w.-]+");
     private static readonly float[] PARSE_VECTOR_VALUES = new float[4];
     private static readonly StringBuilder PARSE_TIMESTAMP_BUILDER = new();
 
@@ -99,7 +99,7 @@ public static class Parser {
     private static bool TryParseToken(string value, int line, int index, out object token) {
         if (value[0] == '\"' && value[value.Length - 1] == '\"')
             token = value.Substring(1, value.Length - 2);
-        else if (value[0] == '(' && value[value.Length - 1] == ')') {
+        else if (value[0] == '[' && value[value.Length - 1] == ']') {
             if (TryParseVector(value, out token))
                 return true;
             

@@ -6,6 +6,7 @@ public enum Opcode {
     Inst,
     Key,
     Load,
+    Loop,
     Proc,
     Set,
     SetG

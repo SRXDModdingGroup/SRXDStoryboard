@@ -65,12 +65,12 @@ public static class Compiler {
                     procedures.Add(name, new Procedure(i, argNames));
                     
                     break;
-                case Opcode.SetG:
-                    break;
                 case Opcode.Call:
                 case Opcode.Event:
                 case Opcode.Key:
+                case Opcode.Loop:
                 case Opcode.Set:
+                case Opcode.SetG:
                     break;
                 default:
                     ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}");
@@ -87,15 +87,19 @@ public static class Compiler {
 
         int index = procedure.StartIndex;
         var globals = new Dictionary<string, object>();
-        var currentScope = new Scope(null, Timestamp.Zero, index, 0, globals, new Dictionary<string, object>());
+        var currentScope = new Scope(null, Timestamp.Zero, index, 0, 1, globals, new Dictionary<string, object>());
 
         while (currentScope != null) {
             index++;
             
             if (index >= instructions.Count || instructions[index].Opcode == Opcode.Proc) {
-                index = currentScope.ReturnIndex;
-                currentScope = currentScope.Parent;
-                
+                if (currentScope.NextIteration())
+                    index = currentScope.StartIndex;
+                else {
+                    index = currentScope.ReturnIndex;
+                    currentScope = currentScope.Parent;
+                }
+
                 continue;
             }
             
@@ -105,48 +109,18 @@ public static class Compiler {
             
             switch (opcode) {
                 case Opcode.Call:
-                    if (arguments.Length < 1 || arguments[0] is not string[] { Length: 1 } str0) {
-                        ThrowCompileError(instruction.LineIndex, "Invalid arguments for instruction Call");
-
+                    if (!TryCallProcedure(false))
                         return false;
-                    }
-                    
-                    string name = str0[0];
-
-                    if (!procedures.TryGetValue(name, out procedure)) {
-                        ThrowCompileError(instruction.LineIndex, $"Procedure {name} could not be found");
-
-                        return false;
-                    }
-
-                    string[] argNames = procedure.ArgNames;
-
-                    if (arguments.Length != argNames.Length + 1) {
-                        ThrowCompileError(instruction.LineIndex, $"Invalid arguments for procedure call {name}");
-
-                        return false;
-                    }
-                    
-                    int newIndex = procedure.StartIndex;
-                    
-                    if (!currentScope.CheckForRecursion(newIndex)) {
-                        ThrowCompileError(instruction.LineIndex, "Recursive procedure call detected");
-
-                        return false;
-                    }
-
-                    var locals = new Dictionary<string, object>();
-
-                    for (int i = 1, j = 0; i < arguments.Length; i++, j++)
-                        locals.Add(argNames[j], arguments[i]);
-
-                    currentScope = new Scope(currentScope, currentScope.StartTime + instruction.Timestamp, newIndex, index, globals, locals);
-                    index = newIndex;
 
                     break;
                 case Opcode.Event:
                     break;
                 case Opcode.Key:
+                    break;
+                case Opcode.Loop:
+                    if (!TryCallProcedure(true))
+                        return false;
+                    
                     break;
                 case Opcode.Set when TryGetArguments(arguments, currentScope, out string[] str, out object value) && str.Length == 1:
                     currentScope.SetValue(str[0], value);
@@ -167,10 +141,69 @@ public static class Compiler {
 
                     return false;
             }
+
+            bool TryCallProcedure(bool isLoop) {
+                if (arguments.Length < 1 || arguments[0] is not string[] { Length: 1 } str0) {
+                    ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}");
+
+                    return false;
+                }
+
+                string name = str0[0];
+
+                if (!procedures.TryGetValue(name, out procedure)) {
+                    ThrowCompileError(instruction.LineIndex, $"Procedure {name} could not be found");
+
+                    return false;
+                }
+
+                int iterations;
+
+                if (isLoop) {
+                    if (arguments.Length < 2 || arguments[1] is not int intVal) {
+                        ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction Loop");
+
+                        return false;
+                    }
+
+                    iterations = intVal;
+                }
+                else
+                    iterations = 1;
+
+                int shift = isLoop ? 2 : 1;
+                string[] argNames = procedure.ArgNames;
+
+                if (arguments.Length != argNames.Length + shift) {
+                    ThrowCompileError(instruction.LineIndex, $"Invalid arguments for procedure call {name}");
+
+                    return false;
+                }
+
+                int newIndex = procedure.StartIndex;
+
+                if (!currentScope.CheckForRecursion(newIndex)) {
+                    ThrowCompileError(instruction.LineIndex, "Recursive procedure call detected");
+
+                    return false;
+                }
+
+                var locals = new Dictionary<string, object>();
+
+                for (int i = shift, j = 0; i < arguments.Length; i++, j++)
+                    locals.Add(argNames[j], arguments[i]);
+
+                currentScope = new Scope(currentScope, currentScope.StartTime + instruction.Timestamp, newIndex, index, iterations, globals, locals);
+                index = newIndex;
+                
+                return true;
+            }
         }
 
         return true;
     }
+    
+    
     
     private static void ThrowCompileError(int lineIndex, string message)
         => Plugin.Logger.LogWarning($"Failed to compile instruction on line {lineIndex}: {message}");
