@@ -1,11 +1,12 @@
 ﻿namespace SRXDStoryboard.Plugin; 
 
 public enum Opcode {
-    Def,
+    Bundle,
+    Call,
     Event,
     Inst,
     Key,
     Load,
-    Post,
-    Proc
+    Proc,
+    Set
 }

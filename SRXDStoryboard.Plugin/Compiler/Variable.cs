@@ -7,22 +7,22 @@ public class Variable {
 
     public Variable(object value) => Value = value;
     
-    private Dictionary<string, Variable> cachedSubVariables;
+    private Dictionary<string, object> cachedSubVariables;
 
-    public bool TryGetSubVariable(string name, out Variable variable) {
+    public bool TryGetSubVariable(string name, out object variable) {
         if (cachedSubVariables != null && cachedSubVariables.TryGetValue(name, out variable))
             return true;
 
         if (!TryCreateSubVariable(name, out variable))
             return false;
 
-        cachedSubVariables ??= new Dictionary<string, Variable>();
+        cachedSubVariables ??= new Dictionary<string, object>();
         cachedSubVariables.Add(name, variable);
 
         return true;
     }
 
-    protected virtual bool TryCreateSubVariable(string name, out Variable variable) {
+    protected virtual bool TryCreateSubVariable(string name, out object variable) {
         variable = null;
 
         return false;

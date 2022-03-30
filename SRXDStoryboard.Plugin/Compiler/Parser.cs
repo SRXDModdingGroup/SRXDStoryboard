@@ -84,7 +84,7 @@ public static class Parser {
                 if (arguments.Length > 0)
                     Array.Copy(tokens, shift + 1, arguments, 0, arguments.Length);
                 
-                instructions.Add(new Instruction(timestamp, keyword, arguments));
+                instructions.Add(new Instruction(timestamp, keyword, arguments, index));
             }
 
             index++;
@@ -156,7 +156,7 @@ public static class Parser {
     }
 
     private static bool TryParseTimestamp(string value, out object timestamp) {
-        float beats = 0f;
+        int beats = 0;
         float ticks = 0f;
         float seconds = 0f;
         
@@ -169,22 +169,17 @@ public static class Parser {
                 continue;
             }
 
-            if (!float.TryParse(PARSE_TIMESTAMP_BUILDER.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out float floatVal)) {
-                timestamp = null;
-
-                return false;
-            }
+            string s = PARSE_TIMESTAMP_BUILDER.ToString();
 
             switch (c) {
-                case 'b':
-                    beats = floatVal;
+                case 'b' when int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out beats):
+                case 't' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out ticks):
+                case 's' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out seconds):
                     break;
-                case 't':
-                    ticks = floatVal;
-                    break;
-                case 's':
-                    seconds = floatVal;
-                    break;
+                default:
+                    timestamp = null;
+
+                    return false;
             }
 
             PARSE_TIMESTAMP_BUILDER.Clear();

@@ -113,6 +113,7 @@
         <Compile Include="Compiler\Instruction.cs" />
         <Compile Include="Compiler\Opcode.cs" />
         <Compile Include="Compiler\Parser.cs" />
+        <Compile Include="Compiler\Scope.cs" />
         <Compile Include="Compiler\Timestamp.cs" />
         <Compile Include="Compiler\Variable.cs" />
         <Compile Include="Plugin.cs" />
