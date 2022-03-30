@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace SRXDStoryboard.Plugin;
 
@@ -16,27 +15,54 @@ public static class Compiler {
     private static bool TryCompile(List<Instruction> instructions, out Storyboard storyboard) {
         storyboard = null;
         
-        var procedures = new Dictionary<string, int>();
+        var procedures = new Dictionary<string, Procedure>();
 
         for (int i = 0; i < instructions.Count; i++) {
             var instruction = instructions[i];
             var opcode = instruction.Opcode;
+            object[] arguments = instruction.Arguments;
 
             switch (opcode) {
                 case Opcode.Inst:
                     break;
                 case Opcode.Load:
                     break;
-                case Opcode.Proc when TryGetArguments(instruction.Arguments, null, out string[] str) && str.Length == 1:
-                    string name = str[0];
+                case Opcode.Proc:
+                    if (arguments.Length < 1 || arguments[0] is not string[] { Length: 1 } str0) {
+                        ThrowCompileError(instruction.LineIndex, "Invalid arguments for instruction Proc");
 
+                        return false;
+                    }
+
+                    string name = str0[0];
+                    
                     if (procedures.ContainsKey(name)) {
                         ThrowCompileError(instruction.LineIndex, $"Procedure {name} already exists");
                 
                         return false;
                     }
+                    
+                    string[] argNames = new string[arguments.Length - 1];
 
-                    procedures.Add(name, i);
+                    for (int j = 1, k = 0; j < arguments.Length; j++, k++) {
+                        if (arguments[j] is not string[] { Length: 1 } str1) {
+                            ThrowCompileError(instruction.LineIndex, "Invalid arguments for instruction Proc");
+
+                            return false;
+                        }
+
+                        string argName = str1[0];
+
+                        if (argNames.Contains(argName)) {
+                            ThrowCompileError(instruction.LineIndex, $"Argument name {argName} already exists");
+
+                            return false;
+                        }
+
+                        argNames[k] = argName;
+                    }
+
+                    procedures.Add(name, new Procedure(i, argNames));
                     
                     break;
                 case Opcode.SetG:
@@ -53,12 +79,13 @@ public static class Compiler {
             }
         }
 
-        if (!procedures.TryGetValue("Main", out int index)) {
+        if (!procedures.TryGetValue("Main", out var procedure)) {
             ThrowCompileError(0, "Procedure Main could not be found");
 
             return false;
         }
 
+        int index = procedure.StartIndex;
         var globals = new Dictionary<string, object>();
         var currentScope = new Scope(null, Timestamp.Zero, index, 0, globals, new Dictionary<string, object>());
 
@@ -77,14 +104,30 @@ public static class Compiler {
             object[] arguments = instruction.Arguments;
             
             switch (opcode) {
-                case Opcode.Call when TryGetArguments(arguments, currentScope, out string[] str) && str.Length == 1:
-                    string name = str[0];
+                case Opcode.Call:
+                    if (arguments.Length < 1 || arguments[0] is not string[] { Length: 1 } str0) {
+                        ThrowCompileError(instruction.LineIndex, "Invalid arguments for instruction Call");
 
-                    if (!procedures.TryGetValue(name, out int newIndex)) {
+                        return false;
+                    }
+                    
+                    string name = str0[0];
+
+                    if (!procedures.TryGetValue(name, out procedure)) {
                         ThrowCompileError(instruction.LineIndex, $"Procedure {name} could not be found");
 
                         return false;
                     }
+
+                    string[] argNames = procedure.ArgNames;
+
+                    if (arguments.Length != argNames.Length + 1) {
+                        ThrowCompileError(instruction.LineIndex, $"Invalid arguments for procedure call {name}");
+
+                        return false;
+                    }
+                    
+                    int newIndex = procedure.StartIndex;
                     
                     if (!currentScope.CheckForRecursion(newIndex)) {
                         ThrowCompileError(instruction.LineIndex, "Recursive procedure call detected");
@@ -92,7 +135,12 @@ public static class Compiler {
                         return false;
                     }
 
-                    currentScope = new Scope(currentScope, currentScope.StartTime + instruction.Timestamp, newIndex, index, globals, new Dictionary<string, object>());
+                    var locals = new Dictionary<string, object>();
+
+                    for (int i = 1, j = 0; i < arguments.Length; i++, j++)
+                        locals.Add(argNames[j], arguments[i]);
+
+                    currentScope = new Scope(currentScope, currentScope.StartTime + instruction.Timestamp, newIndex, index, globals, locals);
                     index = newIndex;
 
                     break;
