@@ -6,15 +6,17 @@ public class Scope {
     public Scope Parent { get; }
 
     public Timestamp StartTime { get; }
-
+    
     public int ReturnIndex { get; }
 
+    private int startIndex;
     private Dictionary<string, object> globals;
     private Dictionary<string, object> locals;
 
-    public Scope(Scope parent, Timestamp startTime, int returnIndex, Dictionary<string, object> globals, Dictionary<string, object> locals) {
+    public Scope(Scope parent, Timestamp startTime, int startIndex, int returnIndex, Dictionary<string, object> globals, Dictionary<string, object> locals) {
         Parent = parent;
         StartTime = startTime;
+        this.startIndex = startIndex;
         ReturnIndex = returnIndex;
         this.globals = globals;
         this.locals = locals;
@@ -24,4 +26,6 @@ public class Scope {
     
     public bool TryGetValue(string name, out object value)
         => locals.TryGetValue(name, out value) || globals.TryGetValue(name, out value);
+
+    public bool CheckForRecursion(int index) => startIndex != index && (Parent == null || Parent.CheckForRecursion(index));
 }

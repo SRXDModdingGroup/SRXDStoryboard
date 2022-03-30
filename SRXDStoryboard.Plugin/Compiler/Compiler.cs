@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace SRXDStoryboard.Plugin;
 
@@ -19,38 +20,51 @@ public static class Compiler {
 
         for (int i = 0; i < instructions.Count; i++) {
             var instruction = instructions[i];
+            var opcode = instruction.Opcode;
 
-            if (instruction.Opcode != Opcode.Proc)
-                continue;
-            
-            if (!TryGetArguments(instruction.Arguments, null, out string[] str) || str.Length != 1) {
-                ThrowCompileError(instruction.LineIndex, "Invalid arguments for instruction Proc");
+            switch (opcode) {
+                case Opcode.Inst:
+                    break;
+                case Opcode.Load:
+                    break;
+                case Opcode.Proc when TryGetArguments(instruction.Arguments, null, out string[] str) && str.Length == 1:
+                    string name = str[0];
+
+                    if (procedures.ContainsKey(name)) {
+                        ThrowCompileError(instruction.LineIndex, $"Procedure {name} already exists");
                 
-                return false;
+                        return false;
+                    }
+
+                    procedures.Add(name, i);
+                    
+                    break;
+                case Opcode.SetG:
+                    break;
+                case Opcode.Call:
+                case Opcode.Event:
+                case Opcode.Key:
+                case Opcode.Set:
+                    break;
+                default:
+                    ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}");
+
+                    return false;
             }
-
-            string name = str[0];
-
-            if (procedures.ContainsKey(name)) {
-                ThrowCompileError(instruction.LineIndex, $"Procedure {name} already exists");
-                
-                return false;
-            }
-
-            procedures.Add(name, i);
         }
 
-        if (!procedures.TryGetValue("Main", out int mainIndex)) {
+        if (!procedures.TryGetValue("Main", out int index)) {
             ThrowCompileError(0, "Procedure Main could not be found");
 
             return false;
         }
 
         var globals = new Dictionary<string, object>();
-        var currentScope = new Scope(null, Timestamp.Zero, 0, globals, new Dictionary<string, object>());
-        int index = mainIndex + 1;
+        var currentScope = new Scope(null, Timestamp.Zero, index, 0, globals, new Dictionary<string, object>());
 
         while (currentScope != null) {
+            index++;
+            
             if (index >= instructions.Count || instructions[index].Opcode == Opcode.Proc) {
                 index = currentScope.ReturnIndex;
                 currentScope = currentScope.Parent;
@@ -71,8 +85,14 @@ public static class Compiler {
 
                         return false;
                     }
+                    
+                    if (!currentScope.CheckForRecursion(newIndex)) {
+                        ThrowCompileError(instruction.LineIndex, "Recursive procedure call detected");
 
-                    currentScope = new Scope(currentScope, currentScope.StartTime + instruction.Timestamp, index, globals, new Dictionary<string, object>());
+                        return false;
+                    }
+
+                    currentScope = new Scope(currentScope, currentScope.StartTime + instruction.Timestamp, newIndex, index, globals, new Dictionary<string, object>());
                     index = newIndex;
 
                     break;
@@ -88,19 +108,17 @@ public static class Compiler {
                     globals[str[0]] = value;
 
                     break;
-                case Opcode.Bundle:
                 case Opcode.Inst:
                 case Opcode.Load:
                     ThrowCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure");
 
                     return false;
+                case Opcode.Proc:
                 default:
                     ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}");
 
                     return false;
             }
-
-            index++;
         }
 
         return true;
