@@ -8,5 +8,6 @@ public enum Opcode {
     Key,
     Load,
     Proc,
-    Set
+    Set,
+    SetG
 }

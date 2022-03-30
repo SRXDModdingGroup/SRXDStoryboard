@@ -1,14 +1,14 @@
 ﻿namespace SRXDStoryboard.Plugin; 
 
 public class Storyboard {
-    private AssetBundleReference assetBundleReference;
+    private AssetBundleReference[] assetBundleReferences;
     private ObjectReference[] assetReferences;
     private ObjectReference[] instanceReferences;
     private Event[] events;
     private Curve[] curves;
 
-    public Storyboard(AssetBundleReference assetBundleReference, ObjectReference[] assetReferences, ObjectReference[] instanceReferences, Event[] events, Curve[] curves) {
-        this.assetBundleReference = assetBundleReference;
+    public Storyboard(AssetBundleReference[] assetBundleReferences, ObjectReference[] assetReferences, ObjectReference[] instanceReferences, Event[] events, Curve[] curves) {
+        this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
         this.events = events;
@@ -27,7 +27,8 @@ public class Storyboard {
     }
 
     public void Load() {
-        assetBundleReference.Load();
+        foreach (var reference in assetBundleReferences)
+            reference.Load();
         
         foreach (var reference in assetReferences)
             reference.Load();
@@ -43,6 +44,7 @@ public class Storyboard {
         foreach (var reference in assetReferences)
             reference.Unload();
         
-        assetBundleReference.Unload();
+        foreach (var reference in assetBundleReferences)
+            reference.Unload();
     }
 }

@@ -40,9 +40,15 @@ public static class Compiler {
             procedures.Add(name, i);
         }
 
-        var globalScope = new Scope(null, null, Timestamp.Zero, 0, new Dictionary<string, object>());
-        var currentScope = globalScope;
-        int index = 0;
+        if (!procedures.TryGetValue("Main", out int mainIndex)) {
+            ThrowCompileError(0, "Procedure Main could not be found");
+
+            return false;
+        }
+
+        var globals = new Dictionary<string, object>();
+        var currentScope = new Scope(null, Timestamp.Zero, 0, globals, new Dictionary<string, object>());
+        int index = mainIndex + 1;
 
         while (currentScope != null) {
             if (index >= instructions.Count || instructions[index].Opcode == Opcode.Proc) {
@@ -57,46 +63,47 @@ public static class Compiler {
             object[] arguments = instruction.Arguments;
             
             switch (opcode) {
-                case Opcode.Call when TryGetArguments(arguments, currentScope, out string[] str) && str.Length == 1: {
+                case Opcode.Call when TryGetArguments(arguments, currentScope, out string[] str) && str.Length == 1:
                     string name = str[0];
-                    
+
                     if (!procedures.TryGetValue(name, out int newIndex)) {
                         ThrowCompileError(instruction.LineIndex, $"Procedure {name} could not be found");
-                        
+
                         return false;
                     }
 
-                    currentScope = new Scope(currentScope, globalScope, currentScope.StartTime + instruction.Timestamp, index + 1, new Dictionary<string, object>());
+                    currentScope = new Scope(currentScope, currentScope.StartTime + instruction.Timestamp, index, globals, new Dictionary<string, object>());
                     index = newIndex;
 
                     break;
-                }
                 case Opcode.Event:
                     break;
                 case Opcode.Key:
                     break;
-                case Opcode.Set when TryGetArguments(arguments, currentScope, out string[] str, out object value) && str.Length == 1: {
+                case Opcode.Set when TryGetArguments(arguments, currentScope, out string[] str, out object value) && str.Length == 1:
                     currentScope.SetValue(str[0], value);
 
                     break;
-                }
-                case Opcode.Bundle when currentScope == globalScope:
+                case Opcode.SetG when TryGetArguments(arguments, currentScope, out string[] str, out object value) && str.Length == 1:
+                    globals[str[0]] = value;
+
                     break;
-                case Opcode.Inst when currentScope == globalScope:
-                    break;
-                case Opcode.Load when currentScope == globalScope:
-                    break;
+                case Opcode.Bundle:
+                case Opcode.Inst:
+                case Opcode.Load:
+                    ThrowCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure");
+
+                    return false;
                 default:
-                    if (opcode is Opcode.Bundle or Opcode.Inst or Opcode.Load && currentScope != globalScope)
-                        ThrowCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure");
-                    else
-                        ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}");
+                    ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}");
 
                     return false;
             }
 
             index++;
         }
+
+        return true;
     }
     
     private static void ThrowCompileError(int lineIndex, string message)
