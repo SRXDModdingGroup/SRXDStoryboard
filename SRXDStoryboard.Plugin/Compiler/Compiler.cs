@@ -102,10 +102,13 @@ public static class Compiler {
 
                 continue;
             }
+
+            globals["iter"] = currentScope.CurrentIteration;
             
             var instruction = instructions[index];
             var opcode = instruction.Opcode;
             object[] arguments = instruction.Arguments;
+            var time = currentScope.StartTime + instruction.Timestamp;
             
             switch (opcode) {
                 case Opcode.Call:
@@ -193,7 +196,7 @@ public static class Compiler {
                 for (int i = shift, j = 0; i < arguments.Length; i++, j++)
                     locals.Add(argNames[j], arguments[i]);
 
-                currentScope = new Scope(currentScope, currentScope.StartTime + instruction.Timestamp, newIndex, index, iterations, globals, locals);
+                currentScope = new Scope(currentScope, time, newIndex, index, iterations, globals, locals);
                 index = newIndex;
                 
                 return true;
@@ -202,9 +205,7 @@ public static class Compiler {
 
         return true;
     }
-    
-    
-    
+
     private static void ThrowCompileError(int lineIndex, string message)
         => Plugin.Logger.LogWarning($"Failed to compile instruction on line {lineIndex}: {message}");
 
