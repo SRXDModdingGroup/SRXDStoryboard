@@ -87,7 +87,7 @@ public static class Compiler {
 
         int index = procedure.StartIndex;
         var globals = new Dictionary<string, object>();
-        var currentScope = new Scope(null, Timestamp.Zero, index, 0, 1, globals, new Dictionary<string, object>());
+        var currentScope = new Scope(null, index, 0, 1, Timestamp.Zero, Timestamp.Zero, globals, new Dictionary<string, object>());
 
         while (currentScope != null) {
             index++;
@@ -108,7 +108,7 @@ public static class Compiler {
             var instruction = instructions[index];
             var opcode = instruction.Opcode;
             object[] arguments = instruction.Arguments;
-            var time = currentScope.StartTime + instruction.Timestamp;
+            var time = currentScope.GetGlobalTime(instruction.Timestamp);
             
             switch (opcode) {
                 case Opcode.Call:
@@ -161,20 +161,26 @@ public static class Compiler {
                 }
 
                 int iterations;
+                Timestamp every;
+                int shift;
 
                 if (isLoop) {
-                    if (arguments.Length < 2 || arguments[1] is not int intVal) {
+                    if (arguments.Length < 3
+                        || !TryResolveImmediateOrVariable(arguments[1], currentScope, out iterations)
+                        || !TryResolveImmediateOrVariable(arguments[2], currentScope, out every)) {
                         ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction Loop");
 
                         return false;
                     }
 
-                    iterations = intVal;
+                    shift = 3;
                 }
-                else
+                else {
                     iterations = 1;
+                    every = Timestamp.Zero;
+                    shift = 1;
+                }
 
-                int shift = isLoop ? 2 : 1;
                 string[] argNames = procedure.ArgNames;
 
                 if (arguments.Length != argNames.Length + shift) {
@@ -196,7 +202,7 @@ public static class Compiler {
                 for (int i = shift, j = 0; i < arguments.Length; i++, j++)
                     locals.Add(argNames[j], arguments[i]);
 
-                currentScope = new Scope(currentScope, time, newIndex, index, iterations, globals, locals);
+                currentScope = new Scope(currentScope, newIndex, index, iterations, time, every, globals, locals);
                 index = newIndex;
                 
                 return true;

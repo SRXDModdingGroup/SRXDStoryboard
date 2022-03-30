@@ -5,26 +5,26 @@ namespace SRXDStoryboard.Plugin;
 public class Scope {
     public Scope Parent { get; }
 
-    public Timestamp StartTime { get; }
-    
     public int StartIndex { get; }
     
     public int ReturnIndex { get; }
-    
-    public int Iterations { get; }
-    
+
     public int CurrentIteration { get; private set; }
 
+    private int iterations;
+    private Timestamp startTime;
+    private Timestamp every;
     private Dictionary<string, object> globals;
     private Dictionary<string, object> locals;
 
-    public Scope(Scope parent, Timestamp startTime, int startIndex, int returnIndex, int iterations, Dictionary<string, object> globals, Dictionary<string, object> locals) {
+    public Scope(Scope parent, int startIndex, int returnIndex, int iterations, Timestamp startTime, Timestamp every, Dictionary<string, object> globals, Dictionary<string, object> locals) {
         Parent = parent;
-        StartTime = startTime;
         StartIndex = startIndex;
         ReturnIndex = returnIndex;
-        Iterations = iterations;
         CurrentIteration = 0;
+        this.iterations = iterations;
+        this.startTime = startTime;
+        this.every = every;
         this.globals = globals;
         this.locals = locals;
     }
@@ -39,6 +39,8 @@ public class Scope {
     public bool NextIteration() {
         CurrentIteration++;
 
-        return CurrentIteration < Iterations;
+        return CurrentIteration < iterations;
     }
+
+    public Timestamp GetGlobalTime(Timestamp localTime) => localTime + startTime + CurrentIteration * every;
 }

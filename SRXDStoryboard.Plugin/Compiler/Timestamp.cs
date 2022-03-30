@@ -16,4 +16,6 @@ public readonly struct Timestamp {
     }
 
     public static Timestamp operator +(Timestamp a, Timestamp b) => new(a.Beats + b.Beats, a.Ticks + b.Ticks, a.Seconds + b.Seconds);
+
+    public static Timestamp operator *(int i, Timestamp t) => new(i * t.Beats, i * t.Ticks, i * t.Seconds);
 }
