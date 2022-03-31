@@ -86,6 +86,11 @@ internal static class Compiler {
                     inProcs = true;
                     
                     break;
+                case Opcode.Set when TryGetArguments(arguments, globalScope, out Index idx, out object value):
+                    if (!inProcs)
+                        idx.Array[idx.index] = value;
+
+                    break;
                 case Opcode.SetG when TryGetArguments(arguments, globalScope, out Name name, out object value):
                     if (!inProcs)
                         globals[name] = value;
@@ -110,19 +115,19 @@ internal static class Compiler {
             return false;
         }
 
-        int index = procedure.StartIndex;
+        int index1 = procedure.StartIndex;
         int orderCounter = 0;
-        var currentScope = new Scope(null, index, 0, 1, Timestamp.Zero, Timestamp.Zero, globals, new Dictionary<Name, object>());
+        var currentScope = new Scope(null, index1, 0, 1, Timestamp.Zero, Timestamp.Zero, globals, new Dictionary<Name, object>());
         var iterName = new Name("iter");
 
         while (currentScope != null) {
-            index++;
+            index1++;
             
-            if (index >= instructions.Count || instructions[index].Opcode == Opcode.Proc) {
+            if (index1 >= instructions.Count || instructions[index1].Opcode == Opcode.Proc) {
                 if (currentScope.NextIteration())
-                    index = currentScope.StartIndex;
+                    index1 = currentScope.StartIndex;
                 else {
-                    index = currentScope.ReturnIndex;
+                    index1 = currentScope.ReturnIndex;
                     currentScope = currentScope.Parent;
                 }
 
@@ -131,7 +136,7 @@ internal static class Compiler {
 
             globals[iterName] = currentScope.CurrentIteration;
             
-            var instruction = instructions[index];
+            var instruction = instructions[index1];
             var opcode = instruction.Opcode;
             object[] arguments = instruction.Arguments;
             
@@ -152,6 +157,12 @@ internal static class Compiler {
                     break;
                 case Opcode.Set when TryGetArguments(arguments, currentScope, out Name name, out object value):
                     currentScope.SetValue(name, value);
+
+                    break;
+                
+                case Opcode.Set when TryGetArguments(arguments, currentScope, out Index idx, out object value):
+                    if (!inProcs)
+                        idx.Array[idx.index] = value;
 
                     break;
                 case Opcode.SetG when TryGetArguments(arguments, currentScope, out Name name, out object value):
@@ -206,8 +217,8 @@ internal static class Compiler {
                 for (int i = shift, j = 0; i < arguments.Length; i++, j++)
                     locals.Add(argNames[j], arguments[i]);
 
-                currentScope = new Scope(currentScope, newIndex, index, iterations, currentScope.GetGlobalTime(time), every, globals, locals);
-                index = newIndex;
+                currentScope = new Scope(currentScope, newIndex, index1, iterations, currentScope.GetGlobalTime(time), every, globals, locals);
+                index1 = newIndex;
                 
                 return true;
             }
@@ -234,16 +245,42 @@ internal static class Compiler {
             if (!scope.TryGetValue(name1, out argument))
                 return false;
         }
-
-        if (argument is NameChain chain) {
-            if (!scope.TryGetValue(new Name(chain[0]), out argument))
+        else if (argument is Chain chain) {
+            if (chain[0] is not Name name2 || !scope.TryGetValue(name2, out argument))
                 return false;
 
             for (int i = 1; i < chain.Length; i++) {
-                if (argument is not VariableTree variable0 || !variable0.TryGetSubVariable(chain[i], out argument))
+                object node = chain[i];
+
+                if (argument is Index index0)
+                    argument = index0.Array[index0.index];
+
+                if (node is Name name3) {
+                    if (argument is not VariableTree variable0 || !variable0.TryGetSubVariable(name3, out argument))
+                        return false;
+                }
+                else if (node is Indexer indexer) {
+                    if (argument is not object[] arr || !TryResolveImmediateOrVariable(indexer.Token, scope, out int index1))
+                        return false;
+
+                    argument = new Index(arr, index1);
+                }
+                else
                     return false;
             }
         }
+
+        if (typeof(T) == typeof(Index)) {
+            if (argument is not T index3)
+                return false;
+
+            value = index3;
+            
+            return true;
+        }
+        
+        if (argument is Index index4)
+            argument = index4.Array[index4.index];
 
         return Conversion.TryConvert(argument, out value) || argument is VariableTree variable1 && Conversion.TryConvert(variable1.Value, out value);
     }

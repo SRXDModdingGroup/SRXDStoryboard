@@ -4,10 +4,13 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace StoryboardSystem.Core;
 
 internal static class Parser {
+    private static readonly Regex MATCH_INDEXER = new (@"^(\w+)(\[.+\])?$");
+    
     public static bool TryParseFile(string path, Action<string> errorCallback, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
         bool anyError = false;
@@ -146,19 +149,9 @@ internal static class Parser {
             if (string.IsNullOrWhiteSpace(str))
                 return true;
 
-            object token;
-            
-            if (Enum.TryParse<Opcode>(str, true, out var opcode))
-                token = opcode;
-            else if (Enum.TryParse<InterpType>(str, true, out var interpType))
-                token = interpType;
-            else if (Enum.TryParse<AssetType>(str, true, out var assetType))
-                token = assetType;
-            else if (!TryParseTimestamp(str, out token)
-                     && !TryParsePrimitive(str, out token)
-                     && !TryParseNameOrChain(str, out token)) {
+            if (!TryParseToken(str, out object token)) {
                 errorCallback?.Invoke(GetParseError(index, "Incorrectly formatted token"));
-
+                
                 return false;
             }
 
@@ -167,6 +160,24 @@ internal static class Parser {
 
             return true;
         }
+    }
+
+    private static bool TryParseToken(string str, out object token) {
+        if (Enum.TryParse<Opcode>(str, true, out var opcode))
+            token = opcode;
+        else if (Enum.TryParse<InterpType>(str, true, out var interpType))
+            token = interpType;
+        else if (Enum.TryParse<AssetType>(str, true, out var assetType))
+            token = assetType;
+        else if (!TryParseTimestamp(str, out token)
+                 && !TryParsePrimitive(str, out token)
+                 && !TryParseNameOrChain(str, out token)) {
+            token = null;
+            
+            return false;
+        }
+
+        return true;
     }
 
     private static bool TryParseTimestamp(string value, out object timestamp) {
@@ -228,12 +239,11 @@ internal static class Parser {
     }
 
     private static bool TryParseNameOrChain(string token, out object nameOrChain) {
-        if (!token.All(c => char.IsLetterOrDigit(c) || c == '.')) {
-            nameOrChain = null;
-
-            return false;
-        }
+        nameOrChain = null;
         
+        if (!token.All(c => char.IsLetterOrDigit(c) || c is '.' or '[' or ']'))
+            return false;
+
         string[] split = token.Split('.');
 
         if (split.Length == 0) {
@@ -242,19 +252,34 @@ internal static class Parser {
             return false;
         }
 
+        var chain = new List<object>();
+
         foreach (string s in split) {
-            if (!string.IsNullOrWhiteSpace(s))
+            if (string.IsNullOrWhiteSpace(s))
+                return false;
+
+            var match = MATCH_INDEXER.Match(s);
+
+            if (!match.Success)
+                return false;
+            
+            chain.Add(new Name(match.Groups[1].ToString()));
+
+            string indexer = match.Groups[2].ToString();
+
+            if (string.IsNullOrWhiteSpace(indexer))
                 continue;
             
-            nameOrChain = null;
-
-            return false;
+            if (TryParseToken(indexer, out object indexerToken))
+                chain.Add(new Indexer(indexerToken));
+            else
+                return false;
         }
-
-        if (split.Length == 1)
+        
+        if (chain.Count == 1)
             nameOrChain = new Name(split[0]);
         else
-            nameOrChain = new NameChain(split);
+            nameOrChain = new Chain(chain.ToArray());
 
         return true;
     }

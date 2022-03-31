@@ -49,9 +49,10 @@
         <Compile Include="Compiler\Compiler.cs" />
         <Compile Include="Compiler\Conversion.cs" />
         <Compile Include="Compiler\CurveBuilder.cs" />
+        <Compile Include="Compiler\Indexer.cs" />
         <Compile Include="Compiler\Instruction.cs" />
         <Compile Include="Compiler\Name.cs" />
-        <Compile Include="Compiler\NameChain.cs" />
+        <Compile Include="Compiler\Chain.cs" />
         <Compile Include="Compiler\Opcode.cs" />
         <Compile Include="Compiler\Parser.cs" />
         <Compile Include="Compiler\Procedure.cs" />
@@ -59,6 +60,7 @@
         <Compile Include="Compiler\Timestamp.cs" />
         <Compile Include="Compiler\VariableTree\VariableTree.cs" />
         <Compile Include="IAssetBundleManager.cs" />
+        <Compile Include="Index.cs" />
         <Compile Include="IPostProcessingManager.cs" />
         <Compile Include="PostProcessingInfo.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
