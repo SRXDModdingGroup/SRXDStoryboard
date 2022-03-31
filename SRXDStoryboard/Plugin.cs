@@ -2,7 +2,7 @@
 using BepInEx.Logging;
 using SpinCore;
 
-namespace SRXDStoryboard.Core; 
+namespace SRXDStoryboard; 
 
 public class Plugin : SpinPlugin {
     public static ManualLogSource Logger { get; private set; }
