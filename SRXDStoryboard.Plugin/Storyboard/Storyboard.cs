@@ -1,13 +1,13 @@
 ﻿namespace SRXDStoryboard.Plugin; 
 
 public class Storyboard {
-    private AssetBundleReference[] assetBundleReferences;
-    private ObjectReference[] assetReferences;
-    private ObjectReference[] instanceReferences;
+    private LoadedAssetBundleReference[] assetBundleReferences;
+    private LoadedAssetReference[] assetReferences;
+    private LoadedInstanceReference[] instanceReferences;
     private Event[] events;
     private Curve[] curves;
 
-    public Storyboard(AssetBundleReference[] assetBundleReferences, ObjectReference[] assetReferences, ObjectReference[] instanceReferences, Event[] events, Curve[] curves) {
+    public Storyboard(LoadedAssetBundleReference[] assetBundleReferences, LoadedAssetReference[] assetReferences, LoadedInstanceReference[] instanceReferences, Event[] events, Curve[] curves) {
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;

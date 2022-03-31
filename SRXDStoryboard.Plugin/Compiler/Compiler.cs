@@ -14,8 +14,13 @@ public static class Compiler {
 
     private static bool TryCompile(List<Instruction> instructions, out Storyboard storyboard) {
         storyboard = null;
-        
+
+        var assetBundleReferences = new List<LoadedAssetBundleReference>();
+        var assetReferences = new List<LoadedAssetReference>();
+        var instanceReferences = new List<LoadedInstanceReference>();
         var procedures = new Dictionary<string, Procedure>();
+        var globals = new Dictionary<string, object>();
+        var globalScope = new Scope(null, 0, 0, 0, Timestamp.Zero, Timestamp.Zero, globals, null);
 
         for (int i = 0; i < instructions.Count; i++) {
             var instruction = instructions[i];
@@ -23,17 +28,28 @@ public static class Compiler {
             object[] arguments = instruction.Arguments;
 
             switch (opcode) {
-                case Opcode.Inst:
-                    break;
-                case Opcode.Load:
-                    break;
-                case Opcode.Proc:
-                    if (arguments.Length < 1 || arguments[0] is not string[] { Length: 1 } str0) {
-                        ThrowCompileError(instruction.LineIndex, "Invalid arguments for instruction Proc");
+                case Opcode.Bundle when TryGetArguments(arguments, globalScope, out string[] str, out string path) && str.Length == 1:
+                    var newAssetBundleReference = new LoadedAssetBundleReference(path);
 
-                        return false;
-                    }
+                    assetBundleReferences.Add(newAssetBundleReference);
+                    globals[str[0]] = newAssetBundleReference;
 
+                    break;
+                case Opcode.Inst when TryGetArguments(arguments, globalScope, out string[] str, out LoadedAssetReference assetReference) && str.Length == 1:
+                    var newInstanceReference = assetReference.CreateInstanceReference();
+                    
+                    instanceReferences.Add(newInstanceReference);
+                    globals[str[0]] = newInstanceReference;
+                    
+                    break;
+                case Opcode.Load when TryGetArguments(arguments, globalScope, out string[] str, out AssetType type, out LoadedAssetBundleReference assetBundleReference, out string assetName) && str.Length == 1:
+                    var newAssetReference = LoadedAssetReference.Create(assetBundleReference, assetName, type);
+                    
+                    assetReferences.Add(newAssetReference);
+                    globals[str[0]] = newAssetReference;
+                    
+                    break;
+                case Opcode.Proc when TryGetArguments(arguments, globalScope, out string[] str0, true) && str0.Length == 1:
                     string name = str0[0];
                     
                     if (procedures.ContainsKey(name)) {
@@ -86,7 +102,7 @@ public static class Compiler {
         }
 
         int index = procedure.StartIndex;
-        var globals = new Dictionary<string, object>();
+        int orderCounter = 0;
         var currentScope = new Scope(null, index, 0, 1, Timestamp.Zero, Timestamp.Zero, globals, new Dictionary<string, object>());
 
         while (currentScope != null) {
@@ -111,8 +127,8 @@ public static class Compiler {
             var time = currentScope.GetGlobalTime(instruction.Timestamp);
             
             switch (opcode) {
-                case Opcode.Call:
-                    if (!TryCallProcedure(false))
+                case Opcode.Call when TryGetArguments(arguments, currentScope, out string[] str, true) && str.Length == 1:
+                    if (!TryCallProcedure(str[0], 1, 1, Timestamp.Zero))
                         return false;
 
                     break;
@@ -120,8 +136,8 @@ public static class Compiler {
                     break;
                 case Opcode.Key:
                     break;
-                case Opcode.Loop:
-                    if (!TryCallProcedure(true))
+                case Opcode.Loop when TryGetArguments(arguments, currentScope, out string[] str, out int iterations, out Timestamp every, true) && str.Length == 1:
+                    if (!TryCallProcedure(str[0], 3, iterations, every))
                         return false;
                     
                     break;
@@ -133,6 +149,7 @@ public static class Compiler {
                     globals[str[0]] = value;
 
                     break;
+                case Opcode.Bundle:
                 case Opcode.Inst:
                 case Opcode.Load:
                     ThrowCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure");
@@ -145,40 +162,17 @@ public static class Compiler {
                     return false;
             }
 
-            bool TryCallProcedure(bool isLoop) {
-                if (arguments.Length < 1 || arguments[0] is not string[] { Length: 1 } str0) {
-                    ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}");
+            bool TryCallProcedure(string name, int shift, int iterations, Timestamp every) {
+                if (iterations <= 0) {
+                    ThrowCompileError(instruction.LineIndex, "Iterations must be greater than 0");
 
                     return false;
                 }
-
-                string name = str0[0];
-
+                
                 if (!procedures.TryGetValue(name, out procedure)) {
                     ThrowCompileError(instruction.LineIndex, $"Procedure {name} could not be found");
 
                     return false;
-                }
-
-                int iterations;
-                Timestamp every;
-                int shift;
-
-                if (isLoop) {
-                    if (arguments.Length < 3
-                        || !TryResolveImmediateOrVariable(arguments[1], currentScope, out iterations)
-                        || !TryResolveImmediateOrVariable(arguments[2], currentScope, out every)) {
-                        ThrowCompileError(instruction.LineIndex, $"Invalid arguments for instruction Loop");
-
-                        return false;
-                    }
-
-                    shift = 3;
-                }
-                else {
-                    iterations = 1;
-                    every = Timestamp.Zero;
-                    shift = 1;
                 }
 
                 string[] argNames = procedure.ArgNames;
@@ -209,6 +203,8 @@ public static class Compiler {
             }
         }
 
+        storyboard = new Storyboard(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), null, null);
+
         return true;
     }
 
@@ -231,17 +227,16 @@ public static class Compiler {
         return Conversion.TryConvert(argument, out value) || argument is Variable variable1 && Conversion.TryConvert(variable1.Value, out value);
     }
 
-    private static bool TryGetArguments(object[] arguments, Scope scope) => arguments.Length == 0;
-    private static bool TryGetArguments<T>(object[] arguments, Scope scope, out T arg) {
-        if (arguments.Length == 1 && TryResolveImmediateOrVariable(arguments[0], scope, out arg))
+    private static bool TryGetArguments<T>(object[] arguments, Scope scope, out T arg, bool unlimited = false) {
+        if ((unlimited ? arguments.Length >= 1 : arguments.Length == 1) && TryResolveImmediateOrVariable(arguments[0], scope, out arg))
             return true;
 
         arg = default;
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1>(object[] arguments, Scope scope, out T0 arg0, out T1 arg1) {
-        if (arguments.Length == 2
+    private static bool TryGetArguments<T0, T1>(object[] arguments, Scope scope, out T0 arg0, out T1 arg1, bool unlimited = false) {
+        if ((unlimited ? arguments.Length >= 2 : arguments.Length == 2)
             && TryResolveImmediateOrVariable(arguments[0], scope, out arg0)
             && TryResolveImmediateOrVariable(arguments[0], scope, out arg1))
             return true;
@@ -251,8 +246,8 @@ public static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1, T2>(object[] arguments, Scope scope, out T0 arg0, out T1 arg1, out T2 arg2) {
-        if (arguments.Length == 3
+    private static bool TryGetArguments<T0, T1, T2>(object[] arguments, Scope scope, out T0 arg0, out T1 arg1, out T2 arg2, bool unlimited = false) {
+        if ((unlimited ? arguments.Length >= 3 : arguments.Length == 3)
             && TryResolveImmediateOrVariable(arguments[0], scope, out arg0)
             && TryResolveImmediateOrVariable(arguments[1], scope, out arg1)
             && TryResolveImmediateOrVariable(arguments[2], scope, out arg2))
@@ -264,8 +259,8 @@ public static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1, T2, T3>(object[] arguments, Scope scope, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3) {
-        if (arguments.Length == 4
+    private static bool TryGetArguments<T0, T1, T2, T3>(object[] arguments, Scope scope, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, bool unlimited = false) {
+        if ((unlimited ? arguments.Length >= 4 : arguments.Length == 4)
             && TryResolveImmediateOrVariable(arguments[0], scope, out arg0)
             && TryResolveImmediateOrVariable(arguments[1], scope, out arg1)
             && TryResolveImmediateOrVariable(arguments[2], scope, out arg2)

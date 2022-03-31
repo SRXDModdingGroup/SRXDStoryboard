@@ -32,7 +32,7 @@ public class Scope {
     public void SetValue(string name, object value) => locals[name] = value;
     
     public bool TryGetValue(string name, out object value)
-        => locals.TryGetValue(name, out value) || globals.TryGetValue(name, out value);
+        => locals != null && locals.TryGetValue(name, out value) || globals.TryGetValue(name, out value);
 
     public bool CheckForRecursion(int index) => StartIndex != index && (Parent == null || Parent.CheckForRecursion(index));
 

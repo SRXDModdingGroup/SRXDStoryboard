@@ -123,10 +123,11 @@
         <Compile Include="Storyboard\Event.cs" />
         <Compile Include="Storyboard\InterpType.cs" />
         <Compile Include="Storyboard\Keyframe.cs" />
-        <Compile Include="Storyboard\ObjectReference\AssetBundleReference.cs" />
-        <Compile Include="Storyboard\ObjectReference\AssetReference.cs" />
-        <Compile Include="Storyboard\ObjectReference\InstanceReference.cs" />
-        <Compile Include="Storyboard\ObjectReference\ObjectReference.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\AssetType.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedAssetBundleReference.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedAssetReference.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedInstanceReference.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedObjectReference.cs" />
         <Compile Include="Storyboard\Property.cs" />
         <Compile Include="Storyboard\Storyboard.cs" />
     </ItemGroup>
