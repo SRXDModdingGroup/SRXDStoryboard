@@ -217,8 +217,22 @@ public static class Compiler {
 
     private static bool TryResolveImmediateOrVariable<T>(object argument, Scope scope, out T value) {
         value = default;
-        
-        if (argument is NameChain chain && scope != null) {
+
+        if (typeof(T) == typeof(Name)) {
+            if (argument is not T name0)
+                return false;
+            
+            value = name0;
+
+            return true;
+        }
+
+        if (argument is Name name1) {
+            if (!scope.TryGetValue(name1, out argument))
+                return false;
+        }
+
+        if (argument is NameChain chain) {
             if (!scope.TryGetValue(new Name(chain[0]), out argument))
                 return false;
 
