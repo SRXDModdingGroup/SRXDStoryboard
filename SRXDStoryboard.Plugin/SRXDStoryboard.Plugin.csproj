@@ -116,7 +116,7 @@
         <Compile Include="Compiler\Procedure.cs" />
         <Compile Include="Compiler\Scope.cs" />
         <Compile Include="Compiler\Timestamp.cs" />
-        <Compile Include="Compiler\Variable.cs" />
+        <Compile Include="Compiler\VariableTree\VariableTree.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Storyboard\Curve.cs" />

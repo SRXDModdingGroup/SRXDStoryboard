@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace SRXDStoryboard.Plugin; 
 
-public class Variable {
-    public virtual object Value { get; }
+public abstract class VariableTree {
+    public abstract object Value { get; }
 
-    public Variable(object value) => Value = value;
-    
     private Dictionary<string, object> cachedSubVariables;
 
     public bool TryGetSubVariable(string name, out object variable) {
@@ -22,9 +21,11 @@ public class Variable {
         return true;
     }
 
-    protected virtual bool TryCreateSubVariable(string name, out object variable) {
-        variable = null;
+    protected abstract bool TryCreateSubVariable(string name, out object variable);
 
-        return false;
-    }
+    public static object Create(LoadedInstanceReference reference) => reference switch {
+        LoadedInstanceReference<Material> material => material,
+        LoadedInstanceReference<GameObject> prefab => prefab,
+        _ => reference
+    };
 }

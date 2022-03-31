@@ -58,33 +58,17 @@ public static class Parser {
                 continue;
             }
 
-            int shift;
-            Timestamp timestamp;
-
-            if (tokens[0] is Timestamp newTimestamp) {
-                shift = 1;
-                timestamp = newTimestamp;
-            }
-            else {
-                shift = 0;
-                timestamp = Timestamp.Zero;
-            }
-
-            if (shift >= tokens.Length) {
-                ThrowParseError(index, shift, "No opcode found");
-                anyError = true;
-            }
-            else if (tokens[shift] is not Opcode keyword) {
-                ThrowParseError(index, shift, "Argument must be an opcode");
+            if (tokens[0] is not Opcode opcode) {
+                ThrowParseError(index, 0, "No opcode found");
                 anyError = true;
             }
             else {
-                object[] arguments = new object[tokens.Length - shift - 1];
+                object[] arguments = new object[tokens.Length - 1];
                 
                 if (arguments.Length > 0)
-                    Array.Copy(tokens, shift + 1, arguments, 0, arguments.Length);
+                    Array.Copy(tokens, 1, arguments, 0, arguments.Length);
                 
-                instructions.Add(new Instruction(timestamp, keyword, arguments, index));
+                instructions.Add(new Instruction(opcode, arguments, index));
             }
 
             index++;

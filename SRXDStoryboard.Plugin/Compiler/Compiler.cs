@@ -39,7 +39,7 @@ public static class Compiler {
                     var newInstanceReference = assetReference.CreateInstanceReference();
                     
                     instanceReferences.Add(newInstanceReference);
-                    globals[str[0]] = newInstanceReference;
+                    globals[str[0]] = VariableTree.Create(newInstanceReference);
                     
                     break;
                 case Opcode.Load when TryGetArguments(arguments, globalScope, out string[] str, out AssetType type, out LoadedAssetBundleReference assetBundleReference, out string assetName) && str.Length == 1:
@@ -124,11 +124,10 @@ public static class Compiler {
             var instruction = instructions[index];
             var opcode = instruction.Opcode;
             object[] arguments = instruction.Arguments;
-            var time = currentScope.GetGlobalTime(instruction.Timestamp);
             
             switch (opcode) {
-                case Opcode.Call when TryGetArguments(arguments, currentScope, out string[] str, true) && str.Length == 1:
-                    if (!TryCallProcedure(str[0], 1, 1, Timestamp.Zero))
+                case Opcode.Call when TryGetArguments(arguments, currentScope, out Timestamp time, out string[] str, true) && str.Length == 1:
+                    if (!TryCallProcedure(time, str[0], 2, 1, Timestamp.Zero))
                         return false;
 
                     break;
@@ -136,8 +135,8 @@ public static class Compiler {
                     break;
                 case Opcode.Key:
                     break;
-                case Opcode.Loop when TryGetArguments(arguments, currentScope, out string[] str, out int iterations, out Timestamp every, true) && str.Length == 1:
-                    if (!TryCallProcedure(str[0], 3, iterations, every))
+                case Opcode.Loop when TryGetArguments(arguments, currentScope, out Timestamp time, out string[] str, out int iterations, out Timestamp every, true) && str.Length == 1:
+                    if (!TryCallProcedure(time, str[0], 4, iterations, every))
                         return false;
                     
                     break;
@@ -162,7 +161,7 @@ public static class Compiler {
                     return false;
             }
 
-            bool TryCallProcedure(string name, int shift, int iterations, Timestamp every) {
+            bool TryCallProcedure(Timestamp time, string name, int shift, int iterations, Timestamp every) {
                 if (iterations <= 0) {
                     ThrowCompileError(instruction.LineIndex, "Iterations must be greater than 0");
 
@@ -196,7 +195,7 @@ public static class Compiler {
                 for (int i = shift, j = 0; i < arguments.Length; i++, j++)
                     locals.Add(argNames[j], arguments[i]);
 
-                currentScope = new Scope(currentScope, newIndex, index, iterations, time, every, globals, locals);
+                currentScope = new Scope(currentScope, newIndex, index, iterations, currentScope.GetGlobalTime(time), every, globals, locals);
                 index = newIndex;
                 
                 return true;
@@ -219,16 +218,17 @@ public static class Compiler {
                 return false;
 
             for (int i = 1; i < hierarchy.Length; i++) {
-                if (argument is not Variable variable0 || !variable0.TryGetSubVariable(hierarchy[i], out argument))
+                if (argument is not VariableTree variable0 || !variable0.TryGetSubVariable(hierarchy[i], out argument))
                     return false;
             }
         }
 
-        return Conversion.TryConvert(argument, out value) || argument is Variable variable1 && Conversion.TryConvert(variable1.Value, out value);
+        return Conversion.TryConvert(argument, out value) || argument is VariableTree variable1 && Conversion.TryConvert(variable1.Value, out value);
     }
 
     private static bool TryGetArguments<T>(object[] arguments, Scope scope, out T arg, bool unlimited = false) {
-        if ((unlimited ? arguments.Length >= 1 : arguments.Length == 1) && TryResolveImmediateOrVariable(arguments[0], scope, out arg))
+        if ((unlimited ? arguments.Length >= 1 : arguments.Length == 1)
+            && TryResolveImmediateOrVariable(arguments[0], scope, out arg))
             return true;
 
         arg = default;
