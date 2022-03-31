@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+    <PropertyGroup>
+        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+        <ProjectGuid>{0A9D20F0-34EA-442A-8201-D3A10272BFCD}</ProjectGuid>
+        <OutputType>Library</OutputType>
+        <AppDesignerFolder>Properties</AppDesignerFolder>
+        <RootNamespace>StoryboardSystem.Core</RootNamespace>
+        <AssemblyName>StoryboardSystem.Core</AssemblyName>
+        <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+        <FileAlignment>512</FileAlignment>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>full</DebugType>
+        <Optimize>false</Optimize>
+        <OutputPath>bin\Debug\</OutputPath>
+        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <DebugType>pdbonly</DebugType>
+        <Optimize>true</Optimize>
+        <OutputPath>bin\Release\</OutputPath>
+        <DefineConstants>TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+    <ItemGroup>
+        <Reference Include="System" />
+        <Reference Include="System.Core" />
+        <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.AssetBundleModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="Compiler\Compiler.cs" />
+        <Compile Include="Compiler\Conversion.cs" />
+        <Compile Include="Compiler\CurveBuilder.cs" />
+        <Compile Include="Compiler\Instruction.cs" />
+        <Compile Include="Compiler\Name.cs" />
+        <Compile Include="Compiler\NameChain.cs" />
+        <Compile Include="Compiler\Opcode.cs" />
+        <Compile Include="Compiler\Parser.cs" />
+        <Compile Include="Compiler\Procedure.cs" />
+        <Compile Include="Compiler\Scope.cs" />
+        <Compile Include="Compiler\Timestamp.cs" />
+        <Compile Include="Compiler\VariableTree\VariableTree.cs" />
+        <Compile Include="IAssetBundleManager.cs" />
+        <Compile Include="IPostProcessingManager.cs" />
+        <Compile Include="PostProcessingInfo.cs" />
+        <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="StoryboardManager.cs" />
+        <Compile Include="Storyboard\Curve.cs" />
+        <Compile Include="Storyboard\Event.cs" />
+        <Compile Include="Storyboard\InterpType.cs" />
+        <Compile Include="Storyboard\Keyframe.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\AssetType.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedAssetBundleReference.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedAssetReference.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedInstanceReference.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedObjectReference.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedPostProcessingMaterialReference.cs" />
+        <Compile Include="Storyboard\Property.cs" />
+        <Compile Include="Storyboard\Storyboard.cs" />
+    </ItemGroup>
+    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+         Other similar extension points exist, see Microsoft.Common.targets.
+    <Target Name="BeforeBuild">
+    </Target>
+    <Target Name="AfterBuild">
+    </Target>
+    -->
+
+</Project>
