@@ -2,7 +2,7 @@
 
 namespace StoryboardSystem.Core; 
 
-public class LoadedAssetBundleReference : LoadedObjectReference {
+internal class LoadedAssetBundleReference : LoadedObjectReference {
     public AssetBundle Bundle { get; private set; }
     
     private string bundleName;

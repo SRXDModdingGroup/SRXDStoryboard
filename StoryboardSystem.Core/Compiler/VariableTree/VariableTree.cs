@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace StoryboardSystem.Core; 
 
-public abstract class VariableTree {
+internal abstract class VariableTree {
     public abstract object Value { get; }
 
     private Dictionary<string, object> cachedSubVariables;

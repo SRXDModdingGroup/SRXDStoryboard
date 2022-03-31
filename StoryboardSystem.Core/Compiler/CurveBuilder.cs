@@ -1,5 +1,5 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public class CurveBuilder {
+internal class CurveBuilder {
     
 }

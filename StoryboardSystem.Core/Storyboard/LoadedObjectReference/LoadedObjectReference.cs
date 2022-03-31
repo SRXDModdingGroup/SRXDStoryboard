@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core;
 
-public abstract class LoadedObjectReference {
+internal abstract class LoadedObjectReference {
     public abstract void Load();
 
     public abstract void Unload();

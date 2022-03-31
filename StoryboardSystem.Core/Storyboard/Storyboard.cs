@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public class Storyboard {
+internal class Storyboard {
     private LoadedAssetBundleReference[] assetBundleReferences;
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;

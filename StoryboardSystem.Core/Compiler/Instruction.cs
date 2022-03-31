@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public readonly struct Instruction {
+internal readonly struct Instruction {
     public Opcode Opcode { get; }
     
     public object[] Arguments { get; }

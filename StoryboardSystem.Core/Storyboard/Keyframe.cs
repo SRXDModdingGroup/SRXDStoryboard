@@ -2,7 +2,7 @@
 
 namespace StoryboardSystem.Core; 
 
-public readonly struct Keyframe<T> : IComparable<Keyframe<T>> {
+internal readonly struct Keyframe<T> : IComparable<Keyframe<T>> {
     public T Value { get; }
     
     public float Time { get; }

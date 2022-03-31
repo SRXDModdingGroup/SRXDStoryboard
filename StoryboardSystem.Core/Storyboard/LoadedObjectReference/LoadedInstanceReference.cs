@@ -2,9 +2,9 @@
 
 namespace StoryboardSystem.Core; 
 
-public abstract class LoadedInstanceReference : LoadedObjectReference { }
+internal abstract class LoadedInstanceReference : LoadedObjectReference { }
 
-public class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
+internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
     public T Instance { get; private set; }
     
     private LoadedAssetReference<T> template;

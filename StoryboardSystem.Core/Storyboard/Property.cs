@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public abstract class Property<T> {
+internal abstract class Property<T> {
     public abstract void Set(T value);
 
     public abstract T Interp(T a, T b, float t);

@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public enum AssetType {
+internal enum AssetType {
     Material,
     Mesh,
     Prefab,

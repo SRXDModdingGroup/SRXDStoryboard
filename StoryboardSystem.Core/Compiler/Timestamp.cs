@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public readonly struct Timestamp {
+internal readonly struct Timestamp {
     public static Timestamp Zero => new(0, 0f, 0f);
 
     public int Beats { get; }

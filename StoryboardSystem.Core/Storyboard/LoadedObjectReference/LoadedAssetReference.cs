@@ -3,7 +3,7 @@ using Object = UnityEngine.Object;
 
 namespace StoryboardSystem.Core;
 
-public abstract class LoadedAssetReference : LoadedObjectReference {
+internal abstract class LoadedAssetReference : LoadedObjectReference {
     public abstract LoadedInstanceReference CreateInstanceReference();
 
     public static LoadedAssetReference Create(LoadedAssetBundleReference assetBundleReference, string assetName, AssetType type) => type switch {
@@ -16,7 +16,7 @@ public abstract class LoadedAssetReference : LoadedObjectReference {
     };
 }
 
-public class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
+internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
     public T Asset { get; private set; }
     
     private LoadedAssetBundleReference assetBundleReference;

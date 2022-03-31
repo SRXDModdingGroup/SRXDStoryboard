@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public readonly struct Name {
+internal readonly struct Name {
     private readonly string name;
 
     public Name(string name) => this.name = name;

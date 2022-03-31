@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public enum Opcode {
+internal enum Opcode {
     Bundle,
     Call,
     Event,

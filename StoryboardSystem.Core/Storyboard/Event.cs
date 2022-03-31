@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public abstract class Event {
+internal abstract class Event {
     public float Time { get; }
 
     public abstract void Execute();

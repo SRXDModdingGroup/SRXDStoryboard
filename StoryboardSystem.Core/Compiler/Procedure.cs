@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public readonly struct Procedure {
+internal readonly struct Procedure {
     public int StartIndex { get; }
     
     public Name[] ArgNames { get; }

@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public enum InterpType {
+internal enum InterpType {
     Fixed,
     Linear,
     Smooth,

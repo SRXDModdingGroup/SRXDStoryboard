@@ -2,7 +2,7 @@
 
 namespace StoryboardSystem.Core; 
 
-public class Scope {
+internal class Scope {
     public Scope Parent { get; }
 
     public int StartIndex { get; }

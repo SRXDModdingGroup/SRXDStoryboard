@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Core; 
 
-public readonly struct NameChain {
+internal readonly struct NameChain {
     public int Length => chain.Length;
     
     private readonly string[] chain;

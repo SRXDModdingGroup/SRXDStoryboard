@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace StoryboardSystem.Core;
 
-public abstract class Curve {
+internal abstract class Curve {
     public abstract void Evaluate(float fromTime, float toTime);
 }
 
-public class Curve<T> : Curve {
+internal class Curve<T> : Curve {
     public Property<T> Property { get; }
     
     public Keyframe<T>[] Keyframes { get; }

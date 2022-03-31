@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace StoryboardSystem.Core; 
 
-public class Conversion {
+internal class Conversion {
     private static readonly Conversion[] CONVERSIONS = {
         new Conversion<Quaternion>(val => val switch {
             float f => (Quaternion.Euler(0f, 0f, f), true),
@@ -43,7 +43,7 @@ public class Conversion {
     }
 }
 
-public class Conversion<T> : Conversion {
+internal class Conversion<T> : Conversion {
     public Func<object, (T result, bool success)> Convert { get; }
 
     public Conversion(Func<object, (T result, bool success)> convert) => Convert = convert;

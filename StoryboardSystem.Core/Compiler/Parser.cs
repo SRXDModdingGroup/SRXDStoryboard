@@ -7,7 +7,7 @@ using System.Text;
 
 namespace StoryboardSystem.Core;
 
-public static class Parser {
+internal static class Parser {
     public static bool TryParseFile(string path, Action<string> errorCallback, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
         bool anyError = false;

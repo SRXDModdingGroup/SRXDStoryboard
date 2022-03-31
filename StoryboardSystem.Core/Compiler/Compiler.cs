@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace StoryboardSystem.Core;
 
-public static class Compiler {
+internal static class Compiler {
     public static bool TryCompileFile(string path, Action<string> errorCallback, out Storyboard storyboard) {
         if (Parser.TryParseFile(path, errorCallback, out var instructions))
             return TryCompile(instructions, errorCallback, out storyboard);
