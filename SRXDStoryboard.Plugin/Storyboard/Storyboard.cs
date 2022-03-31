@@ -1,18 +1,28 @@
-﻿namespace SRXDStoryboard.Plugin; 
+﻿using SRXDPostProcessing;
+using UnityEngine;
+
+namespace SRXDStoryboard.Plugin; 
 
 public class Storyboard {
     private LoadedAssetBundleReference[] assetBundleReferences;
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
+    private LoadedPostProcessingMaterialReference[] postProcessReferences;
     private Event[] events;
     private Curve[] curves;
 
-    public Storyboard(LoadedAssetBundleReference[] assetBundleReferences, LoadedAssetReference[] assetReferences, LoadedInstanceReference[] instanceReferences, Event[] events, Curve[] curves) {
+    public Storyboard(
+        LoadedAssetBundleReference[] assetBundleReferences,
+        LoadedAssetReference[] assetReferences,
+        LoadedInstanceReference[] instanceReferences,
+        LoadedPostProcessingMaterialReference[] postProcessReferences,
+        Event[] events, Curve[] curves) {
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
         this.events = events;
         this.curves = curves;
+        this.postProcessReferences = postProcessReferences;
     }
 
     public void Evaluate(float fromTime, float toTime) {
@@ -35,9 +45,15 @@ public class Storyboard {
         
         foreach (var reference in instanceReferences)
             reference.Load();
+
+        foreach (var reference in postProcessReferences)
+            reference.Load();
     }
 
     public void Unload() {
+        foreach (var reference in postProcessReferences)
+            reference.Unload();
+        
         foreach (var reference in instanceReferences)
             reference.Unload();
         

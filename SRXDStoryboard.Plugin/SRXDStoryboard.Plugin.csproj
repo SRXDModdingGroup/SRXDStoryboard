@@ -51,6 +51,9 @@
         <Reference Include="SRXDHelperEvents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
           <HintPath>..\Libs\SRXDHelperEvents.dll</HintPath>
         </Reference>
+        <Reference Include="SRXDPostProcessing, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SRXDPostProcessing.dll</HintPath>
+        </Reference>
         <Reference Include="SRXDScoreMod, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
           <HintPath>..\Libs\SRXDScoreMod.dll</HintPath>
         </Reference>
@@ -110,6 +113,7 @@
     <ItemGroup>
         <Compile Include="Compiler\Compiler.cs" />
         <Compile Include="Compiler\Conversion.cs" />
+        <Compile Include="Compiler\CurveBuilder.cs" />
         <Compile Include="Compiler\Instruction.cs" />
         <Compile Include="Compiler\Opcode.cs" />
         <Compile Include="Compiler\Parser.cs" />
@@ -128,6 +132,7 @@
         <Compile Include="Storyboard\LoadedObjectReference\LoadedAssetReference.cs" />
         <Compile Include="Storyboard\LoadedObjectReference\LoadedInstanceReference.cs" />
         <Compile Include="Storyboard\LoadedObjectReference\LoadedObjectReference.cs" />
+        <Compile Include="Storyboard\LoadedObjectReference\LoadedPostProcessingMaterialReference.cs" />
         <Compile Include="Storyboard\Property.cs" />
         <Compile Include="Storyboard\Storyboard.cs" />
     </ItemGroup>

@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using SRXDPostProcessing;
+using UnityEngine;
 
 namespace SRXDStoryboard.Plugin;
 
@@ -18,6 +20,7 @@ public static class Compiler {
         var assetBundleReferences = new List<LoadedAssetBundleReference>();
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
+        var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
         var procedures = new Dictionary<string, Procedure>();
         var globals = new Dictionary<string, object>();
         var globalScope = new Scope(null, 0, 0, 0, Timestamp.Zero, Timestamp.Zero, globals, null);
@@ -47,6 +50,10 @@ public static class Compiler {
                     
                     assetReferences.Add(newAssetReference);
                     globals[str[0]] = newAssetReference;
+                    
+                    break;
+                case Opcode.Post when TryGetArguments(arguments, globalScope, out LoadedAssetReference<Material> material, out PostProcessingLayer layer):
+                    postProcessReferences.Add(new LoadedPostProcessingMaterialReference(material, layer));
                     
                     break;
                 case Opcode.Proc when TryGetArguments(arguments, globalScope, out string[] str0, true) && str0.Length == 1:
@@ -151,6 +158,7 @@ public static class Compiler {
                 case Opcode.Bundle:
                 case Opcode.Inst:
                 case Opcode.Load:
+                case Opcode.Post:
                     ThrowCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure");
 
                     return false;
@@ -202,7 +210,7 @@ public static class Compiler {
             }
         }
 
-        storyboard = new Storyboard(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), null, null);
+        storyboard = new Storyboard(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), null, null);
 
         return true;
     }

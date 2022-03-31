@@ -3,16 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
-using UnityEngine;
 
 namespace SRXDStoryboard.Plugin;
 
 public static class Parser {
-    private static readonly Regex MATCH_TOKEN = new(@"//.*|""[^""]*""|\[[^\[\]]*\]|[\w.-]+");
-    private static readonly float[] PARSE_VECTOR_VALUES = new float[4];
-    private static readonly StringBuilder PARSE_TIMESTAMP_BUILDER = new();
-
     public static bool TryParseFile(string path, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
         bool anyError = false;
@@ -26,40 +20,10 @@ public static class Parser {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            var matches = MATCH_TOKEN.Matches(line);
-            int count = 0;
-
-            foreach (Match match in matches) {
-                if (match.Value.StartsWith("//"))
-                    break;
-
-                count++;
-            }
-
-            if (count == 0)
-                continue;
-
-            object[] tokens = new object[count];
-            bool parseError = false;
-
-            for (int i = 0; i < count; i++) {
-                string match = matches[i].Value;
-
-                if (TryParseToken(match, index, i, out object token))
-                    tokens[i] = token;
-                else
-                    parseError = true;
-            }
-
-            if (parseError) {
+            if (!TryTokenize(line, index, out object[] tokens))
                 anyError = true;
-                instructions.Add(new Instruction());
-                
-                continue;
-            }
-
-            if (tokens[0] is not Opcode opcode) {
-                ThrowParseError(index, 0, "No opcode found");
+            else if (tokens[0] is not Opcode opcode) {
+                ThrowParseError(index, "No opcode found");
                 anyError = true;
             }
             else {
@@ -77,65 +41,133 @@ public static class Parser {
         return anyError;
     }
 
-    private static void ThrowParseError(int lineIndex, int tokenIndex, string message)
-        => Plugin.Logger.LogWarning($"Failed to parse storyboard line {lineIndex}, token {tokenIndex}: {message}");
+    private static void ThrowParseError(int index, string message)
+        => Plugin.Logger.LogWarning($"Failed to parse storyboard line {index}: {message}");
 
-    private static bool TryParseToken(string value, int line, int index, out object token) {
-        if (value[0] == '\"' && value[value.Length - 1] == '\"')
-            token = value.Substring(1, value.Length - 2);
-        else if (value[0] == '[' && value[value.Length - 1] == ']') {
-            if (TryParseVector(value, out token))
-                return true;
-            
-            ThrowParseError(line, index, "Incorrectly formatted vector");
-            token = null;
+    private static bool TryTokenize(string value, int index, out object[] tokens) {
+        var builder = new StringBuilder();
+        var tokenList = new List<object>();
+        int length = value.Length;
 
-            return false;
+        tokens = null;
+
+        for (int i = 0; i < length; i++) {
+            char c = value[i];
+
+            if (c == '\"') {
+                if (builder.Length > 0)
+                    return false;
+                
+                i++;
+                
+                while (i < length) {
+                    c = value[i];
+
+                    if (c == '\"') {
+                        tokenList.Add(builder.ToString());
+                        builder.Clear();
+
+                        break;
+                    }
+
+                    builder.Append(c);
+                    i++;
+                }
+
+                if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
+                    continue;
+                
+                ThrowParseError(index, "Incorrectly formatted string");
+                    
+                return false;
+            }
+
+            if (c == '{') {
+                if (builder.Length > 0)
+                    return false;
+                
+                int depth = 1;
+                
+                i++;
+
+                while (i < length) {
+                    c = value[i];
+
+                    if (c == '{')
+                        depth++;
+                    else if (c == '}') {
+                        depth--;
+
+                        if (depth == 0) {
+                            if (!TryTokenize(builder.ToString(), index, out object[] arr))
+                                return false;
+                            
+                            tokenList.Add(arr);
+                            builder.Clear();
+                            
+                            break;
+                        }
+                    }
+
+                    builder.Append(c);
+                    i++;
+                }
+
+                if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
+                    continue;
+                
+                ThrowParseError(index, "Incorrectly formatted array");
+                    
+                return false;
+            }
+
+            if (c == '/' && i < length - 1 && value[i + 1] == '/')
+                break;
+
+            if (char.IsWhiteSpace(c)) {
+                if (!TryPopToken())
+                    return false;
+            }
+            else
+                builder.Append(c);
         }
-        else if (Enum.TryParse<Opcode>(value, true, out var opcode))
-            token = opcode;
-        else if (Enum.TryParse<InterpType>(value, true, out var interpType))
-            token = interpType;
-        else if (!TryParseTimestamp(value, out token)
-                 && !TryParsePrimitive(value, out token)
-                 && !TryParseVariable(value, out token)) {
-            ThrowParseError(line, index, "Incorrectly formatted token");
-            token = null;
-            
+
+        if (!TryPopToken() || tokenList.Count == 0)
             return false;
-        }
+
+        tokens = tokenList.ToArray();
 
         return true;
-    }
+        
+        bool TryPopToken() {
+            if (builder.Length == 0)
+                return true;
 
-    private static bool TryParseVector(string value, out object vector) {
-        string[] split = value.Substring(1, value.Length - 1).Split(new [] {' '}, StringSplitOptions.RemoveEmptyEntries);
+            string str = builder.ToString();
 
-        if (split.Length is < 2 or > 4) {
-            vector = null;
+            if (string.IsNullOrWhiteSpace(str))
+                return true;
 
-            return false;
-        }
-
-        for (int i = 0; i < split.Length; i++) {
-            if (float.TryParse(split[i], NumberStyles.Any, CultureInfo.InvariantCulture, out PARSE_VECTOR_VALUES[i]))
-                continue;
+            object token;
             
-            vector = null;
+            if (Enum.TryParse<Opcode>(str, true, out var opcode))
+                token = opcode;
+            else if (Enum.TryParse<InterpType>(str, true, out var interpType))
+                token = interpType;
+            else if (Enum.TryParse<AssetType>(str, true, out var assetType))
+                token = assetType;
+            else if (!TryParseTimestamp(str, out token)
+                     && !TryParsePrimitive(str, out token)
+                     && !TryParseVariable(str, out token)) {
+                ThrowParseError(index, "Incorrectly formatted token");
 
-            return false;
-        }
+                return false;
+            }
 
-        switch (split.Length) {
-            case 2:
-                vector = new Vector2(PARSE_VECTOR_VALUES[0], PARSE_VECTOR_VALUES[1]);
-                return true;
-            case 3:
-                vector = new Vector3(PARSE_VECTOR_VALUES[0], PARSE_VECTOR_VALUES[1], PARSE_VECTOR_VALUES[2]);
-                return true;
-            default:
-                vector = new Vector4(PARSE_VECTOR_VALUES[0], PARSE_VECTOR_VALUES[1], PARSE_VECTOR_VALUES[2], PARSE_VECTOR_VALUES[3]);
-                return true;
+            tokenList.Add(token);
+            builder.Clear();
+
+            return true;
         }
     }
 
@@ -143,17 +175,18 @@ public static class Parser {
         int beats = 0;
         float ticks = 0f;
         float seconds = 0f;
+        var builder = new StringBuilder();
         
-        PARSE_TIMESTAMP_BUILDER.Clear();
+        builder.Clear();
         
         foreach (char c in value) {
             if (c is not ('b' or 't' or 's')) {
-                PARSE_TIMESTAMP_BUILDER.Append(c);
+                builder.Append(c);
                 
                 continue;
             }
 
-            string s = PARSE_TIMESTAMP_BUILDER.ToString();
+            string s = builder.ToString();
 
             switch (c) {
                 case 'b' when int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out beats):
@@ -166,10 +199,10 @@ public static class Parser {
                     return false;
             }
 
-            PARSE_TIMESTAMP_BUILDER.Clear();
+            builder.Clear();
         }
 
-        if (PARSE_TIMESTAMP_BUILDER.Length > 0) {
+        if (builder.Length > 0) {
             timestamp = null;
 
             return false;
