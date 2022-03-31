@@ -3,9 +3,9 @@
 public readonly struct Procedure {
     public int StartIndex { get; }
     
-    public string[] ArgNames { get; }
+    public Name[] ArgNames { get; }
 
-    public Procedure(int startIndex, string[] argNames) {
+    public Procedure(int startIndex, Name[] argNames) {
         StartIndex = startIndex;
         ArgNames = argNames;
     }

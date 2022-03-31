@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace SRXDStoryboard.Plugin;
@@ -158,7 +159,7 @@ public static class Parser {
                 token = assetType;
             else if (!TryParseTimestamp(str, out token)
                      && !TryParsePrimitive(str, out token)
-                     && !TryParseVariable(str, out token)) {
+                     && !TryParseNameOrChain(str, out token)) {
                 ThrowParseError(index, "Incorrectly formatted token");
 
                 return false;
@@ -229,17 +230,17 @@ public static class Parser {
         return true;
     }
 
-    private static bool TryParseVariable(string token, out object variable) {
-        if (token.Contains("+") || token.Contains("-")) {
-            variable = null;
+    private static bool TryParseNameOrChain(string token, out object nameOrChain) {
+        if (!token.All(c => char.IsLetterOrDigit(c) || c == '.')) {
+            nameOrChain = null;
 
             return false;
         }
-
+        
         string[] split = token.Split('.');
 
         if (split.Length == 0) {
-            variable = null;
+            nameOrChain = null;
 
             return false;
         }
@@ -248,12 +249,15 @@ public static class Parser {
             if (!string.IsNullOrWhiteSpace(s))
                 continue;
             
-            variable = null;
+            nameOrChain = null;
 
             return false;
         }
 
-        variable = split;
+        if (split.Length == 1)
+            nameOrChain = new Name(split[0]);
+        else
+            nameOrChain = new NameChain(split);
 
         return true;
     }

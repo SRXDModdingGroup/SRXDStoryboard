@@ -120,6 +120,8 @@
         <Compile Include="Compiler\Procedure.cs" />
         <Compile Include="Compiler\Scope.cs" />
         <Compile Include="Compiler\Timestamp.cs" />
+        <Compile Include="Compiler\Name.cs" />
+        <Compile Include="Compiler\NameChain.cs" />
         <Compile Include="Compiler\VariableTree\VariableTree.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
