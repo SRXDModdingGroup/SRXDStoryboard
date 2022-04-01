@@ -1,14 +1,20 @@
-﻿namespace StoryboardSystem.Core; 
+﻿using System;
 
-internal abstract class Event {
-    public float Time { get; }
+namespace StoryboardSystem.Core; 
 
-    public abstract void Execute();
+internal readonly struct Event : IComparable<Event> {
+    private readonly float time;
+    private readonly Action execute;
 
-    protected Event(float time) => Time = time;
-    
-    public void Evaluate(float fromTime, float toTime) {
-        if (fromTime < Time && toTime >= Time)
-            Execute();
+    public Event(float time, Action execute) {
+        this.time = time;
+        this.execute = execute;
     }
+
+    public void Evaluate(float fromTime, float toTime) {
+        if (fromTime < time && toTime >= time)
+            execute();
+    }
+
+    public int CompareTo(Event other) => time.CompareTo(other.time);
 }

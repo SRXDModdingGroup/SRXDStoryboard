@@ -5,22 +5,24 @@ using UnityEngine;
 namespace StoryboardSystem.Core;
 
 internal static class Compiler {
-    public static bool TryCompileFile(string path, Action<string> errorCallback, out Storyboard storyboard) {
+    public static bool TryCompileFile(string path, ITimeConversion timeConversion, Action<string> errorCallback, out Storyboard storyboard) {
         if (Parser.TryParseFile(path, errorCallback, out var instructions))
-            return TryCompile(instructions, errorCallback, out storyboard);
+            return TryCompile(instructions, timeConversion, errorCallback, out storyboard);
         
         storyboard = null;
             
         return false;
     }
 
-    private static bool TryCompile(List<Instruction> instructions, Action<string> errorCallback, out Storyboard storyboard) {
+    private static bool TryCompile(List<Instruction> instructions, ITimeConversion timeConversion, Action<string> errorCallback, out Storyboard storyboard) {
         storyboard = null;
 
         var assetBundleReferences = new List<LoadedAssetBundleReference>();
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
         var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
+        var eventBuilders = new HashSet<EventBuilder>();
+        var curveBuilders = new HashSet<CurveBuilder>();
         var procedures = new Dictionary<Name, Procedure>();
         var globals = new Dictionary<Name, object>();
         var globalScope = new Scope(null, 0, 0, 0, Timestamp.Zero, Timestamp.Zero, globals, null);
@@ -146,9 +148,20 @@ internal static class Compiler {
                         return false;
 
                     break;
-                case Opcode.Event:
+                case Opcode.Event when TryGetArguments(arguments, currentScope, out Timestamp time, out EventBuilder eventBuilder):
+                    eventBuilder.AddTime(currentScope.GetGlobalTime(time));
+                    eventBuilders.Add(eventBuilder);
+                    
                     break;
-                case Opcode.Key:
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out CurveBuilder curveBuilder, out object value, out InterpType interpType):
+                    if (!curveBuilder.TryAddKey(value, currentScope.GetGlobalTime(time), interpType, orderCounter)) {
+                        errorCallback?.Invoke(GetCompileError(instruction.LineIndex, "Invalid value for keyframe"));
+
+                        return false;
+                    }
+
+                    curveBuilders.Add(curveBuilder);
+                    
                     break;
                 case Opcode.Loop when TryGetArguments(arguments, currentScope, out Timestamp time, out Name name, out int iterations, out Timestamp every, true):
                     if (!TryCallProcedure(time, name, 4, iterations, every))
@@ -223,7 +236,16 @@ internal static class Compiler {
             }
         }
 
-        storyboard = new Storyboard(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), null, null);
+        var events = new List<Event>();
+        var curves = new List<Curve>();
+
+        foreach (var eventBuilder in eventBuilders)
+            events.AddRange(eventBuilder.CreateEvents(timeConversion));
+
+        foreach (var curveBuilder in curveBuilders)
+            curves.Add(curveBuilder.CreateCurve(timeConversion));
+
+        storyboard = new Storyboard(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), events.ToArray(), curves.ToArray());
 
         return true;
     }
