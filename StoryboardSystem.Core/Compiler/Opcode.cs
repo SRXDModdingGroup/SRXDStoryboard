@@ -11,5 +11,6 @@ internal enum Opcode {
     Post,
     Proc,
     Set,
+    SetA,
     SetG
 }

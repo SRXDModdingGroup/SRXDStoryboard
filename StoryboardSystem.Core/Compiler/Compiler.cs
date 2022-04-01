@@ -86,7 +86,7 @@ internal static class Compiler {
                     inProcs = true;
                     
                     break;
-                case Opcode.Set when TryGetArguments(arguments, globalScope, out Index idx, out object value):
+                case Opcode.SetA when TryGetArguments(arguments, globalScope, out Index idx, out object value):
                     if (!inProcs)
                         idx.Array[idx.index] = value;
 
@@ -159,8 +159,7 @@ internal static class Compiler {
                     currentScope.SetValue(name, value);
 
                     break;
-                
-                case Opcode.Set when TryGetArguments(arguments, currentScope, out Index idx, out object value):
+                case Opcode.SetA when TryGetArguments(arguments, currentScope, out Index idx, out object value):
                     if (!inProcs)
                         idx.Array[idx.index] = value;
 
@@ -229,7 +228,7 @@ internal static class Compiler {
         return true;
     }
 
-    private static bool TryResolveImmediateOrVariable<T>(object argument, Scope scope, out T value) {
+    private static bool TryResolveArgument<T>(object argument, Scope scope, out T value) {
         value = default;
 
         if (typeof(T) == typeof(Name)) {
@@ -252,15 +251,19 @@ internal static class Compiler {
             for (int i = 1; i < chain.Length; i++) {
                 object node = chain[i];
 
-                if (argument is Index index0)
+                if (argument is Index index0) {
+                    if (index0.index < 0 || index0.index >= index0.Array.Length)
+                        return false;
+                    
                     argument = index0.Array[index0.index];
+                }
 
                 if (node is Name name3) {
                     if (argument is not VariableTree variable0 || !variable0.TryGetSubVariable(name3, out argument))
                         return false;
                 }
                 else if (node is Indexer indexer) {
-                    if (argument is not object[] arr || !TryResolveImmediateOrVariable(indexer.Token, scope, out int index1))
+                    if (argument is not object[] arr || !TryResolveArgument(indexer.Token, scope, out int index1))
                         return false;
 
                     argument = new Index(arr, index1);
@@ -279,15 +282,19 @@ internal static class Compiler {
             return true;
         }
         
-        if (argument is Index index4)
+        if (argument is Index index4) {
+            if (index4.index < 0 || index4.index >= index4.Array.Length)
+                return false;
+            
             argument = index4.Array[index4.index];
+        }
 
         return Conversion.TryConvert(argument, out value) || argument is VariableTree variable1 && Conversion.TryConvert(variable1.Value, out value);
     }
 
     private static bool TryGetArguments<T>(object[] arguments, Scope scope, out T arg, bool unlimited = false) {
         if ((unlimited ? arguments.Length >= 1 : arguments.Length == 1)
-            && TryResolveImmediateOrVariable(arguments[0], scope, out arg))
+            && TryResolveArgument(arguments[0], scope, out arg))
             return true;
 
         arg = default;
@@ -296,8 +303,8 @@ internal static class Compiler {
     }
     private static bool TryGetArguments<T0, T1>(object[] arguments, Scope scope, out T0 arg0, out T1 arg1, bool unlimited = false) {
         if ((unlimited ? arguments.Length >= 2 : arguments.Length == 2)
-            && TryResolveImmediateOrVariable(arguments[0], scope, out arg0)
-            && TryResolveImmediateOrVariable(arguments[0], scope, out arg1))
+            && TryResolveArgument(arguments[0], scope, out arg0)
+            && TryResolveArgument(arguments[1], scope, out arg1))
             return true;
 
         arg0 = default;
@@ -307,9 +314,9 @@ internal static class Compiler {
     }
     private static bool TryGetArguments<T0, T1, T2>(object[] arguments, Scope scope, out T0 arg0, out T1 arg1, out T2 arg2, bool unlimited = false) {
         if ((unlimited ? arguments.Length >= 3 : arguments.Length == 3)
-            && TryResolveImmediateOrVariable(arguments[0], scope, out arg0)
-            && TryResolveImmediateOrVariable(arguments[1], scope, out arg1)
-            && TryResolveImmediateOrVariable(arguments[2], scope, out arg2))
+            && TryResolveArgument(arguments[0], scope, out arg0)
+            && TryResolveArgument(arguments[1], scope, out arg1)
+            && TryResolveArgument(arguments[2], scope, out arg2))
             return true;
 
         arg0 = default;
@@ -320,10 +327,10 @@ internal static class Compiler {
     }
     private static bool TryGetArguments<T0, T1, T2, T3>(object[] arguments, Scope scope, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, bool unlimited = false) {
         if ((unlimited ? arguments.Length >= 4 : arguments.Length == 4)
-            && TryResolveImmediateOrVariable(arguments[0], scope, out arg0)
-            && TryResolveImmediateOrVariable(arguments[1], scope, out arg1)
-            && TryResolveImmediateOrVariable(arguments[2], scope, out arg2)
-            && TryResolveImmediateOrVariable(arguments[3], scope, out arg3))
+            && TryResolveArgument(arguments[0], scope, out arg0)
+            && TryResolveArgument(arguments[1], scope, out arg1)
+            && TryResolveArgument(arguments[2], scope, out arg2)
+            && TryResolveArgument(arguments[3], scope, out arg3))
             return true;
 
         arg0 = default;
