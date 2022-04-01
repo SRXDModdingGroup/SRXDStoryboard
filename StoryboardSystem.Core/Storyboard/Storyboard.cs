@@ -30,7 +30,7 @@ internal class Storyboard {
             @event.Evaluate(fromTime, toTime);
 
         foreach (var curve in curves)
-            curve.Evaluate(fromTime, toTime);
+            curve.Evaluate(toTime);
     }
 
     public void Load() {

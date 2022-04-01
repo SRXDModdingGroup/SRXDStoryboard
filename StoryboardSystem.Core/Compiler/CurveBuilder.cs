@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace StoryboardSystem.Core; 
 
@@ -23,18 +24,27 @@ internal abstract class CurveBuilder {
 }
 
 internal class CurveBuilder<T> : CurveBuilder {
-    private List<KeyframeBuilder<T>> keyframes = new();
-    
+    private Property<T> property;
+    private List<KeyframeBuilder<T>> keyframeBuilders = new();
+    public CurveBuilder(Property<T> property) => this.property = property;
+
     public override bool TryAddKey(object value, Timestamp time, InterpType interpType, int order) {
         if (!Conversion.TryConvert(value, out T cast))
             return false;
         
-        keyframes.Add(new KeyframeBuilder<T>(cast, time, interpType, order));
+        keyframeBuilders.Add(new KeyframeBuilder<T>(cast, time, interpType, order));
 
         return true;
     }
 
     public override Curve CreateCurve(ITimeConversion conversion) {
+        var keyframes = new Keyframe<T>[keyframeBuilders.Count];
+
+        for (int i = 0; i < keyframes.Length; i++)
+            keyframes[i] = keyframeBuilders[i].CreateKeyframe(conversion);
         
+        Array.Sort(keyframes);
+
+        return new Curve<T>(property, keyframes);
     }
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace StoryboardSystem.Core;
 
 internal abstract class Curve {
-    public abstract void Evaluate(float fromTime, float toTime);
+    public abstract void Evaluate(float time);
 }
 
 internal class Curve<T> : Curve {
@@ -17,8 +17,8 @@ internal class Curve<T> : Curve {
         Keyframes = keyframes;
     }
 
-    public override void Evaluate(float fromTime, float toTime) {
-        int index = Array.BinarySearch(Keyframes, toTime);
+    public override void Evaluate(float time) {
+        int index = Array.BinarySearch(Keyframes, time);
 
         if (index < 0)
             index = ~index;
@@ -26,8 +26,7 @@ internal class Curve<T> : Curve {
         if (index == 0) {
             var first = Keyframes[0];
             
-            if (fromTime > first.Time)
-                Property.Set(first.Value);
+            Property.Set(first.Value);
             
             return;
         }
@@ -36,14 +35,13 @@ internal class Curve<T> : Curve {
         var interpType = previous.InterpType;
 
         if (interpType == InterpType.Fixed || index == Keyframes.Length) {
-            if (fromTime < previous.Time || index < Keyframes.Length && fromTime > Keyframes[index].Time)
-                Property.Set(previous.Value);
+            Property.Set(previous.Value);
             
             return;
         }
 
         var next = Keyframes[index];
-        float interp = Mathf.InverseLerp(previous.Time, next.Time, toTime);
+        float interp = Mathf.InverseLerp(previous.Time, next.Time, time);
 
         switch (interpType) {
             case InterpType.Smooth:
