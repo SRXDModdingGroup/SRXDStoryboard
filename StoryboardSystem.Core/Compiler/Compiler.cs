@@ -103,7 +103,12 @@ internal static class Compiler {
                 case Opcode.Key:
                 case Opcode.Loop:
                 case Opcode.Set:
-                    break;
+                    if (inProcs)
+                        break;
+
+                    errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Instruction {opcode} must be used within a procedure"));
+
+                    return false;
                 default:
                     errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}"));
 
@@ -246,7 +251,7 @@ internal static class Compiler {
 
     private static bool TryResolveArgument<T>(object argument, Scope scope, out T value) {
         value = default;
-
+        
         if (argument is Chain chain) {
             if (chain[0] is not Name name0 || !scope.TryGetValue(name0, out argument))
                 return false;
@@ -262,15 +267,23 @@ internal static class Compiler {
                 }
 
                 if (node is Indexer indexer) {
-                    if (argument is not object[] arr || !TryResolveArgument(indexer.Token, scope, out int index1))
+                    if (argument is not object[] arr0 || !TryResolveArgument(indexer.Token, scope, out int index1))
                         return false;
 
-                    argument = new Index(arr, index1);
+                    argument = new Index(arr0, index1);
                 }
                 else if (i == chain.Length - 1 && node is BindingSequence sequence && argument is LoadedObjectReference reference)
                     argument = new Binding(reference, sequence);
                 else
                     return false;
+            }
+        }
+        else if (argument is object[] arr1) {
+            for (int i = 0; i < arr1.Length; i++) {
+                if (!TryResolveArgument(arr1[i], scope, out object temp))
+                    return false;
+
+                arr1[i] = temp;
             }
         }
 
@@ -288,20 +301,20 @@ internal static class Compiler {
             argument = index2.Array[index2.index];
         }
 
-        if (type == typeof(VectorN)) {
-            if (argument is not object[] arr || arr.Length > 4)
+        if (type == typeof(VectorN) && argument is object[] arr2) {
+            if (arr2.Length > 4)
                 return false;
 
             float x = 0f;
             float y = 0f;
             float z = 0f;
             float w = 0f;
-            int dimensions = arr.Length;
+            int dimensions = arr2.Length;
 
-            if (dimensions >= 1 && !TryConvertToFloat(arr[0], out x)
-                || dimensions >= 2 && !TryConvertToFloat(arr[1], out y)
-                || dimensions >= 3 && !TryConvertToFloat(arr[2], out z)
-                || dimensions >= 4 && !TryConvertToFloat(arr[3], out w)) {
+            if (dimensions >= 1 && !TryConvertToFloat(arr2[0], out x)
+                || dimensions >= 2 && !TryConvertToFloat(arr2[1], out y)
+                || dimensions >= 3 && !TryConvertToFloat(arr2[2], out z)
+                || dimensions >= 4 && !TryConvertToFloat(arr2[3], out w)) {
                 return false;
             }
 
