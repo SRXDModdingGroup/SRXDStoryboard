@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SRXDStoryboard", "SRXDStoryboard\SRXDStoryboard.csproj", "{BC58D23F-55AA-4975-82B8-076C9AA478DF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoryboardSystem.Core", "StoryboardSystem.Core\StoryboardSystem.Core.csproj", "{0A9D20F0-34EA-442A-8201-D3A10272BFCD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoryboardSystem", "StoryboardSystem\StoryboardSystem.csproj", "{0A9D20F0-34EA-442A-8201-D3A10272BFCD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
