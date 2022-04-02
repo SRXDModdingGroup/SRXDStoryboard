@@ -267,51 +267,9 @@ internal static class Compiler {
                         return false;
                 }
 
-                if (typeof(T) != typeof(VectorN)) {
-                    argument = newArr;
-
-                    break;
-                }
-                
-                if (newArr.Length is 0 or > 4)
-                    return false;
-
-                float x = 0f;
-                float y = 0f;
-                float z = 0f;
-                float w = 0f;
-                int dimensions = newArr.Length;
-
-                if (dimensions >= 1 && !TryConvertToFloat(newArr[0], out x)
-                    || dimensions >= 2 && !TryConvertToFloat(newArr[1], out y)
-                    || dimensions >= 3 && !TryConvertToFloat(newArr[2], out z)
-                    || dimensions >= 4 && !TryConvertToFloat(newArr[3], out w))
-                    return false;
-
-                argument = new VectorN(new Vector4(x, y, z, w), dimensions);
+                argument = newArr;
 
                 break;
-
-                bool TryConvertToFloat(object obj, out float f) {
-                    switch (obj) {
-                        case float floatVal:
-                            f = floatVal;
-
-                            return true;
-                        case int intVal:
-                            f = intVal;
-
-                            return true;
-                        case bool boolVal:
-                            f = boolVal ? 1f : 0f;
-
-                            return true;
-                        default:
-                            f = default;
-
-                            return false;
-                    }
-                }
             }
             case Chain chain: {
                 if (chain[0] is not Name name0 || !scope.TryGetValue(name0, out argument))
@@ -356,28 +314,36 @@ internal static class Compiler {
                         }
                         case string:
                         case int: {
-                            object[] bindingSequence = new object[sequence.Length - i];
+                            object[] newSequence;
+                            LoadedObjectReference reference0;
+                            int j;
 
-                            for (int j = 0; i < sequence.Length; i++, j++)
-                                bindingSequence[j] = sequence[i];
-                    
                             switch (argument) {
-                                case LoadedObjectReference reference:
-                                    argument = new Binding(reference, bindingSequence);
-                                    
-                                    continue;
+                                case LoadedObjectReference reference1:
+                                    newSequence = new object[sequence.Length - i];
+                                    reference0 = reference1;
+                                    j = 0;
+
+                                    break;
                                 case Binding binding:
                                     object[] oldSequence = binding.Sequence;
-                                    object[] newSequence = new object[oldSequence.Length + bindingSequence.Length];
                                     
+                                    newSequence = new object[oldSequence.Length + sequence.Length - i];
                                     oldSequence.CopyTo(newSequence, 0);
-                                    bindingSequence.CopyTo(newSequence, oldSequence.Length);
-                                    argument = new Binding(binding.Reference, newSequence);
-                                    
-                                    continue;
+                                    reference0 = binding.Reference;
+                                    j = oldSequence.Length;
+
+                                    break;
+                                default:
+                                    return false;
                             }
 
-                            return false;
+                            for (; i < sequence.Length; i++, j++)
+                                newSequence[j] = sequence[i];
+                            
+                            argument = new Binding(reference0, newSequence);
+                            
+                            continue;
                         }
                     }
                 
@@ -392,6 +358,50 @@ internal static class Compiler {
                 }
 
                 break;
+            }
+        }
+
+        if (typeof(T) == typeof(VectorN)) {
+            if (argument is object[] arr) {
+                if (arr.Length is 0 or > 4)
+                    return false;
+                
+                float x = 0f;
+                float y = 0f;
+                float z = 0f;
+                float w = 0f;
+                int dimensions = arr.Length;
+
+                if (dimensions >= 1 && !TryConvertToFloat(arr[0], out x)
+                    || dimensions >= 2 && !TryConvertToFloat(arr[1], out y)
+                    || dimensions >= 3 && !TryConvertToFloat(arr[2], out z)
+                    || dimensions >= 4 && !TryConvertToFloat(arr[3], out w))
+                    return false;
+
+                argument = new VectorN(new Vector4(x, y, z, w), dimensions);
+            }
+            else if (TryConvertToFloat(argument, out float x))
+                argument = new VectorN(new Vector4(x, 0f, 0f, 0f), 1);
+
+            bool TryConvertToFloat(object obj, out float f) {
+                switch (obj) {
+                    case float floatVal:
+                        f = floatVal;
+
+                        return true;
+                    case int intVal:
+                        f = intVal;
+
+                        return true;
+                    case bool boolVal:
+                        f = boolVal ? 1f : 0f;
+
+                        return true;
+                    default:
+                        f = default;
+
+                        return false;
+                }
             }
         }
 
