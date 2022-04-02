@@ -22,6 +22,7 @@ internal class Storyboard {
         LoadedPostProcessingMaterialReference[] postProcessReferences,
         Dictionary<Binding, EventBuilder> eventBuilders,
         Dictionary<Binding, CurveBuilder> curveBuilders) {
+        this.timeConversion = timeConversion;
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
@@ -30,15 +31,18 @@ internal class Storyboard {
         this.postProcessReferences = postProcessReferences;
     }
 
-    public void Evaluate(float fromTime, float toTime) {
+    public void Evaluate(float fromTime, float toTime, bool triggerEvents) {
         if (fromTime == toTime)
+            return;
+
+        foreach (var curve in curves)
+            curve.Evaluate(toTime);
+        
+        if (!triggerEvents)
             return;
 
         foreach (var @event in events)
             @event.Evaluate(fromTime, toTime);
-
-        foreach (var curve in curves)
-            curve.Evaluate(toTime);
     }
 
     public void Load(Action<string> errorCallback) {

@@ -13,7 +13,7 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
     public LoadedAssetBundleReference(string bundleName) => this.bundleName = bundleName;
 
     public override void Load() {
-        if (StoryboardManager.AssetBundleManager.TryGetAssetBundle(bundleName, out var bundle))
+        if (StoryboardManager.Instance.AssetBundleManager.TryGetAssetBundle(bundleName, out var bundle))
             Bundle = bundle;
         else
             Bundle = null;

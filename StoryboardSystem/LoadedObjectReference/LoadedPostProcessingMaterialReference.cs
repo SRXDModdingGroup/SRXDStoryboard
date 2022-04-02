@@ -16,11 +16,11 @@ internal class LoadedPostProcessingMaterialReference : LoadedObjectReference {
 
     public override void Load() {
         info = new PostProcessingInfo(materialReference.Asset, layer);
-        StoryboardManager.PostProcessingManager.AddPostProcessingInstance(info);
+        StoryboardManager.Instance.PostProcessingManager.AddPostProcessingInstance(info);
     }
 
     public override void Unload() {
-        StoryboardManager.PostProcessingManager.RemovePostProcessingInstance(info);
+        StoryboardManager.Instance.PostProcessingManager.RemovePostProcessingInstance(info);
         info = default;
     }
 }
