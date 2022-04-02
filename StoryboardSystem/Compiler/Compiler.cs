@@ -354,16 +354,31 @@ internal static class Compiler {
                         
                             continue;
                         }
-                        case string str when argument is LoadedObjectReference reference: {
+                        case string:
+                        case int: {
                             object[] bindingSequence = new object[sequence.Length - i];
 
                             for (int j = 0; i < sequence.Length; i++, j++)
-                                bindingSequence[j] = str;
+                                bindingSequence[j] = sequence[i];
                     
-                            argument = new Binding(reference, bindingSequence);
-                        
-                            continue;
-                        } 
+                            switch (argument) {
+                                case LoadedObjectReference reference:
+                                    argument = new Binding(reference, bindingSequence);
+                                    
+                                    continue;
+                                case Binding binding:
+                                    object[] oldSequence = binding.Sequence;
+                                    object[] newSequence = new object[oldSequence.Length + bindingSequence.Length];
+                                    
+                                    oldSequence.CopyTo(newSequence, 0);
+                                    bindingSequence.CopyTo(newSequence, oldSequence.Length);
+                                    argument = new Binding(binding.Reference, newSequence);
+                                    
+                                    continue;
+                            }
+
+                            return false;
+                        }
                     }
                 
                     return false;
