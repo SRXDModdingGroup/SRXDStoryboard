@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace StoryboardSystem.Core; 
 
 internal class Storyboard {
+    private ITimeConversion timeConversion;
     private LoadedAssetBundleReference[] assetBundleReferences;
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
@@ -13,6 +15,7 @@ internal class Storyboard {
     private Curve[] curves;
 
     public Storyboard(
+        ITimeConversion timeConversion,
         LoadedAssetBundleReference[] assetBundleReferences,
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
@@ -38,7 +41,7 @@ internal class Storyboard {
             curve.Evaluate(toTime);
     }
 
-    public void Load() {
+    public void Load(Action<string> errorCallback) {
         foreach (var reference in assetBundleReferences)
             reference.Load();
         
@@ -50,9 +53,33 @@ internal class Storyboard {
 
         foreach (var reference in postProcessReferences)
             reference.Load();
+
+        var curvesList = new List<Curve>();
+
+        foreach (var pair in curveBuilders) {
+            if (Binder.TryCreatePropertyFromBinding(pair.Key, out var property))
+                curvesList.Add(property.CreateCurve(pair.Value, timeConversion));
+            else
+                errorCallback($"Failed to bind property for {pair.Key}");
+        }
+
+        var eventsList = new List<Event>();
+
+        foreach (var pair in eventBuilders) {
+            if (Binder.TryCreateActionFromBinding(pair.Key, out var action))
+                eventsList.AddRange(pair.Value.CreateEvents(action, timeConversion));
+            else
+                errorCallback($"Failed to bind event for {pair.Key}");
+        }
+
+        events = eventsList.ToArray();
+        curves = curvesList.ToArray();
     }
 
     public void Unload() {
+        events = null;
+        curves = null;
+        
         foreach (var reference in postProcessReferences)
             reference.Unload();
         

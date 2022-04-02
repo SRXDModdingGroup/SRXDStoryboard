@@ -244,7 +244,7 @@ internal static class Compiler {
             }
         }
 
-        storyboard = new Storyboard(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), eventBuilders, curveBuilders);
+        storyboard = new Storyboard(timeConversion, assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), eventBuilders, curveBuilders);
 
         return true;
     }
@@ -252,95 +252,131 @@ internal static class Compiler {
     private static bool TryResolveArgument<T>(object argument, Scope scope, out T value) {
         value = default;
         
-        if (argument is Chain chain) {
-            if (chain[0] is not Name name0 || !scope.TryGetValue(name0, out argument))
-                return false;
+        switch (argument) {
+            case Name name when typeof(T) != typeof(Name): {
+                if (!scope.TryGetValue(name, out argument))
+                    return false;
 
-            for (int i = 1; i < chain.Length; i++) {
-                object node = chain[i];
-
-                if (argument is Index index0) {
-                    if (index0.index < 0 || index0.index >= index0.Array.Length)
+                break;
+            }
+            case object[] arr: {
+                object[] newArr = new object[arr.Length];
+            
+                for (int i = 0; i < arr.Length; i++) {
+                    if (!TryResolveArgument(arr[i], scope, out newArr[i]))
                         return false;
+                }
+
+                if (typeof(T) != typeof(VectorN)) {
+                    argument = newArr;
+
+                    break;
+                }
+                
+                if (newArr.Length is 0 or > 4)
+                    return false;
+
+                float x = 0f;
+                float y = 0f;
+                float z = 0f;
+                float w = 0f;
+                int dimensions = newArr.Length;
+
+                if (dimensions >= 1 && !TryConvertToFloat(newArr[0], out x)
+                    || dimensions >= 2 && !TryConvertToFloat(newArr[1], out y)
+                    || dimensions >= 3 && !TryConvertToFloat(newArr[2], out z)
+                    || dimensions >= 4 && !TryConvertToFloat(newArr[3], out w))
+                    return false;
+
+                argument = new VectorN(new Vector4(x, y, z, w), dimensions);
+
+                break;
+
+                bool TryConvertToFloat(object obj, out float f) {
+                    switch (obj) {
+                        case float floatVal:
+                            f = floatVal;
+
+                            return true;
+                        case int intVal:
+                            f = intVal;
+
+                            return true;
+                        case bool boolVal:
+                            f = boolVal ? 1f : 0f;
+
+                            return true;
+                        default:
+                            f = default;
+
+                            return false;
+                    }
+                }
+            }
+            case Chain chain: {
+                if (chain[0] is not Name name0 || !scope.TryGetValue(name0, out argument))
+                    return false;
+                
+                object[] sequence = new object[chain.Length - 1];
+
+                for (int i = 1, j = 0; i < chain.Length; i++, j++) {
+                    object node = chain[i];
+
+                    switch (node) {
+                        case Indexer indexer: {
+                            if (!TryResolveArgument(indexer.Token, scope, out int index0))
+                                return false;
+
+                            sequence[j] = index0;
+                        
+                            continue;
+                        }
+                        case Name name1:
+                            sequence[j] = name1.ToString();
+                        
+                            continue;
+                    }
+                
+                    return false;
+                }
+
+                for (int i = 0; i < sequence.Length; i++) {
+                    if (argument is Index index0) {
+                        if (index0.index < 0 || index0.index >= index0.Array.Length)
+                            return false;
                     
-                    argument = index0.Array[index0.index];
-                }
+                        argument = index0.Array[index0.index];
+                    }
+                
+                    switch (sequence[i]) {
+                        case int index1 when argument is object[] arr: {
+                            argument = new Index(arr, index1);
+                        
+                            continue;
+                        }
+                        case string str when argument is LoadedObjectReference reference: {
+                            object[] bindingSequence = new object[sequence.Length - i];
 
-                if (node is Indexer indexer) {
-                    if (argument is not object[] arr0 || !TryResolveArgument(indexer.Token, scope, out int index1))
+                            for (int j = 0; i < sequence.Length; i++, j++)
+                                bindingSequence[j] = str;
+                    
+                            argument = new Binding(reference, bindingSequence);
+                        
+                            continue;
+                        } 
+                    }
+                
+                    return false;
+                }
+                
+                if (argument is Index index2 && typeof(T) != typeof(Index)) {
+                    if (index2.index < 0 || index2.index >= index2.Array.Length)
                         return false;
 
-                    argument = new Index(arr0, index1);
+                    argument = index2.Array[index2.index];
                 }
-                else if (i == chain.Length - 1 && node is BindingSequence sequence && argument is LoadedObjectReference reference)
-                    argument = new Binding(reference, sequence);
-                else
-                    return false;
-            }
-        }
-        else if (argument is object[] arr1) {
-            object[] arr2 = new object[arr1.Length];
-            
-            for (int i = 0; i < arr1.Length; i++) {
-                if (!TryResolveArgument(arr1[i], scope, out arr2[i]))
-                    return false;
-            }
 
-            argument = arr2;
-        }
-
-        var type = typeof(T);
-
-        if (type != typeof(Name) && argument is Name name1) {
-            if (!scope.TryGetValue(name1, out argument))
-                return false;
-        }
-        
-        if (type != typeof(Index) && argument is Index index2) {
-            if (index2.index < 0 || index2.index >= index2.Array.Length)
-                return false;
-            
-            argument = index2.Array[index2.index];
-        }
-
-        if (type == typeof(VectorN) && argument is object[] arr3) {
-            if (arr3.Length > 4)
-                return false;
-
-            float x = 0f;
-            float y = 0f;
-            float z = 0f;
-            float w = 0f;
-            int dimensions = arr3.Length;
-
-            if (dimensions >= 1 && !TryConvertToFloat(arr3[0], out x)
-                || dimensions >= 2 && !TryConvertToFloat(arr3[1], out y)
-                || dimensions >= 3 && !TryConvertToFloat(arr3[2], out z)
-                || dimensions >= 4 && !TryConvertToFloat(arr3[3], out w)) {
-                return false;
-            }
-
-            argument = new VectorN(new Vector4(x, y, z, w), dimensions);
-
-            bool TryConvertToFloat(object obj, out float f) {
-                switch (obj) {
-                    case float floatVal:
-                        f = floatVal;
-
-                        return true;
-                    case int intVal:
-                        f = intVal;
-
-                        return true;
-                    case bool boolVal:
-                        f = boolVal ? 1f : 0f;
-
-                        return true;
-                    default:
-                        f = default;
-
-                        return false;
-                }
+                break;
             }
         }
 

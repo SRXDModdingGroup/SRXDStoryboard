@@ -8,39 +8,38 @@ internal abstract class Curve {
 }
 
 internal class Curve<T> : Curve {
-    public Property<T> Property { get; }
-    
-    public Keyframe<T>[] Keyframes { get; }
+    private Property<T> property;
+    private Keyframe<T>[] keyframes;
 
     public Curve(Property<T> property, Keyframe<T>[] keyframes) {
-        Property = property;
-        Keyframes = keyframes;
+        this.property = property;
+        this.keyframes = keyframes;
     }
 
     public override void Evaluate(float time) {
-        int index = Array.BinarySearch(Keyframes, time);
+        int index = Array.BinarySearch(keyframes, time);
 
         if (index < 0)
             index = ~index;
 
         if (index == 0) {
-            var first = Keyframes[0];
+            var first = keyframes[0];
             
-            Property.Set(first.Value);
+            property.Set(first.Value);
             
             return;
         }
 
-        var previous = Keyframes[index - 1];
+        var previous = keyframes[index - 1];
         var interpType = previous.InterpType;
 
-        if (interpType == InterpType.Fixed || index == Keyframes.Length) {
-            Property.Set(previous.Value);
+        if (interpType == InterpType.Fixed || index == keyframes.Length) {
+            property.Set(previous.Value);
             
             return;
         }
 
-        var next = Keyframes[index];
+        var next = keyframes[index];
         float interp = Mathf.InverseLerp(previous.Time, next.Time, time);
 
         switch (interpType) {
@@ -56,6 +55,6 @@ internal class Curve<T> : Curve {
                 break;
         }
         
-        Property.Set(Property.Interp(previous.Value, next.Value, interp));
+        property.Set(property.Interp(previous.Value, next.Value, interp));
     }
 }

@@ -276,26 +276,10 @@ internal static class Parser {
                 return false;
         }
         
-        if (chain.Count == 1) {
+        if (chain.Count == 1)
             nameOrChain = new Name(split[0]);
-
-            return true;
-        }
-
-        for (int i = 1; i < chain.Count; i++) {
-            if (chain[i] is not Name)
-                continue;
-
-            object[] sequence = new object[chain.Count - i];
-
-            for (int j = i, k = 0; j < chain.Count; j++, k++)
-                sequence[k] = chain[j];
-
-            chain.RemoveRange(i, sequence.Length);
-            chain.Add(new BindingSequence(sequence));
-        }
-        
-        nameOrChain = new Chain(chain.ToArray());
+        else
+            nameOrChain = new Chain(chain.ToArray());
 
         return true;
     }

@@ -8,11 +8,11 @@ internal class CurveBuilder {
 
     public void AddKey(Timestamp time, VectorN value, InterpType interpType, int order) => keyframeBuilders.Add(new KeyframeBuilder(time, value, interpType, order));
 
-    public Curve<T> CreateCurve<T>(Property<T> property, IVectorConversion<T> valueConversion, ITimeConversion conversion) {
+    public Curve CreateCurve<T>(Property<T> property, IVectorConversion<T> valueConversion, ITimeConversion timeConversion) {
         var keyframes = new Keyframe<T>[keyframeBuilders.Count];
 
         for (int i = 0; i < keyframes.Length; i++)
-            keyframes[i] = keyframeBuilders[i].CreateKeyframe(valueConversion, conversion);
+            keyframes[i] = keyframeBuilders[i].CreateKeyframe(valueConversion, timeConversion);
         
         Array.Sort(keyframes);
 
