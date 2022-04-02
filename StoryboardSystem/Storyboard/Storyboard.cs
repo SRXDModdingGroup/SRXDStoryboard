@@ -13,6 +13,8 @@ internal class Storyboard {
     private Dictionary<Binding, CurveBuilder> curveBuilders;
     private Event[] events;
     private Curve[] curves;
+    private float lastTime;
+    private bool loaded;
 
     public Storyboard(
         ITimeConversion timeConversion,
@@ -31,18 +33,19 @@ internal class Storyboard {
         this.postProcessReferences = postProcessReferences;
     }
 
-    public void Evaluate(float fromTime, float toTime, bool triggerEvents) {
-        if (fromTime == toTime)
+    public void Evaluate(float time, bool triggerEvents) {
+        if (!loaded || time == lastTime)
             return;
 
         foreach (var curve in curves)
-            curve.Evaluate(toTime);
-        
-        if (!triggerEvents)
-            return;
+            curve.Evaluate(time);
 
-        foreach (var @event in events)
-            @event.Evaluate(fromTime, toTime);
+        if (triggerEvents) {
+            foreach (var @event in events)
+                @event.Evaluate(lastTime, time);
+        }
+
+        lastTime = time;
     }
 
     public void Load(Action<string> errorCallback) {
@@ -78,6 +81,8 @@ internal class Storyboard {
 
         events = eventsList.ToArray();
         curves = curvesList.ToArray();
+        lastTime = -1f;
+        loaded = true;
     }
 
     public void Unload() {
@@ -95,5 +100,7 @@ internal class Storyboard {
         
         foreach (var reference in assetBundleReferences)
             reference.Unload();
+
+        loaded = false;
     }
 }

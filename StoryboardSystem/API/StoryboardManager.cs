@@ -7,60 +7,86 @@ namespace StoryboardSystem;
 public class StoryboardManager : MonoBehaviour {
     public static StoryboardManager Instance { get; private set; }
     
+    internal Transform SceneRoot { get; private set; }
+    
     internal IAssetBundleManager AssetBundleManager { get; private set; }
     
     internal IPostProcessingManager PostProcessingManager { get; private set; }
 
-    private float lastTime;
+    private bool active;
+    private float currentTime;
     private Storyboard loadedStoryboard;
-    private Dictionary<string, Storyboard> storyboards;
+    private Dictionary<string, Storyboard> storyboards = new();
     private Action<string> errorCallback;
 
-    private void Awake() {
-        storyboards = new Dictionary<string, Storyboard>();
-    }
-
     public void LoadStoryboard(string path, ITimeConversion timeConversion) {
-        UnloadStoryboard();
+        bool exists = storyboards.TryGetValue(path, out var storyboard);
         
-        if (storyboards.TryGetValue(path, out var storyboard)) { }
-        else if (Compiler.TryCompileFile(path, timeConversion, errorCallback, out storyboard))
-            storyboards.Add(path, storyboard);
-        else
+        if (exists && storyboard == loadedStoryboard)
             return;
+        
+        UnloadStoryboard();
+
+        if (!exists) {
+            if (!Compiler.TryCompileFile(path, timeConversion, errorCallback, out storyboard))
+                return;
+            
+            storyboards.Add(path, storyboard);
+        }
         
         storyboard.Load(errorCallback);
         loadedStoryboard = storyboard;
-        lastTime = 0f;
-        loadedStoryboard.Evaluate(-1f, 0f, false);
+        SetTime(0f, false);
     }
 
     public void UnloadStoryboard() {
         if (loadedStoryboard == null)
             return;
         
+        Stop();
         loadedStoryboard.Unload();
         loadedStoryboard = null;
+    }
+
+    public void Play() {
+        if (loadedStoryboard == null)
+            return;
+        
+        active = true;
+        SceneRoot.gameObject.SetActive(true);
+        SetTime(currentTime, false);
+    }
+
+    public void Stop() {
+        if (loadedStoryboard == null)
+            return;
+        
+        active = false;
+        SceneRoot.gameObject.SetActive(false);
     }
 
     public void SetTime(float time, bool triggerEvents) {
         if (loadedStoryboard == null)
             return;
-        
-        loadedStoryboard.Evaluate(lastTime, time, triggerEvents);
-        lastTime = time;
+
+        currentTime = time;
+
+        if (active)
+            loadedStoryboard.Evaluate(time, triggerEvents);
     }
 
-    public static void Create(Transform root, IAssetBundleManager assetBundleManager, IPostProcessingManager postProcessingManager, Action<string> errorCallback) {
+    public static void Create(Transform rootParent, IAssetBundleManager assetBundleManager, IPostProcessingManager postProcessingManager, Action<string> errorCallback) {
         if (Instance != null)
             return;
         
-        var gameObject = new GameObject();
+        var gameObject = new GameObject("Storyboard Manager");
         
-        gameObject.transform.SetParent(root, false);
         Instance = gameObject.AddComponent<StoryboardManager>();
         Instance.AssetBundleManager = assetBundleManager;
         Instance.PostProcessingManager = postProcessingManager;
         Instance.errorCallback = errorCallback;
+        Instance.SceneRoot = new GameObject("Scene Root").transform;
+        Instance.SceneRoot.SetParent(rootParent, false);
+        Instance.SceneRoot.gameObject.SetActive(false);
     }
 }

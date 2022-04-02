@@ -98,11 +98,8 @@ internal abstract class Binder {
                     subObject = new MaterialVectorProperty(material, id);
                 else if (material.HasColor(id))
                     subObject = new MaterialColorProperty(material, id);
-                else {
-                    subObject = null;
-                    
-                    return false;
-                }
+                else
+                    break;
 
                 return true;
         }
