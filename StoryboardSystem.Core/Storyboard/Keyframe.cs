@@ -3,17 +3,17 @@
 namespace StoryboardSystem.Core; 
 
 internal readonly struct Keyframe<T> : IComparable<Keyframe<T>> {
-    public T Value { get; }
-    
     public float Time { get; }
+    
+    public T Value { get; }
     
     public InterpType InterpType { get; }
 
     private readonly int order;
 
-    public Keyframe(T value, float time, InterpType interpType, int order) {
-        Value = value;
+    public Keyframe(float time, T value, InterpType interpType, int order) {
         Time = time;
+        Value = value;
         InterpType = interpType;
         this.order = order;
     }

@@ -3,6 +3,8 @@
 namespace StoryboardSystem.Core; 
 
 internal class LoadedPostProcessingMaterialReference : LoadedObjectReference {
+    public override object LoadedObject => info;
+
     private LoadedAssetReference<Material> materialReference;
     private int layer;
     private PostProcessingInfo info;

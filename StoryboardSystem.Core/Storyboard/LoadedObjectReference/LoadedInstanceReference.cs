@@ -5,6 +5,8 @@ namespace StoryboardSystem.Core;
 internal abstract class LoadedInstanceReference : LoadedObjectReference { }
 
 internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
+    public override object LoadedObject => Instance;
+
     public T Instance { get; private set; }
     
     private LoadedAssetReference<T> template;

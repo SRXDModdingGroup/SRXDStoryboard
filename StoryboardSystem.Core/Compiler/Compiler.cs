@@ -21,8 +21,8 @@ internal static class Compiler {
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
         var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
-        var eventBuilders = new HashSet<EventBuilder>();
-        var curveBuilders = new HashSet<CurveBuilder>();
+        var eventBuilders = new Dictionary<Binding, EventBuilder>();
+        var curveBuilders = new Dictionary<Binding, CurveBuilder>();
         var procedures = new Dictionary<Name, Procedure>();
         var globals = new Dictionary<Name, object>();
         var globalScope = new Scope(null, 0, 0, 0, Timestamp.Zero, Timestamp.Zero, globals, null);
@@ -45,7 +45,7 @@ internal static class Compiler {
                     var newInstanceReference = assetReference.CreateInstanceReference();
                     
                     instanceReferences.Add(newInstanceReference);
-                    globals[name] = VariableTree.Create(newInstanceReference);
+                    globals[name] = newInstanceReference;
                     
                     break;
                 case Opcode.Load when TryGetArguments(arguments, globalScope, out Name name, out AssetType type, out LoadedAssetBundleReference assetBundleReference, out string assetName):
@@ -148,19 +148,22 @@ internal static class Compiler {
                         return false;
 
                     break;
-                case Opcode.Event when TryGetArguments(arguments, currentScope, out Timestamp time, out EventBuilder eventBuilder):
+                case Opcode.Event when TryGetArguments(arguments, currentScope, out Timestamp time, out Binding binding):
+                    if (!eventBuilders.TryGetValue(binding, out var eventBuilder)) {
+                        eventBuilder = new EventBuilder();
+                        eventBuilders.Add(binding, eventBuilder);
+                    }
+                    
                     eventBuilder.AddTime(currentScope.GetGlobalTime(time));
-                    eventBuilders.Add(eventBuilder);
                     
                     break;
-                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out CurveBuilder curveBuilder, out object value, out InterpType interpType):
-                    if (!curveBuilder.TryAddKey(value, currentScope.GetGlobalTime(time), interpType, orderCounter)) {
-                        errorCallback?.Invoke(GetCompileError(instruction.LineIndex, "Invalid value for keyframe"));
-
-                        return false;
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Binding binding, out VectorN value, out InterpType interpType):
+                    if (!curveBuilders.TryGetValue(binding, out var curveBuilder)) {
+                        curveBuilder = new CurveBuilder();
+                        curveBuilders.Add(binding, curveBuilder);
                     }
 
-                    curveBuilders.Add(curveBuilder);
+                    curveBuilder.AddKey(time, value, interpType, orderCounter);
                     
                     break;
                 case Opcode.Loop when TryGetArguments(arguments, currentScope, out Timestamp time, out Name name, out int iterations, out Timestamp every, true):
@@ -236,16 +239,7 @@ internal static class Compiler {
             }
         }
 
-        var events = new List<Event>();
-        var curves = new List<Curve>();
-
-        foreach (var eventBuilder in eventBuilders)
-            events.AddRange(eventBuilder.CreateEvents(timeConversion));
-
-        foreach (var curveBuilder in curveBuilders)
-            curves.Add(curveBuilder.CreateCurve(timeConversion));
-
-        storyboard = new Storyboard(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), events.ToArray(), curves.ToArray());
+        storyboard = new Storyboard(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), eventBuilders, curveBuilders);
 
         return true;
     }
@@ -253,21 +247,8 @@ internal static class Compiler {
     private static bool TryResolveArgument<T>(object argument, Scope scope, out T value) {
         value = default;
 
-        if (typeof(T) == typeof(Name)) {
-            if (argument is not T name0)
-                return false;
-            
-            value = name0;
-
-            return true;
-        }
-
-        if (argument is Name name1) {
-            if (!scope.TryGetValue(name1, out argument))
-                return false;
-        }
-        else if (argument is Chain chain) {
-            if (chain[0] is not Name name2 || !scope.TryGetValue(name2, out argument))
+        if (argument is Chain chain) {
+            if (chain[0] is not Name name0 || !scope.TryGetValue(name0, out argument))
                 return false;
 
             for (int i = 1; i < chain.Length; i++) {
@@ -280,38 +261,80 @@ internal static class Compiler {
                     argument = index0.Array[index0.index];
                 }
 
-                if (node is Name name3) {
-                    if (argument is not VariableTree variable0 || !variable0.TryGetSubVariable(name3, out argument))
-                        return false;
-                }
-                else if (node is Indexer indexer) {
+                if (node is Indexer indexer) {
                     if (argument is not object[] arr || !TryResolveArgument(indexer.Token, scope, out int index1))
                         return false;
 
                     argument = new Index(arr, index1);
                 }
+                else if (i == chain.Length - 1 && node is BindingSequence sequence && argument is LoadedObjectReference reference)
+                    argument = new Binding(reference, sequence);
                 else
                     return false;
             }
         }
 
-        if (typeof(T) == typeof(Index)) {
-            if (argument is not T index3)
-                return false;
+        var type = typeof(T);
 
-            value = index3;
-            
-            return true;
+        if (type != typeof(Name) && argument is Name name1) {
+            if (!scope.TryGetValue(name1, out argument))
+                return false;
         }
         
-        if (argument is Index index4) {
-            if (index4.index < 0 || index4.index >= index4.Array.Length)
+        if (type != typeof(Index) && argument is Index index2) {
+            if (index2.index < 0 || index2.index >= index2.Array.Length)
                 return false;
             
-            argument = index4.Array[index4.index];
+            argument = index2.Array[index2.index];
         }
 
-        return Conversion.TryConvert(argument, out value) || argument is VariableTree variable1 && Conversion.TryConvert(variable1.Value, out value);
+        if (type == typeof(VectorN)) {
+            if (argument is not object[] arr || arr.Length > 4)
+                return false;
+
+            float x = 0f;
+            float y = 0f;
+            float z = 0f;
+            float w = 0f;
+            int dimensions = arr.Length;
+
+            if (dimensions >= 1 && !TryConvertToFloat(arr[0], out x)
+                || dimensions >= 2 && !TryConvertToFloat(arr[1], out y)
+                || dimensions >= 3 && !TryConvertToFloat(arr[2], out z)
+                || dimensions >= 4 && !TryConvertToFloat(arr[3], out w)) {
+                return false;
+            }
+
+            argument = new VectorN(new Vector4(x, y, z, w), dimensions);
+
+            bool TryConvertToFloat(object obj, out float f) {
+                switch (obj) {
+                    case float floatVal:
+                        f = floatVal;
+
+                        return true;
+                    case int intVal:
+                        f = intVal;
+
+                        return true;
+                    case bool boolVal:
+                        f = boolVal ? 1f : 0f;
+
+                        return true;
+                    default:
+                        f = default;
+
+                        return false;
+                }
+            }
+        }
+
+        if (argument is not T result)
+            return false;
+        
+        value = result;
+
+        return true;
     }
 
     private static bool TryGetArguments<T>(object[] arguments, Scope scope, out T arg, bool unlimited = false) {

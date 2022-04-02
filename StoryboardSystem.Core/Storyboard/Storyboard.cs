@@ -1,10 +1,14 @@
-﻿namespace StoryboardSystem.Core; 
+﻿using System.Collections.Generic;
+
+namespace StoryboardSystem.Core; 
 
 internal class Storyboard {
     private LoadedAssetBundleReference[] assetBundleReferences;
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
     private LoadedPostProcessingMaterialReference[] postProcessReferences;
+    private Dictionary<Binding, EventBuilder> eventBuilders;
+    private Dictionary<Binding, CurveBuilder> curveBuilders;
     private Event[] events;
     private Curve[] curves;
 
@@ -13,12 +17,13 @@ internal class Storyboard {
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
-        Event[] events, Curve[] curves) {
+        Dictionary<Binding, EventBuilder> eventBuilders,
+        Dictionary<Binding, CurveBuilder> curveBuilders) {
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
-        this.events = events;
-        this.curves = curves;
+        this.eventBuilders = eventBuilders;
+        this.curveBuilders = curveBuilders;
         this.postProcessReferences = postProcessReferences;
     }
 
