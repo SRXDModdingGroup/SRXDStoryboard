@@ -4,8 +4,8 @@ using UnityEngine;
 namespace StoryboardSystem.Core; 
 
 internal abstract class Binder {
-    public static bool TryCreatePropertyFromBinding(Binding binding, out Property property) {
-        if (TryResolveBinding(binding, out object result) && result is Property newProperty) {
+    public static bool TryCreateValuePropertyFromBinding(Binding binding, out ValueProperty property) {
+        if (TryResolveBinding(binding, out object result) && result is ValueProperty newProperty) {
             property = newProperty;
 
             return true;
@@ -16,14 +16,14 @@ internal abstract class Binder {
         return false;
     }
 
-    public static bool TryCreateActionFromBinding(Binding binding, out Action action) {
-        if (TryResolveBinding(binding, out object result) && result is Action newAction) {
-            action = newAction;
+    public static bool TryCreateEventPropertyFromBinding(Binding binding, out EventProperty property) {
+        if (TryResolveBinding(binding, out object result) && result is EventProperty newProperty) {
+            property = newProperty;
 
             return true;
         }
 
-        action = null;
+        property = null;
 
         return false;
     }
@@ -56,9 +56,16 @@ internal abstract class Binder {
     private static bool TryGetSubObject(object parent, string name, out object subObject) {
         switch (parent) {
             case GameObject gameObject:
-                
-                
-                return true;
+                var transform = gameObject.transform;
+
+                subObject = name switch {
+                    "pos" => new PositionProperty(transform),
+                    "rot" => new RotationProperty(transform),
+                    "scale" => new ScaleProperty(transform),
+                    _ => null
+                };
+
+                return subObject != null;
         }
         
         subObject = null;

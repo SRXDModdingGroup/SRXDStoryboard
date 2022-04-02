@@ -8,10 +8,10 @@ internal abstract class Curve {
 }
 
 internal class Curve<T> : Curve {
-    private Property<T> property;
+    private ValueProperty<T> property;
     private Keyframe<T>[] keyframes;
 
-    public Curve(Property<T> property, Keyframe<T>[] keyframes) {
+    public Curve(ValueProperty<T> property, Keyframe<T>[] keyframes) {
         this.property = property;
         this.keyframes = keyframes;
     }

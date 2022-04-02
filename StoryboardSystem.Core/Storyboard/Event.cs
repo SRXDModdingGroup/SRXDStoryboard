@@ -4,16 +4,16 @@ namespace StoryboardSystem.Core;
 
 internal readonly struct Event : IComparable<Event> {
     private readonly float time;
-    private readonly Action execute;
+    private readonly EventProperty property;
 
-    public Event(float time, Action execute) {
+    public Event(float time, EventProperty property) {
         this.time = time;
-        this.execute = execute;
+        this.property = property;
     }
 
     public void Evaluate(float fromTime, float toTime) {
         if (fromTime < time && toTime >= time)
-            execute();
+            property.Execute();
     }
 
     public int CompareTo(Event other) => time.CompareTo(other.time);

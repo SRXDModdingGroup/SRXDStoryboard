@@ -15,6 +15,6 @@ internal readonly struct KeyframeBuilder {
         this.order = order;
     }
 
-    public Keyframe<T> CreateKeyframe<T>(IVectorConversion<T> valueConversion, ITimeConversion conversion)
-        => new(conversion.Convert(time.Beats, time.Ticks, time.Seconds), valueConversion.Convert(value), interpType, order);
+    public Keyframe<T> CreateKeyframe<T>(ValueProperty<T> property, ITimeConversion conversion)
+        => new(conversion.Convert(time.Beats, time.Ticks, time.Seconds), property.Convert(value.Value, value.Dimensions), interpType, order);
 }

@@ -57,19 +57,19 @@ internal class Storyboard {
         var curvesList = new List<Curve>();
 
         foreach (var pair in curveBuilders) {
-            if (Binder.TryCreatePropertyFromBinding(pair.Key, out var property))
+            if (Binder.TryCreateValuePropertyFromBinding(pair.Key, out var property))
                 curvesList.Add(property.CreateCurve(pair.Value, timeConversion));
             else
-                errorCallback($"Failed to bind property for {pair.Key}");
+                errorCallback($"Failed to bind value property for {pair.Key}");
         }
 
         var eventsList = new List<Event>();
 
         foreach (var pair in eventBuilders) {
-            if (Binder.TryCreateActionFromBinding(pair.Key, out var action))
-                eventsList.AddRange(pair.Value.CreateEvents(action, timeConversion));
+            if (Binder.TryCreateEventPropertyFromBinding(pair.Key, out var property))
+                eventsList.AddRange(property.CreateEvents(pair.Value, timeConversion));
             else
-                errorCallback($"Failed to bind event for {pair.Key}");
+                errorCallback($"Failed to bind event property for {pair.Key}");
         }
 
         events = eventsList.ToArray();
