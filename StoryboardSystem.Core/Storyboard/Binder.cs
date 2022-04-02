@@ -66,6 +66,22 @@ internal abstract class Binder {
                 };
 
                 return subObject != null;
+            case Material material:
+                int id = Shader.PropertyToID(name);
+
+                if (material.HasFloat(id))
+                    subObject = new MaterialFloatProperty(material, id);
+                else if (material.HasVector(id))
+                    subObject = new MaterialVectorProperty(material, id);
+                else if (material.HasColor(id))
+                    subObject = new MaterialColorProperty(material, id);
+                else {
+                    subObject = null;
+                    
+                    return false;
+                }
+
+                return true;
         }
         
         subObject = null;
