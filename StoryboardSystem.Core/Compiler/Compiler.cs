@@ -279,12 +279,14 @@ internal static class Compiler {
             }
         }
         else if (argument is object[] arr1) {
+            object[] arr2 = new object[arr1.Length];
+            
             for (int i = 0; i < arr1.Length; i++) {
-                if (!TryResolveArgument(arr1[i], scope, out object temp))
+                if (!TryResolveArgument(arr1[i], scope, out arr2[i]))
                     return false;
-
-                arr1[i] = temp;
             }
+
+            argument = arr2;
         }
 
         var type = typeof(T);
@@ -301,20 +303,20 @@ internal static class Compiler {
             argument = index2.Array[index2.index];
         }
 
-        if (type == typeof(VectorN) && argument is object[] arr2) {
-            if (arr2.Length > 4)
+        if (type == typeof(VectorN) && argument is object[] arr3) {
+            if (arr3.Length > 4)
                 return false;
 
             float x = 0f;
             float y = 0f;
             float z = 0f;
             float w = 0f;
-            int dimensions = arr2.Length;
+            int dimensions = arr3.Length;
 
-            if (dimensions >= 1 && !TryConvertToFloat(arr2[0], out x)
-                || dimensions >= 2 && !TryConvertToFloat(arr2[1], out y)
-                || dimensions >= 3 && !TryConvertToFloat(arr2[2], out z)
-                || dimensions >= 4 && !TryConvertToFloat(arr2[3], out w)) {
+            if (dimensions >= 1 && !TryConvertToFloat(arr3[0], out x)
+                || dimensions >= 2 && !TryConvertToFloat(arr3[1], out y)
+                || dimensions >= 3 && !TryConvertToFloat(arr3[2], out z)
+                || dimensions >= 4 && !TryConvertToFloat(arr3[3], out w)) {
                 return false;
             }
 
