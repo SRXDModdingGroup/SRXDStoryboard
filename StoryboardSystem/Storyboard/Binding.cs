@@ -3,9 +3,6 @@
 namespace StoryboardSystem; 
 
 internal readonly struct Binding {
-    private const uint HASH_BIAS = 2166136261u;
-    private const int HASH_COEFF = 486187739;
-
     public LoadedObjectReference Reference { get; }
     
     public object[] Sequence { get; }
@@ -15,7 +12,7 @@ internal readonly struct Binding {
     public Binding(LoadedObjectReference reference, object[] sequence) {
         Reference = reference;
         Sequence = sequence;
-        hash = HashUtility.Combine(reference, sequence);
+        hash = HashUtility.Combine(reference, HashUtility.Combine(sequence));
     }
 
     public override bool Equals(object obj) => obj is Binding other && this == other;
@@ -42,7 +39,17 @@ internal readonly struct Binding {
         return builder.ToString();
     }
 
-    public static bool operator ==(Binding a, Binding b) => a.Reference == b.Reference && a.Sequence == b.Sequence;
+    public static bool operator ==(Binding a, Binding b) {
+        if (a.Reference != b.Reference || a.Sequence.Length != b.Sequence.Length)
+            return false;
+
+        for (int i = 0; i < a.Sequence.Length; i++) {
+            if (a.Sequence[i] != b.Sequence[i])
+                return false;
+        }
+
+        return true;
+    }
 
     public static bool operator !=(Binding a, Binding b) => !(a == b);
 }
