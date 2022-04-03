@@ -20,7 +20,7 @@ internal readonly struct Binding {
     public override int GetHashCode() => hash;
 
     public override string ToString() {
-        var builder = new StringBuilder(Reference.LoadedObject.GetType().Name);
+        var builder = new StringBuilder($"Binding_{Reference.GetHashCode()}");
 
         foreach (object item in Sequence) {
             switch (item) {
@@ -29,6 +29,9 @@ internal readonly struct Binding {
                     break;
                 case int intVal:
                     builder.Append($"[{intVal}]");
+                    break;
+                case null:
+                    builder.Append(".NULL");
                     break;
                 default:
                     builder.Append($".{item}");
@@ -40,11 +43,11 @@ internal readonly struct Binding {
     }
 
     public static bool operator ==(Binding a, Binding b) {
-        if (a.Reference != b.Reference || a.Sequence.Length != b.Sequence.Length)
+        if (a.hash != b.hash || a.Reference != b.Reference || a.Sequence.Length != b.Sequence.Length)
             return false;
 
         for (int i = 0; i < a.Sequence.Length; i++) {
-            if (a.Sequence[i] != b.Sequence[i])
+            if (!a.Sequence[i].Equals(b.Sequence[i]))
                 return false;
         }
 

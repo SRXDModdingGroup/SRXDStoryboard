@@ -20,16 +20,26 @@ internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
     public override object LoadedObject => Asset;
 
     public T Asset { get; private set; }
+
+    public string AssetName { get; }
     
     private LoadedAssetBundleReference assetBundleReference;
-    private string assetName;
 
     public LoadedAssetReference(LoadedAssetBundleReference assetBundleReference, string assetName) {
-        this.assetName = assetName;
+        this.AssetName = assetName;
         this.assetBundleReference = assetBundleReference;
     }
     
-    public override void Load() => Asset = assetBundleReference.Bundle.LoadAsset<T>(assetName);
+    public override bool TryLoad() {
+        Asset = assetBundleReference.Bundle.LoadAsset<T>(AssetName);
+
+        if (Asset != null)
+            return true;
+        
+        StoryboardManager.Instance.Logger.LogWarning($"Failed to load asset {AssetName}");
+
+        return false;
+    }
 
     public override void Unload() => Asset = null;
 

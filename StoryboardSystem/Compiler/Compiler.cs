@@ -9,20 +9,17 @@ internal static class Compiler {
     public static bool TryCompileFile(string path, ITimeConversion timeConversion, out Storyboard storyboard) {
         var logger = StoryboardManager.Instance.Logger;
         
-        logger.LogMessage($"Attempting to load {path}");
-        
         if (!Parser.TryParseFile(path, out var instructions))
             logger.LogWarning($"Failed to parse {path}");
         else if (!TryCompile(instructions, timeConversion, logger, out storyboard))
             logger.LogWarning($"Failed to compile {path}");
         else {
-            logger.LogMessage($"Successfully loaded {path}");
+            logger.LogMessage($"Successfully compiled {path}");
             
             return true;
         }
 
         storyboard = null;
-        logger.LogWarning($"Failed to load {path}");
             
         return false;
     }
@@ -190,7 +187,7 @@ internal static class Compiler {
                         curveBuilders.Add(binding, curveBuilder);
                     }
 
-                    curveBuilder.AddKey(time, value, interpType, orderCounter);
+                    curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
                     
                     break;
                 case Opcode.Loop when TryGetArguments(arguments, currentScope, out Timestamp time, out Name name, out int iterations, out Timestamp every, true):
@@ -265,7 +262,7 @@ internal static class Compiler {
                 return true;
             }
         }
-
+        
         storyboard = new Storyboard(timeConversion, assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), eventBuilders, curveBuilders);
 
         return true;

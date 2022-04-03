@@ -48,26 +48,36 @@ internal class Storyboard {
         lastTime = time;
     }
 
-    public void Load(ILogger logger) {
+    public bool TryLoad(ILogger logger) {
+        bool success = true;
+        
         foreach (var reference in assetBundleReferences)
-            reference.Load();
+            success = reference.TryLoad() && success;
         
         foreach (var reference in assetReferences)
-            reference.Load();
+            success = reference.TryLoad() && success;
         
         foreach (var reference in instanceReferences)
-            reference.Load();
+            success = reference.TryLoad() && success;
 
         foreach (var reference in postProcessReferences)
-            reference.Load();
+            success = reference.TryLoad() && success;
+
+        if (!success) {
+            Unload();
+            
+            return false;
+        }
 
         var curvesList = new List<Curve>();
 
         foreach (var pair in curveBuilders) {
             if (Binder.TryCreateValuePropertyFromBinding(pair.Key, out var property))
                 curvesList.Add(property.CreateCurve(pair.Value, timeConversion));
-            else
+            else {
                 logger.LogWarning($"Failed to bind value property for {pair.Key}");
+                success = false;
+            }
         }
 
         var eventsList = new List<Event>();
@@ -75,14 +85,24 @@ internal class Storyboard {
         foreach (var pair in eventBuilders) {
             if (Binder.TryCreateEventPropertyFromBinding(pair.Key, out var property))
                 eventsList.AddRange(property.CreateEvents(pair.Value, timeConversion));
-            else
+            else {
                 logger.LogWarning($"Failed to bind event property for {pair.Key}");
+                success = false;
+            }
+        }
+
+        if (!success) {
+            Unload();
+
+            return false;
         }
 
         events = eventsList.ToArray();
         curves = curvesList.ToArray();
         lastTime = -1f;
         loaded = true;
+
+        return true;
     }
 
     public void Unload() {

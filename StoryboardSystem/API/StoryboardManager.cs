@@ -35,7 +35,13 @@ public class StoryboardManager : MonoBehaviour {
             storyboards.Add(path, storyboard);
         }
         
-        storyboard.Load(Logger);
+        if (!storyboard.TryLoad(Logger)) {
+            Logger.LogWarning($"Failed to load {path}");
+            
+            return;
+        }
+        
+        Logger.LogMessage($"Successfully loaded {path}");
         loadedStoryboard = storyboard;
         SetTime(0f, false);
     }

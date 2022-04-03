@@ -14,9 +14,22 @@ internal class LoadedPostProcessingMaterialReference : LoadedObjectReference {
         this.layer = layer;
     }
 
-    public override void Load() => info = new PostProcessingInfo(materialReference.Instance, layer);
+    public override bool TryLoad() {
+        if (materialReference.Instance == null) {
+            StoryboardManager.Instance.Logger.LogWarning("Failed to create post processing instance");
+            
+            return false;
+        }
+        
+        info = new PostProcessingInfo(materialReference.Instance, layer);
+
+        return true;
+    }
 
     public override void Unload() {
+        if (info.Material == null)
+            return;
+        
         StoryboardManager.Instance.PostProcessingManager.RemovePostProcessingInstance(info);
         info = default;
     }

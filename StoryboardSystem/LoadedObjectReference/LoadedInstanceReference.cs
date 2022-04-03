@@ -13,11 +13,17 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
 
     public LoadedInstanceReference(LoadedAssetReference<T> template) => this.template = template;
 
-    public override void Load() {
+    public override bool TryLoad() {
+        if (template.Asset == null) {
+            StoryboardManager.Instance.Logger.LogWarning($"Failed to create instance of {template.AssetName}");
+            
+            return false;
+        }
+        
         Instance = Object.Instantiate(template.Asset);
 
         if (Instance is not GameObject gameObject)
-            return;
+            return true;
         
         var transform = gameObject.transform;
             
@@ -25,9 +31,14 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
         transform.localScale = Vector3.one;
+
+        return true;
     }
 
     public override void Unload() {
+        if (Instance == null)
+            return;
+        
         Object.Destroy(Instance);
         Instance = null;
     }

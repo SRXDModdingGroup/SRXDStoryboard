@@ -12,11 +12,17 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
 
     public LoadedAssetBundleReference(string bundleName) => this.bundleName = bundleName;
 
-    public override void Load() {
-        if (StoryboardManager.Instance.AssetBundleManager.TryGetAssetBundle(bundleName, out var bundle))
+    public override bool TryLoad() {
+        if (StoryboardManager.Instance.AssetBundleManager.TryGetAssetBundle(bundleName, out var bundle)) {
             Bundle = bundle;
-        else
-            Bundle = null;
+
+            return true;
+        }
+
+        Bundle = null;
+        StoryboardManager.Instance.Logger.LogWarning($"Failed to load AssetBundle {bundleName}");
+
+        return false;
     }
 
     public override void Unload() {

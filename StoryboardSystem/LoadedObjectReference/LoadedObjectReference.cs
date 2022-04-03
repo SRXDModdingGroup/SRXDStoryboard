@@ -14,10 +14,11 @@ internal abstract class LoadedObjectReference {
     }
     
     public abstract object LoadedObject { get; }
-    
-    public abstract void Load();
+
 
     public abstract void Unload();
+    
+    public abstract bool TryLoad();
 
     public override int GetHashCode() => instanceId;
 }
