@@ -32,12 +32,28 @@
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
+    <PropertyGroup>
+      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\SRXDStoryboard\bin\Release\SRXDStoryboard.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins"
+copy /Y "C:\Users\domia\Git\SRXDStoryboard\SRXDStoryboard\bin\Release\StoryboardSystem.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins"</PostBuildEvent>
+    </PropertyGroup>
     <ItemGroup>
+        <Reference Include="0Harmony, Version=2.4.2.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\0Harmony.dll</HintPath>
+        </Reference>
+        <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Assembly-CSharp.dll</HintPath>
+        </Reference>
         <Reference Include="BepInEx, Version=5.4.17.0, Culture=neutral, PublicKeyToken=null">
           <HintPath>..\Libs\BepInEx.dll</HintPath>
         </Reference>
         <Reference Include="SpinCore, Version=0.0.1.0, Culture=neutral, PublicKeyToken=null">
           <HintPath>..\Libs\SpinCore.dll</HintPath>
+        </Reference>
+        <Reference Include="SpinModdingUtilities, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SpinModdingUtilities.dll</HintPath>
+        </Reference>
+        <Reference Include="SRXDPostProcessing, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\SRXDPostProcessing.dll</HintPath>
         </Reference>
         <Reference Include="SSD.Game, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
           <HintPath>..\Libs\SSD.Game.dll</HintPath>
@@ -47,13 +63,26 @@
         <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
           <HintPath>..\Libs\UnityEngine.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\UnityEngine.AssetBundleModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
           <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="AssetBundleManager.cs" />
+        <Compile Include="Patches.cs" />
         <Compile Include="Plugin.cs" />
+        <Compile Include="PostProcessingManager.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="TimeConversion.cs" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\StoryboardSystem\StoryboardSystem.csproj">
+        <Project>{0a9d20f0-34ea-442a-8201-d3a10272bfcd}</Project>
+        <Name>StoryboardSystem</Name>
+      </ProjectReference>
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

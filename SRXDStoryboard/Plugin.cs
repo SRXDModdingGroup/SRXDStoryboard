@@ -1,21 +1,24 @@
-﻿using System.IO;
+﻿using BepInEx;
 using BepInEx.Logging;
+using HarmonyLib;
 using SpinCore;
 
 namespace SRXDStoryboard; 
 
+[BepInDependency("com.pink.spinrhythm.moddingutils", "1.0.6")]
+[BepInDependency("com.pink.spinrhythm.spincore")]
+[BepInDependency("SRXD.PostProcessing")]
+[BepInPlugin("SRXD.Storyboard", "Storyboard", "1.0.0.0")]
 public class Plugin : SpinPlugin {
-    public static ManualLogSource Logger { get; private set; }
-    
-    public static string CustomAssetBundlePath { get; private set; }
+    public new static ManualLogSource Logger { get; private set; }
     
     protected override void Awake() {
         base.Awake();
 
         Logger = base.Logger;
-        CustomAssetBundlePath = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles");
 
-        if (!Directory.Exists(CustomAssetBundlePath))
-            Directory.CreateDirectory(CustomAssetBundlePath);
+        var harmony = new Harmony("Storyboard");
+        
+        harmony.PatchAll(typeof(Patches));
     }
 }

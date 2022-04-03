@@ -20,7 +20,7 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
     }
 
     public override void Unload() {
-        Bundle.Unload(false);
+        StoryboardManager.Instance.AssetBundleManager.UnloadAssetBundle(bundleName);
         Bundle = null;
     }
 }
