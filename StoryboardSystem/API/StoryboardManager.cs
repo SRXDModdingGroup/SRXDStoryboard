@@ -9,6 +9,8 @@ public class StoryboardManager : MonoBehaviour {
     
     internal Transform SceneRoot { get; private set; }
     
+    internal ILogger Logger { get; private set; }
+    
     internal IAssetBundleManager AssetBundleManager { get; private set; }
     
     internal IPostProcessingManager PostProcessingManager { get; private set; }
@@ -17,7 +19,6 @@ public class StoryboardManager : MonoBehaviour {
     private float currentTime;
     private Storyboard loadedStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
-    private ILogger logger;
 
     public void LoadStoryboard(string path, ITimeConversion timeConversion) {
         bool exists = storyboards.TryGetValue(path, out var storyboard);
@@ -28,13 +29,13 @@ public class StoryboardManager : MonoBehaviour {
         UnloadStoryboard();
 
         if (!exists) {
-            if (!Compiler.TryCompileFile(path, timeConversion, logger, out storyboard))
+            if (!Compiler.TryCompileFile(path, timeConversion, out storyboard))
                 return;
             
             storyboards.Add(path, storyboard);
         }
         
-        storyboard.Load(logger);
+        storyboard.Load(Logger);
         loadedStoryboard = storyboard;
         SetTime(0f, false);
     }
@@ -54,6 +55,7 @@ public class StoryboardManager : MonoBehaviour {
         
         active = true;
         SceneRoot.gameObject.SetActive(true);
+        loadedStoryboard.SetPostProcessingEnabled(true);
         SetTime(currentTime, false);
     }
 
@@ -62,6 +64,7 @@ public class StoryboardManager : MonoBehaviour {
             return;
         
         active = false;
+        loadedStoryboard.SetPostProcessingEnabled(false);
         SceneRoot.gameObject.SetActive(false);
     }
 
@@ -75,16 +78,16 @@ public class StoryboardManager : MonoBehaviour {
             loadedStoryboard.Evaluate(time, triggerEvents);
     }
 
-    public static void Create(Transform rootParent, IAssetBundleManager assetBundleManager, IPostProcessingManager postProcessingManager, ILogger logger) {
+    public static void Create(Transform rootParent, ILogger logger, IAssetBundleManager assetBundleManager, IPostProcessingManager postProcessingManager) {
         if (Instance != null)
             return;
         
         var gameObject = new GameObject("Storyboard Manager");
         
         Instance = gameObject.AddComponent<StoryboardManager>();
+        Instance.Logger = logger;
         Instance.AssetBundleManager = assetBundleManager;
         Instance.PostProcessingManager = postProcessingManager;
-        Instance.logger = logger;
         Instance.SceneRoot = new GameObject("Scene Root").transform;
         Instance.SceneRoot.SetParent(rootParent, false);
         Instance.SceneRoot.gameObject.SetActive(false);

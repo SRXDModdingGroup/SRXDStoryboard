@@ -11,9 +11,10 @@ namespace StoryboardSystem;
 internal static class Parser {
     private static readonly Regex MATCH_INDEXER = new (@"^(\w+)(\[.+\])?$");
     
-    public static bool TryParseFile(string path, ILogger logger, out List<Instruction> instructions) {
+    public static bool TryParseFile(string path, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
-        bool anyError = false;
+        var logger = StoryboardManager.Instance.Logger;
+        bool success = true;
         int index = 0;
         
         instructions = new List<Instruction>();
@@ -25,10 +26,10 @@ internal static class Parser {
                 continue;
 
             if (!TryTokenize(line, index, logger, out object[] tokens))
-                anyError = true;
+                success = false;
             else if (tokens[0] is not Opcode opcode) {
                 logger.LogWarning(GetParseError(index, "No opcode found"));
-                anyError = true;
+                success = false;
             }
             else {
                 object[] arguments = new object[tokens.Length - 1];
@@ -42,7 +43,7 @@ internal static class Parser {
             index++;
         }
 
-        return anyError;
+        return success;
     }
 
     private static bool TryTokenize(string value, int index, ILogger logger, out object[] tokens) {
@@ -55,71 +56,70 @@ internal static class Parser {
         for (int i = 0; i < length; i++) {
             char c = value[i];
 
-            if (c == '\"') {
-                if (builder.Length > 0)
-                    return false;
-                
-                i++;
-                
-                while (i < length) {
-                    c = value[i];
+            switch (c) {
+                case '\"': {
+                    if (builder.Length == 0) {
+                        i++;
 
-                    if (c == '\"') {
-                        tokenList.Add(builder.ToString());
-                        builder.Clear();
+                        while (i < length) {
+                            c = value[i];
 
-                        break;
-                    }
+                            if (c == '\"') {
+                                tokenList.Add(builder.ToString());
+                                builder.Clear();
 
-                    builder.Append(c);
-                    i++;
-                }
+                                break;
+                            }
 
-                if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
-                    continue;
-                
-                logger.LogWarning(GetParseError(index, "Incorrectly formatted string"));
-                    
-                return false;
-            }
-
-            if (c == '{') {
-                if (builder.Length > 0)
-                    return false;
-                
-                int depth = 1;
-                
-                i++;
-
-                while (i < length) {
-                    c = value[i];
-
-                    if (c == '{')
-                        depth++;
-                    else if (c == '}') {
-                        depth--;
-
-                        if (depth == 0) {
-                            if (!TryTokenize(builder.ToString(), index, logger, out object[] arr))
-                                return false;
-                            
-                            tokenList.Add(arr);
-                            builder.Clear();
-                            
-                            break;
+                            builder.Append(c);
+                            i++;
                         }
+
+                        if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
+                            continue;
                     }
-
-                    builder.Append(c);
-                    i++;
-                }
-
-                if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
-                    continue;
                 
-                logger.LogWarning(GetParseError(index, "Incorrectly formatted array"));
+                    logger.LogWarning(GetParseError(index, "Incorrectly formatted string"));
                     
-                return false;
+                    return false;
+                }
+                case '{': {
+                    if (builder.Length == 0) {
+                        int depth = 1;
+
+                        i++;
+
+                        while (i < length) {
+                            c = value[i];
+
+                            if (c == '{')
+                                depth++;
+                            else if (c == '}') {
+                                depth--;
+
+                                if (depth == 0) {
+                                    if (!TryTokenize(builder.ToString(), index, logger, out object[] arr))
+                                        return false;
+
+                                    tokenList.Add(arr);
+                                    builder.Clear();
+
+                                    break;
+                                }
+                            }
+
+                            builder.Append(c);
+                            i++;
+                        }
+
+                        if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
+                            continue;
+                    }
+                
+                    logger.LogWarning(GetParseError(index, "Incorrectly formatted array"));
+                    
+                    return false;
+                }
             }
 
             if (c == '/' && i < length - 1 && value[i + 1] == '/')
@@ -163,15 +163,14 @@ internal static class Parser {
     }
 
     private static bool TryParseToken(string str, out object token) {
-        if (Enum.TryParse<Opcode>(str, true, out var opcode))
+        if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
+        else if (Enum.TryParse<Opcode>(str, true, out var opcode))
             token = opcode;
         else if (Enum.TryParse<InterpType>(str, true, out var interpType))
             token = interpType;
         else if (Enum.TryParse<AssetType>(str, true, out var assetType))
             token = assetType;
-        else if (!TryParseTimestamp(str, out token)
-                 && !TryParsePrimitive(str, out token)
-                 && !TryParseNameOrChain(str, out token)) {
+        else if (!TryParseNameOrChain(str, out token)) {
             token = null;
             
             return false;

@@ -12,7 +12,7 @@ public static class Patches {
         if (!Directory.Exists(customAssetBundlePath))
             Directory.CreateDirectory(customAssetBundlePath);
         
-        StoryboardManager.Create(__instance.cameraContainerTransform, new AssetBundleManager(customAssetBundlePath), new PostProcessingManager(), new Logger(Plugin.Logger));
+        StoryboardManager.Create(__instance.cameraContainerTransform, new Logger(Plugin.Logger), new AssetBundleManager(customAssetBundlePath), new PostProcessingManager());
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
@@ -35,11 +35,19 @@ public static class Patches {
         string filePath = Path.Combine(storyboardPath, Path.ChangeExtension(fileRef, ".sbrd"));
         
         if (!File.Exists(filePath)) {
+            Plugin.Logger.LogMessage($"Did not find {filePath}");
             StoryboardManager.Instance.UnloadStoryboard();
             
             return;
         }
         
         StoryboardManager.Instance.LoadStoryboard(filePath, new TimeConversion(playState.trackData));
+        StoryboardManager.Instance.Play();
     }
+
+    [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
+    private static void Track_ReturnToPickTrack_Postfix() => StoryboardManager.Instance.Stop();
+
+    [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
+    private static void Track_Update_Postfix(Track __instance) => StoryboardManager.Instance.SetTime(__instance.currentRenderingTrackTime, true);
 }

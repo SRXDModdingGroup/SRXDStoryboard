@@ -5,17 +5,18 @@ namespace StoryboardSystem;
 internal abstract class LoadedInstanceReference : LoadedObjectReference { }
 
 internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
-    public override object LoadedObject => instance;
+    public override object LoadedObject => Instance;
+    
+    public T Instance { get; private set; }
 
     private LoadedAssetReference<T> template;
-    private T instance;
 
     public LoadedInstanceReference(LoadedAssetReference<T> template) => this.template = template;
 
     public override void Load() {
-        instance = Object.Instantiate(template.Asset);
+        Instance = Object.Instantiate(template.Asset);
 
-        if (instance is not GameObject gameObject)
+        if (Instance is not GameObject gameObject)
             return;
         
         var transform = gameObject.transform;
@@ -27,7 +28,7 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
     }
 
     public override void Unload() {
-        Object.Destroy(instance);
-        instance = null;
+        Object.Destroy(Instance);
+        Instance = null;
     }
 }

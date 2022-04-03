@@ -103,4 +103,12 @@ internal class Storyboard {
 
         loaded = false;
     }
+
+    public void SetPostProcessingEnabled(bool enabled) {
+        if (!loaded)
+            return;
+
+        foreach (var reference in postProcessReferences)
+            reference.SetEnabled(enabled);
+    }
 }

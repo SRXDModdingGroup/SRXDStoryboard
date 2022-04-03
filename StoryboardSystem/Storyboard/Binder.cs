@@ -89,6 +89,9 @@ internal abstract class Binder {
 
                     return true;
                 }
+
+                if (name[0] != '_')
+                    name = name.Insert(0, "_");
                 
                 int id = Shader.PropertyToID(name);
 

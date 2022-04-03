@@ -1,17 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace StoryboardSystem;
 
 internal static class Compiler {
-    public static bool TryCompileFile(string path, ITimeConversion timeConversion, ILogger logger, out Storyboard storyboard) {
+    public static bool TryCompileFile(string path, ITimeConversion timeConversion, out Storyboard storyboard) {
+        var logger = StoryboardManager.Instance.Logger;
+        
         logger.LogMessage($"Attempting to load {path}");
         
-        if (Parser.TryParseFile(path, logger, out var instructions))
-            return TryCompile(instructions, timeConversion, logger, out storyboard);
-        
+        if (!Parser.TryParseFile(path, out var instructions))
+            logger.LogWarning($"Failed to parse {path}");
+        else if (!TryCompile(instructions, timeConversion, logger, out storyboard))
+            logger.LogWarning($"Failed to compile {path}");
+        else {
+            logger.LogMessage($"Successfully loaded {path}");
+            
+            return true;
+        }
+
         storyboard = null;
+        logger.LogWarning($"Failed to load {path}");
             
         return false;
     }
@@ -57,7 +68,7 @@ internal static class Compiler {
                     globals[name] = newAssetReference;
                     
                     break;
-                case Opcode.Post when TryGetArguments(arguments, globalScope, out LoadedAssetReference<Material> material, out int layer):
+                case Opcode.Post when TryGetArguments(arguments, globalScope, out LoadedInstanceReference<Material> material, out int layer):
                     postProcessReferences.Add(new LoadedPostProcessingMaterialReference(material, layer));
                     
                     break;
@@ -112,7 +123,16 @@ internal static class Compiler {
 
                     return false;
                 default:
-                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}"));
+                    var builder = new StringBuilder();
+
+                    for (int j = 0; j < arguments.Length; j++) {
+                        builder.Append(arguments[j].GetType().Name);
+
+                        if (j < arguments.Length - 1)
+                            builder.Append(", ");
+                    }
+                    
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}. Types found: {builder.ToString()}"));
 
                     return false;
             }
