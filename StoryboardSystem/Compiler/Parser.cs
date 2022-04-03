@@ -15,15 +15,18 @@ internal static class Parser {
         using var reader = new StreamReader(path);
         var logger = StoryboardManager.Instance.Logger;
         bool success = true;
-        int index = 0;
+        int index = 1;
         
         instructions = new List<Instruction>();
 
         while (!reader.EndOfStream) {
             string line = reader.ReadLine();
 
-            if (string.IsNullOrWhiteSpace(line))
+            if (string.IsNullOrWhiteSpace(line)) {
+                index++;
+                
                 continue;
+            }
 
             if (!TryTokenize(line, index, logger, out object[] tokens))
                 success = false;
