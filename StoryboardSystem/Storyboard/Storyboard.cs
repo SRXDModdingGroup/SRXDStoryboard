@@ -48,7 +48,7 @@ internal class Storyboard {
         lastTime = time;
     }
 
-    public void Load(Action<string> errorCallback) {
+    public void Load(ILogger logger) {
         foreach (var reference in assetBundleReferences)
             reference.Load();
         
@@ -67,7 +67,7 @@ internal class Storyboard {
             if (Binder.TryCreateValuePropertyFromBinding(pair.Key, out var property))
                 curvesList.Add(property.CreateCurve(pair.Value, timeConversion));
             else
-                errorCallback($"Failed to bind value property for {pair.Key}");
+                logger.LogWarning($"Failed to bind value property for {pair.Key}");
         }
 
         var eventsList = new List<Event>();
@@ -76,7 +76,7 @@ internal class Storyboard {
             if (Binder.TryCreateEventPropertyFromBinding(pair.Key, out var property))
                 eventsList.AddRange(property.CreateEvents(pair.Value, timeConversion));
             else
-                errorCallback($"Failed to bind event property for {pair.Key}");
+                logger.LogWarning($"Failed to bind event property for {pair.Key}");
         }
 
         events = eventsList.ToArray();

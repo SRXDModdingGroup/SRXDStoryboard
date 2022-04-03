@@ -17,7 +17,7 @@ public class StoryboardManager : MonoBehaviour {
     private float currentTime;
     private Storyboard loadedStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
-    private Action<string> errorCallback;
+    private ILogger logger;
 
     public void LoadStoryboard(string path, ITimeConversion timeConversion) {
         bool exists = storyboards.TryGetValue(path, out var storyboard);
@@ -28,13 +28,13 @@ public class StoryboardManager : MonoBehaviour {
         UnloadStoryboard();
 
         if (!exists) {
-            if (!Compiler.TryCompileFile(path, timeConversion, errorCallback, out storyboard))
+            if (!Compiler.TryCompileFile(path, timeConversion, logger, out storyboard))
                 return;
             
             storyboards.Add(path, storyboard);
         }
         
-        storyboard.Load(errorCallback);
+        storyboard.Load(logger);
         loadedStoryboard = storyboard;
         SetTime(0f, false);
     }
@@ -75,7 +75,7 @@ public class StoryboardManager : MonoBehaviour {
             loadedStoryboard.Evaluate(time, triggerEvents);
     }
 
-    public static void Create(Transform rootParent, IAssetBundleManager assetBundleManager, IPostProcessingManager postProcessingManager, Action<string> errorCallback) {
+    public static void Create(Transform rootParent, IAssetBundleManager assetBundleManager, IPostProcessingManager postProcessingManager, ILogger logger) {
         if (Instance != null)
             return;
         
@@ -84,7 +84,7 @@ public class StoryboardManager : MonoBehaviour {
         Instance = gameObject.AddComponent<StoryboardManager>();
         Instance.AssetBundleManager = assetBundleManager;
         Instance.PostProcessingManager = postProcessingManager;
-        Instance.errorCallback = errorCallback;
+        Instance.logger = logger;
         Instance.SceneRoot = new GameObject("Scene Root").transform;
         Instance.SceneRoot.SetParent(rootParent, false);
         Instance.SceneRoot.gameObject.SetActive(false);

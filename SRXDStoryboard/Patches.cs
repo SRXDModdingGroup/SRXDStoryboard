@@ -12,7 +12,7 @@ public static class Patches {
         if (!Directory.Exists(customAssetBundlePath))
             Directory.CreateDirectory(customAssetBundlePath);
         
-        StoryboardManager.Create(__instance.cameraContainerTransform, new AssetBundleManager(customAssetBundlePath), new PostProcessingManager(), str => Plugin.Logger.LogWarning(str));
+        StoryboardManager.Create(__instance.cameraContainerTransform, new AssetBundleManager(customAssetBundlePath), new PostProcessingManager(), new Logger(Plugin.Logger));
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
@@ -40,7 +40,6 @@ public static class Patches {
             return;
         }
         
-        Plugin.Logger.LogMessage($"Loading {filePath}");
         StoryboardManager.Instance.LoadStoryboard(filePath, new TimeConversion(playState.trackData));
     }
 }

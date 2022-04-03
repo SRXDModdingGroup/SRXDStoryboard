@@ -32,6 +32,9 @@
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
+    <PropertyGroup>
+      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\StoryboardSystem.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins"</PostBuildEvent>
+    </PropertyGroup>
     <ItemGroup>
         <Reference Include="System" />
         <Reference Include="System.Core" />
@@ -50,6 +53,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="API\IAssetBundleManager.cs" />
+        <Compile Include="API\ILogger.cs" />
         <Compile Include="API\IPostProcessingManager.cs" />
         <Compile Include="API\ITimeConversion.cs" />
         <Compile Include="API\PostProcessingInfo.cs" />

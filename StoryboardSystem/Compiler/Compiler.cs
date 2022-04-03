@@ -5,16 +5,18 @@ using UnityEngine;
 namespace StoryboardSystem;
 
 internal static class Compiler {
-    public static bool TryCompileFile(string path, ITimeConversion timeConversion, Action<string> errorCallback, out Storyboard storyboard) {
-        if (Parser.TryParseFile(path, errorCallback, out var instructions))
-            return TryCompile(instructions, timeConversion, errorCallback, out storyboard);
+    public static bool TryCompileFile(string path, ITimeConversion timeConversion, ILogger logger, out Storyboard storyboard) {
+        logger.LogMessage($"Attempting to load {path}");
+        
+        if (Parser.TryParseFile(path, logger, out var instructions))
+            return TryCompile(instructions, timeConversion, logger, out storyboard);
         
         storyboard = null;
             
         return false;
     }
 
-    private static bool TryCompile(List<Instruction> instructions, ITimeConversion timeConversion, Action<string> errorCallback, out Storyboard storyboard) {
+    private static bool TryCompile(List<Instruction> instructions, ITimeConversion timeConversion, ILogger logger, out Storyboard storyboard) {
         storyboard = null;
 
         var assetBundleReferences = new List<LoadedAssetBundleReference>();
@@ -61,7 +63,7 @@ internal static class Compiler {
                     break;
                 case Opcode.Proc when TryGetArguments(arguments, globalScope, out Name name, true):
                     if (procedures.ContainsKey(name)) {
-                        errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Procedure {name} already exists"));
+                        logger.LogWarning(GetCompileError(instruction.LineIndex, $"Procedure {name} already exists"));
                 
                         return false;
                     }
@@ -70,13 +72,13 @@ internal static class Compiler {
 
                     for (int j = 1, k = 0; j < arguments.Length; j++, k++) {
                         if (arguments[j] is not Name argName) {
-                            errorCallback?.Invoke(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Proc"));
+                            logger.LogWarning(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Proc"));
 
                             return false;
                         }
 
                         if (Array.Exists(argNames, n => n == argName)) {
-                            errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Argument name {argName} already exists"));
+                            logger.LogWarning(GetCompileError(instruction.LineIndex, $"Argument name {argName} already exists"));
 
                             return false;
                         }
@@ -106,18 +108,18 @@ internal static class Compiler {
                     if (inProcs)
                         break;
 
-                    errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Instruction {opcode} must be used within a procedure"));
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Instruction {opcode} must be used within a procedure"));
 
                     return false;
                 default:
-                    errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}"));
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}"));
 
                     return false;
             }
         }
 
         if (!procedures.TryGetValue(new Name("Main"), out var procedure)) {
-            errorCallback?.Invoke("Failed to compile storyboard: Procedure Main could not be found");
+            logger.LogWarning("Failed to compile storyboard: Procedure Main could not be found");
 
             return false;
         }
@@ -193,25 +195,25 @@ internal static class Compiler {
                 case Opcode.Inst:
                 case Opcode.Load:
                 case Opcode.Post:
-                    errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure"));
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure"));
 
                     return false;
                 case Opcode.Proc:
                 default:
-                    errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}"));
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}"));
 
                     return false;
             }
 
             bool TryCallProcedure(Timestamp time, Name name, int shift, int iterations, Timestamp every) {
                 if (iterations <= 0) {
-                    errorCallback?.Invoke(GetCompileError(instruction.LineIndex, "Iterations must be greater than 0"));
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, "Iterations must be greater than 0"));
 
                     return false;
                 }
                 
                 if (!procedures.TryGetValue(name, out procedure)) {
-                    errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Procedure {name} could not be found"));
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Procedure {name} could not be found"));
 
                     return false;
                 }
@@ -219,7 +221,7 @@ internal static class Compiler {
                 var argNames = procedure.ArgNames;
 
                 if (arguments.Length != argNames.Length + shift) {
-                    errorCallback?.Invoke(GetCompileError(instruction.LineIndex, $"Invalid arguments for procedure call {name}"));
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for procedure call {name}"));
 
                     return false;
                 }
@@ -227,7 +229,7 @@ internal static class Compiler {
                 int newIndex = procedure.StartIndex;
 
                 if (!currentScope.CheckForRecursion(newIndex)) {
-                    errorCallback?.Invoke(GetCompileError(instruction.LineIndex, "Recursive procedure call detected"));
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, "Recursive procedure call detected"));
 
                     return false;
                 }

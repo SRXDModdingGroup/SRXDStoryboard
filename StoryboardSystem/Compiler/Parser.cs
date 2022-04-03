@@ -11,7 +11,7 @@ namespace StoryboardSystem;
 internal static class Parser {
     private static readonly Regex MATCH_INDEXER = new (@"^(\w+)(\[.+\])?$");
     
-    public static bool TryParseFile(string path, Action<string> errorCallback, out List<Instruction> instructions) {
+    public static bool TryParseFile(string path, ILogger logger, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
         bool anyError = false;
         int index = 0;
@@ -24,10 +24,10 @@ internal static class Parser {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            if (!TryTokenize(line, index, errorCallback, out object[] tokens))
+            if (!TryTokenize(line, index, logger, out object[] tokens))
                 anyError = true;
             else if (tokens[0] is not Opcode opcode) {
-                errorCallback?.Invoke(GetParseError(index, "No opcode found"));
+                logger.LogWarning(GetParseError(index, "No opcode found"));
                 anyError = true;
             }
             else {
@@ -45,7 +45,7 @@ internal static class Parser {
         return anyError;
     }
 
-    private static bool TryTokenize(string value, int index, Action<string> errorCallback, out object[] tokens) {
+    private static bool TryTokenize(string value, int index, ILogger logger, out object[] tokens) {
         var builder = new StringBuilder();
         var tokenList = new List<object>();
         int length = value.Length;
@@ -78,7 +78,7 @@ internal static class Parser {
                 if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
                     continue;
                 
-                errorCallback?.Invoke(GetParseError(index, "Incorrectly formatted string"));
+                logger.LogWarning(GetParseError(index, "Incorrectly formatted string"));
                     
                 return false;
             }
@@ -100,7 +100,7 @@ internal static class Parser {
                         depth--;
 
                         if (depth == 0) {
-                            if (!TryTokenize(builder.ToString(), index, errorCallback, out object[] arr))
+                            if (!TryTokenize(builder.ToString(), index, logger, out object[] arr))
                                 return false;
                             
                             tokenList.Add(arr);
@@ -117,7 +117,7 @@ internal static class Parser {
                 if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
                     continue;
                 
-                errorCallback?.Invoke(GetParseError(index, "Incorrectly formatted array"));
+                logger.LogWarning(GetParseError(index, "Incorrectly formatted array"));
                     
                 return false;
             }
@@ -150,7 +150,7 @@ internal static class Parser {
                 return true;
 
             if (!TryParseToken(str, out object token)) {
-                errorCallback?.Invoke(GetParseError(index, "Incorrectly formatted token"));
+                logger.LogWarning(GetParseError(index, "Incorrectly formatted token"));
                 
                 return false;
             }
