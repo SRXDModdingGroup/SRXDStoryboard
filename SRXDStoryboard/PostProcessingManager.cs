@@ -16,7 +16,6 @@ public class PostProcessingManager : IPostProcessingManager {
         
         SRXDPostProcessing.PostProcessingManager.AddPostProcessingInstance(instance);
         postProcessingInfos.Add(info.Material.GetInstanceID(), instance);
-        Plugin.Logger.LogMessage(postProcessingInfos.Count);
     }
 
     public void RemovePostProcessingInstance(PostProcessingInfo info) {

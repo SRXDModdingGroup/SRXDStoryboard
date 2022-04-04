@@ -15,23 +15,27 @@ internal static class Parser {
         using var reader = new StreamReader(path);
         var logger = StoryboardManager.Instance.Logger;
         bool success = true;
-        int index = 1;
+        int lineIndex = 1;
         
         instructions = new List<Instruction>();
 
         while (!reader.EndOfStream) {
             string line = reader.ReadLine();
+            int commentIndex = line.IndexOf("//", StringComparison.Ordinal);
+
+            if (commentIndex >= 0)
+                line = line.Substring(0, commentIndex);
 
             if (string.IsNullOrWhiteSpace(line)) {
-                index++;
+                lineIndex++;
                 
                 continue;
             }
 
-            if (!TryTokenize(line, index, logger, out object[] tokens))
+            if (!TryTokenize(line, lineIndex, logger, out object[] tokens))
                 success = false;
             else if (tokens[0] is not Opcode opcode) {
-                logger.LogWarning(GetParseError(index, "No opcode found"));
+                logger.LogWarning(GetParseError(lineIndex, "First argument must be an opcode"));
                 success = false;
             }
             else {
@@ -40,129 +44,93 @@ internal static class Parser {
                 if (arguments.Length > 0)
                     Array.Copy(tokens, 1, arguments, 0, arguments.Length);
                 
-                instructions.Add(new Instruction(opcode, arguments, index));
+                instructions.Add(new Instruction(opcode, arguments, lineIndex));
             }
 
-            index++;
+            lineIndex++;
         }
 
         return success;
     }
 
-    private static bool TryTokenize(string value, int index, ILogger logger, out object[] tokens) {
-        var builder = new StringBuilder();
+    private static bool TryTokenize(string value, int lineIndex, ILogger logger, out object[] tokens) {
         var tokenList = new List<object>();
         int length = value.Length;
+        int startIndex = 0;
 
         tokens = null;
 
-        for (int i = 0; i < length; i++) {
-            char c = value[i];
-
-            switch (c) {
-                case '\"': {
-                    if (builder.Length == 0) {
-                        i++;
-
-                        while (i < length) {
-                            c = value[i];
-
-                            if (c == '\"') {
-                                tokenList.Add(builder.ToString());
-                                builder.Clear();
-
-                                break;
-                            }
-
-                            builder.Append(c);
-                            i++;
-                        }
-
-                        if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
-                            continue;
-                    }
+        for (int i = 0; i <= length; i++) {
+            if (i == length || char.IsWhiteSpace(value[i])) {
+                string subString = value.Substring(startIndex, i - startIndex);
                 
-                    logger.LogWarning(GetParseError(index, "Incorrectly formatted string"));
-                    
+                startIndex = i + 1;
+                
+                if (string.IsNullOrWhiteSpace(subString))
+                    continue;
+                
+                if (!TryParseToken(subString, out object token)) {
+                    logger.LogWarning($"Incorrectly formatted token: {subString}");
+
+                    return false;
+                }
+                
+                tokenList.Add(token);
+
+                continue;
+            }
+            
+            switch (value[i]) {
+                case '\"': {
+                    if (i == startIndex && TryGetWithin(value, ref i, '\"', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
+                        tokenList.Add(subString);
+                        startIndex = i + 1;
+
+                        continue;
+                    }
+
+                    logger.LogWarning(GetParseError(lineIndex, "Incorrectly formatted string"));
+                        
                     return false;
                 }
                 case '{': {
-                    if (builder.Length == 0) {
-                        int depth = 1;
+                    if (i == startIndex && TryGetWithin(value, ref i, '{', '}', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
+                        if (!TryTokenize(subString, lineIndex, logger, out object[] subTokens))
+                            return false;
 
-                        i++;
+                        tokenList.Add(subTokens);
+                        startIndex = i + 1;
 
-                        while (i < length) {
-                            c = value[i];
-
-                            if (c == '{')
-                                depth++;
-                            else if (c == '}') {
-                                depth--;
-
-                                if (depth == 0) {
-                                    if (!TryTokenize(builder.ToString(), index, logger, out object[] arr))
-                                        return false;
-
-                                    tokenList.Add(arr);
-                                    builder.Clear();
-
-                                    break;
-                                }
-                            }
-
-                            builder.Append(c);
-                            i++;
-                        }
-
-                        if (i != length && (i == length - 1 || char.IsWhiteSpace(value[i + 1])))
-                            continue;
+                        continue;
                     }
-                
-                    logger.LogWarning(GetParseError(index, "Incorrectly formatted array"));
-                    
+
+                    logger.LogWarning(GetParseError(lineIndex, "Incorrectly formatted array"));
+                        
+                    return false;
+                }
+                case '(': {
+                    // TODO: Expressions
+
+                    if (i == startIndex && TryGetWithin(value, ref i, '(', ')', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
+                        if (!TryTokenize(subString, lineIndex, logger, out object[] subTokens))
+                            return false;
+
+                        tokenList.Add(subTokens);
+                        startIndex = i + 1;
+
+                        continue;
+                    }
+
+                    logger.LogWarning(GetParseError(lineIndex, "Incorrectly formatted expression"));
+                        
                     return false;
                 }
             }
-
-            if (c == '/' && i < length - 1 && value[i + 1] == '/')
-                break;
-
-            if (char.IsWhiteSpace(c)) {
-                if (!TryPopToken())
-                    return false;
-            }
-            else
-                builder.Append(c);
         }
-
-        if (!TryPopToken() || tokenList.Count == 0)
-            return false;
 
         tokens = tokenList.ToArray();
 
         return true;
-        
-        bool TryPopToken() {
-            if (builder.Length == 0)
-                return true;
-
-            string str = builder.ToString();
-
-            if (string.IsNullOrWhiteSpace(str))
-                return true;
-
-            if (!TryParseToken(str, out object token)) {
-                logger.LogWarning(GetParseError(index, "Incorrectly formatted token"));
-                
-                return false;
-            }
-
-            tokenList.Add(token);
-            builder.Clear();
-
-            return true;
-        }
     }
 
     private static bool TryParseToken(string str, out object token) {
@@ -175,7 +143,7 @@ internal static class Parser {
             token = assetType;
         else if (!TryParseNameOrChain(str, out token)) {
             token = null;
-            
+
             return false;
         }
 
@@ -286,5 +254,53 @@ internal static class Parser {
         return true;
     }
     
-    private static string GetParseError(int index, string message) => $"Failed to parse storyboard line {index}: {message}";
+    private static bool TryGetWithin(string str, ref int index, char bounds, out string subString) {
+        index++;
+        
+        int startIndex = index;
+
+        while (index < str.Length && str[index] != bounds)
+            index++;
+
+        if (index == str.Length) {
+            subString = null;
+
+            return false;
+        }
+
+        subString = str.Substring(startIndex, index - startIndex);
+
+        return true;
+    }
+    
+    private static bool TryGetWithin(string str, ref int index, char start, char end, out string subString) {
+        index++;
+        
+        int startIndex = index;
+        int depth = 1;
+
+        while (index < str.Length && depth > 0) {
+            char c = str[index];
+
+            if (c == start)
+                depth++;
+            else if (c == end)
+                depth--;
+
+            if (depth > 0)
+                index++;
+        }
+
+        if (depth > 0) {
+            subString = null;
+
+            return false;
+        }
+
+        subString = str.Substring(startIndex, index - startIndex);
+
+        return true;
+    }
+    
+    private static string GetParseError(int line, string message) => $"Failed to parse storyboard line {line}: {message}";
 }
