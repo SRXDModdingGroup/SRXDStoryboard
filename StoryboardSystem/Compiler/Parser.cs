@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -68,7 +67,7 @@ internal static class Parser {
                 
                 if (string.IsNullOrWhiteSpace(subString))
                     continue;
-                
+
                 if (!TryParseToken(subString, out object token)) {
                     logger.LogWarning($"Incorrectly formatted token: {subString}");
 
@@ -109,13 +108,22 @@ internal static class Parser {
                     return false;
                 }
                 case '(': {
-                    // TODO: Expressions
+                    string nameString = value.Substring(startIndex, i - startIndex);
 
-                    if (i == startIndex && TryGetWithin(value, ref i, '(', ')', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
-                        if (!TryTokenize(subString, lineIndex, logger, out object[] subTokens))
+                    foreach (char c in nameString) {
+                        if (char.IsLetterOrDigit(c) || c == '_')
+                            continue;
+                        
+                        logger.LogWarning(GetParseError(lineIndex, "Invalid expression name"));
+                        
+                        return false;
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(nameString) && TryGetWithin(value, ref i, '(', ')', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
+                        if (!TryTokenize(subString, lineIndex, logger, out object[] arguments))
                             return false;
 
-                        tokenList.Add(subTokens);
+                        tokenList.Add(new Expression(new Name(nameString), arguments));
                         startIndex = i + 1;
 
                         continue;
@@ -210,9 +218,11 @@ internal static class Parser {
 
     private static bool TryParseNameOrChain(string token, out object nameOrChain) {
         nameOrChain = null;
-        
-        if (!token.All(c => char.IsLetterOrDigit(c) || c is '.' or '[' or ']'))
-            return false;
+
+        foreach (char c in token) {
+            if (!char.IsLetterOrDigit(c) && c is not ('.' or '[' or ']' or '_'))
+                return false;
+        }
 
         string[] split = token.Split('.');
 

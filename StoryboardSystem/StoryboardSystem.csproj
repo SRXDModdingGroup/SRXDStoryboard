@@ -63,6 +63,7 @@
         <Compile Include="Builder\KeyframeBuilder.cs" />
         <Compile Include="Builder\VectorN.cs" />
         <Compile Include="Compiler\Compiler.cs" />
+        <Compile Include="Compiler\Expression.cs" />
         <Compile Include="Compiler\Index.cs" />
         <Compile Include="Compiler\Indexer.cs" />
         <Compile Include="Compiler\Instruction.cs" />
