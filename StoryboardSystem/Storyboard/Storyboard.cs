@@ -4,11 +4,12 @@ using System.IO;
 namespace StoryboardSystem; 
 
 internal class Storyboard {
+    public ITimeConversion TimeConversion { get; set; }
+
     private bool dataSet;
     private bool loaded;
     private string name;
     private string directory;
-    private ITimeConversion timeConversion;
     private LoadedAssetBundleReference[] assetBundleReferences;
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
@@ -19,11 +20,9 @@ internal class Storyboard {
 
     public Storyboard(
         string name,
-        string directory,
-        ITimeConversion timeConversion) {
+        string directory) {
         this.name = name;
         this.directory = directory;
-        this.timeConversion = timeConversion;
     }
 
     public void SetData(LoadedAssetBundleReference[] assetBundleReferences,
@@ -90,7 +89,7 @@ internal class Storyboard {
         timelines = new Timeline[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateTimeline(timeConversion, out var curve)) {
+            if (timelineBuilders[i].TryCreateTimeline(TimeConversion, out var curve)) {
                 timelines[i] = curve;
                 
                 continue;

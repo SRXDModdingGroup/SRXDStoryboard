@@ -24,7 +24,7 @@ public class StoryboardManager : MonoBehaviour {
         string key = Path.Combine(directory, name);
         
         if (!storyboards.TryGetValue(key, out var storyboard)) {
-            storyboard = new Storyboard(name, directory, timeConversion);
+            storyboard = new Storyboard(name, directory);
             storyboards.Add(key, storyboard);
         }
 
@@ -32,6 +32,8 @@ public class StoryboardManager : MonoBehaviour {
             UnloadStoryboard();
             currentStoryboard = storyboard;
         }
+
+        currentStoryboard.TimeConversion = timeConversion;
         
         if (!currentStoryboard.TryCompile(Logger, false) || !currentStoryboard.TryLoad(Logger))
             return;
