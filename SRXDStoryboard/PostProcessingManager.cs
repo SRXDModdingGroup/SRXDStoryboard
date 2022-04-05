@@ -24,4 +24,9 @@ public class PostProcessingManager : IPostProcessingManager {
         SRXDPostProcessing.PostProcessingManager.RemovePostProcessingInstance(instance);
         postProcessingInfos.Remove(info.Material.GetInstanceID());
     }
+
+    public void SetPostProcessingInstanceEnabled(PostProcessingInfo info, bool enabled) {
+        if (postProcessingInfos.TryGetValue(info.Material.GetInstanceID(), out var instance))
+            instance.Enabled = enabled;
+    }
 }

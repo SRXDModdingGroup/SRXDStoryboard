@@ -82,8 +82,11 @@ internal static class Compiler {
                     globals[name] = newAssetReference;
                     
                     break;
-                case Opcode.Post when TryGetArguments(arguments, globalScope, out LoadedInstanceReference<Material> material, out int layer):
-                    postProcessReferences.Add(new LoadedPostProcessingMaterialReference(material, layer));
+                case Opcode.Post when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference<Material> materialReference, out int layer):
+                    var newPostProcessingReference = new LoadedPostProcessingMaterialReference(materialReference, layer);
+                    
+                    postProcessReferences.Add(newPostProcessingReference);
+                    globals[name] = newPostProcessingReference;
                     
                     break;
                 case Opcode.Proc when TryGetArguments(arguments, globalScope, out Name name, true):

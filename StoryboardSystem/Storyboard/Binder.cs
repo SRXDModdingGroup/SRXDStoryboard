@@ -92,6 +92,13 @@ internal abstract class Binder {
                     break;
 
                 return true;
+            case LoadedPostProcessingMaterialReference postProcess:
+                if (name != "enabled")
+                    return TryGetSubObject(postProcess.Instance, name, out subObject);
+                
+                subObject = new PostProcessingEnabledProperty(postProcess);
+
+                return true;
         }
         
         subObject = null;

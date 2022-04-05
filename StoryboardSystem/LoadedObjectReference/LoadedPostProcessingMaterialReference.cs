@@ -2,26 +2,29 @@
 
 namespace StoryboardSystem; 
 
-internal class LoadedPostProcessingMaterialReference : LoadedObjectReference {
+internal class LoadedPostProcessingMaterialReference : LoadedInstanceReference<Material> {
     public override object LoadedObject => info;
 
-    private LoadedInstanceReference<Material> materialReference;
+    private bool enabled = true;
+    public bool Enabled {
+        get => enabled;
+        set {
+            enabled = value;
+            UpdateEnabled();
+        }
+    }
+
+    private bool storyboardEnabled;
     private int layer;
     private PostProcessingInfo info;
 
-    public LoadedPostProcessingMaterialReference(LoadedInstanceReference<Material> materialReference, int layer) {
-        this.materialReference = materialReference;
-        this.layer = layer;
-    }
+    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, int layer) : base(template) => this.layer = layer;
 
     public override bool TryLoad() {
-        if (materialReference.Instance == null) {
-            StoryboardManager.Instance.Logger.LogWarning("Failed to create post processing instance");
-            
+        if (!base.TryLoad())
             return false;
-        }
-        
-        info = new PostProcessingInfo(materialReference.Instance, layer);
+            
+        info = new PostProcessingInfo(Instance, layer);
 
         return true;
     }
@@ -32,12 +35,13 @@ internal class LoadedPostProcessingMaterialReference : LoadedObjectReference {
         
         StoryboardManager.Instance.PostProcessingManager.RemovePostProcessingInstance(info);
         info = default;
+        base.Unload();
     }
 
-    public void SetEnabled(bool enabled) {
-        if (enabled)
-            StoryboardManager.Instance.PostProcessingManager.AddPostProcessingInstance(info);
-        else
-            StoryboardManager.Instance.PostProcessingManager.RemovePostProcessingInstance(info);
+    public void SetStoryboardEnabled(bool storyboardEnabled) {
+        this.storyboardEnabled = storyboardEnabled;
+        UpdateEnabled();
     }
+
+    private void UpdateEnabled() => StoryboardManager.Instance.PostProcessingManager.SetPostProcessingInstanceEnabled(info, enabled && storyboardEnabled);
 }

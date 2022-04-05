@@ -26,7 +26,7 @@ internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
     private LoadedAssetBundleReference assetBundleReference;
 
     public LoadedAssetReference(LoadedAssetBundleReference assetBundleReference, string assetName) {
-        this.AssetName = assetName;
+        AssetName = assetName;
         this.assetBundleReference = assetBundleReference;
     }
     

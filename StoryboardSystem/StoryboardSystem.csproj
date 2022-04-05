@@ -83,6 +83,7 @@
         <Compile Include="Property\MaterialProperty\MaterialProperty.cs" />
         <Compile Include="Property\MaterialProperty\MaterialVectorProperty.cs" />
         <Compile Include="Property\MaterialProperty\MaterialColorProperty.cs" />
+        <Compile Include="Property\PostProcessingEnabledProperty.cs" />
         <Compile Include="Property\Property.cs" />
         <Compile Include="Property\TransformProperty\PositionProperty.cs" />
         <Compile Include="Property\TransformProperty\RotationProperty.cs" />

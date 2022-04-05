@@ -26,7 +26,7 @@ internal class Storyboard {
         LoadedPostProcessingMaterialReference[] postProcessReferences,
         List<TimelineBuilder> timelineBuilders) {
         Path = path;
-        this.TimeConversion = timeConversion;
+        TimeConversion = timeConversion;
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
@@ -115,6 +115,6 @@ internal class Storyboard {
             return;
 
         foreach (var reference in postProcessReferences)
-            reference.SetEnabled(enabled);
+            reference.SetStoryboardEnabled(enabled);
     }
 }
