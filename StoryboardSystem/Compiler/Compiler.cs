@@ -1,32 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using UnityEngine;
 
 namespace StoryboardSystem;
 
 internal static class Compiler {
-    public static bool TryCompileFile(string path, ITimeConversion timeConversion, out Storyboard storyboard) {
-        var logger = StoryboardManager.Instance.Logger;
+    public static bool TryCompileFile(string name, string directory, ILogger logger, Storyboard storyboard) {
+        string path = Path.Combine(directory, Path.ChangeExtension(name, ".txt"));
         
         if (!Parser.TryParseFile(path, out var instructions))
-            logger.LogWarning($"Failed to parse {path}");
-        else if (!TryCompile(path, instructions, timeConversion, logger, out storyboard))
-            logger.LogWarning($"Failed to compile {path}");
+            logger.LogWarning($"Failed to parse {name}");
+        else if (!TryCompile(instructions, logger, storyboard))
+            logger.LogWarning($"Failed to compile {name}");
         else {
-            logger.LogMessage($"Successfully compiled {path}");
+            logger.LogMessage($"Successfully compiled {name}");
             
             return true;
         }
-
-        storyboard = null;
             
         return false;
     }
 
-    private static bool TryCompile(string path, List<Instruction> instructions, ITimeConversion timeConversion, ILogger logger, out Storyboard storyboard) {
-        storyboard = null;
-
+    private static bool TryCompile(List<Instruction> instructions, ILogger logger, Storyboard storyboard) {
         var assetBundleReferences = new List<LoadedAssetBundleReference>();
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
@@ -308,8 +305,8 @@ internal static class Compiler {
 
         foreach (var pair in bindings)
             pair.Value.AddBinding(pair.Key);
-
-        storyboard = new Storyboard(path, timeConversion, assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), timelineBuilders);
+        
+        storyboard.SetData(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), timelineBuilders);
 
         return true;
     }

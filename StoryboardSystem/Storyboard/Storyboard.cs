@@ -1,12 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 
 namespace StoryboardSystem; 
 
 internal class Storyboard {
-    public string Path { get; }
-    
-    public ITimeConversion TimeConversion { get; }
-    
+    private bool dataSet;
+    private bool loaded;
+    private string name;
+    private string directory;
+    private ITimeConversion timeConversion;
     private LoadedAssetBundleReference[] assetBundleReferences;
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
@@ -15,25 +17,28 @@ internal class Storyboard {
     private Timeline[] timelines;
     private float lastTime;
 
-    private bool loaded;
-
     public Storyboard(
-        string path,
-        ITimeConversion timeConversion,
-        LoadedAssetBundleReference[] assetBundleReferences,
+        string name,
+        string directory,
+        ITimeConversion timeConversion) {
+        this.name = name;
+        this.directory = directory;
+        this.timeConversion = timeConversion;
+    }
+
+    public void SetData(LoadedAssetBundleReference[] assetBundleReferences,
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
         List<TimelineBuilder> timelineBuilders) {
-        Path = path;
-        TimeConversion = timeConversion;
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
         this.postProcessReferences = postProcessReferences;
         this.timelineBuilders = timelineBuilders;
+        dataSet = true;
     }
-
+    
     public void Evaluate(float time, bool triggerEvents) {
         if (!loaded || time == lastTime)
             return;
@@ -46,7 +51,22 @@ internal class Storyboard {
         lastTime = time;
     }
 
+    public bool TryCompile(ILogger logger, bool force) {
+        if (dataSet && !force)
+            return true;
+        
+        ClearData();
+        
+        return Compiler.TryCompileFile(name, directory, logger, this);
+    }
+
     public bool TryLoad(ILogger logger) {
+        if (!dataSet) {
+            logger.LogWarning($"Failed to load {name}: Data is not set");
+
+            return false;
+        }
+        
         bool success = true;
         
         foreach (var reference in assetBundleReferences)
@@ -70,13 +90,13 @@ internal class Storyboard {
         timelines = new Timeline[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateTimeline(TimeConversion, out var curve)) {
+            if (timelineBuilders[i].TryCreateTimeline(timeConversion, out var curve)) {
                 timelines[i] = curve;
                 
                 continue;
             }
             
-            logger.LogWarning($"Failed to create timeline {timelineBuilders[i].Name}");
+            logger.LogWarning($"Failed to load {name}: Could not create timeline {timelineBuilders[i].Name}");
             success = false;
         }
 
@@ -88,12 +108,17 @@ internal class Storyboard {
 
         lastTime = -1f;
         loaded = true;
+        logger.LogMessage($"Successfully loaded {name}");
 
         return true;
     }
 
     public void Unload() {
         timelines = null;
+        loaded = false;
+        
+        if (!dataSet)
+            return;
         
         foreach (var reference in postProcessReferences)
             reference.Unload();
@@ -106,15 +131,23 @@ internal class Storyboard {
         
         foreach (var reference in assetBundleReferences)
             reference.Unload();
-
-        loaded = false;
     }
 
-    public void SetPostProcessingEnabled(bool enabled) {
+    public void SetEnabled(bool enabled) {
         if (!loaded)
             return;
 
         foreach (var reference in postProcessReferences)
             reference.SetStoryboardEnabled(enabled);
+    }
+    
+    private void ClearData() {
+        Unload();
+        assetBundleReferences = null;
+        assetReferences = null;
+        instanceReferences = null;
+        postProcessReferences = null;
+        timelineBuilders = null;
+        dataSet = false;
     }
 }

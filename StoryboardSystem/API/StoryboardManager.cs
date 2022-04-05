@@ -17,87 +17,64 @@ public class StoryboardManager : MonoBehaviour {
 
     private bool active;
     private float currentTime;
-    private Storyboard loadedStoryboard;
+    private Storyboard currentStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
 
-    public void LoadStoryboard(string path, ITimeConversion timeConversion) {
-        bool exists = storyboards.TryGetValue(path, out var storyboard);
+    public void LoadStoryboard(string name, string directory, ITimeConversion timeConversion) {
+        string key = Path.Combine(directory, name);
         
-        if (exists && storyboard == loadedStoryboard)
-            return;
-        
-        UnloadStoryboard();
+        if (!storyboards.TryGetValue(key, out var storyboard)) {
+            storyboard = new Storyboard(name, directory, timeConversion);
+            storyboards.Add(key, storyboard);
+        }
 
-        if (!exists) {
-            if (!Compiler.TryCompileFile(Path.ChangeExtension(path, ".txt"), timeConversion, out storyboard))
-                return;
-            
-            storyboards.Add(path, storyboard);
+        if (storyboard != currentStoryboard) {
+            UnloadStoryboard();
+            currentStoryboard = storyboard;
         }
         
-        if (!storyboard.TryLoad(Logger)) {
-            Logger.LogWarning($"Failed to load {path}");
-            
+        if (!currentStoryboard.TryCompile(Logger, false) || !currentStoryboard.TryLoad(Logger))
             return;
-        }
-        
-        Logger.LogMessage($"Successfully loaded {path}");
-        loadedStoryboard = storyboard;
+
         SetTime(0f, false);
     }
 
     public void UnloadStoryboard() {
-        if (loadedStoryboard == null)
-            return;
-        
         Stop();
-        loadedStoryboard.Unload();
-        loadedStoryboard = null;
+        currentStoryboard?.Unload();
     }
 
     public void RecompileStoryboard() {
-        if (loadedStoryboard == null)
+        if (currentStoryboard == null)
             return;
+        
+        if (currentStoryboard.TryCompile(Logger, true))
+            currentStoryboard.TryLoad(Logger);
 
-        bool wasActive = active;
-        string path = loadedStoryboard.Path;
-        var timeConversion = loadedStoryboard.TimeConversion;
-        
-        UnloadStoryboard();
-        storyboards.Remove(path);
-        LoadStoryboard(path, timeConversion);
-        
-        if (wasActive)
+        if (active)
             Play();
+        else
+            Stop();
     }
 
     public void Play() {
-        if (loadedStoryboard == null)
-            return;
-        
         active = true;
         SceneRoot.gameObject.SetActive(true);
-        loadedStoryboard.SetPostProcessingEnabled(true);
+        currentStoryboard?.SetEnabled(true);
         SetTime(currentTime, false);
     }
 
     public void Stop() {
-        if (loadedStoryboard == null)
-            return;
-        
         active = false;
-        loadedStoryboard.SetPostProcessingEnabled(false);
         SceneRoot.gameObject.SetActive(false);
+        currentStoryboard?.SetEnabled(false);
     }
 
     public void SetTime(float time, bool triggerEvents) {
-        if (loadedStoryboard == null)
-            return;
-
         currentTime = time;
 
         if (active)
-            loadedStoryboard.Evaluate(time, triggerEvents);
+            currentStoryboard?.Evaluate(time, triggerEvents);
     }
 
     public static void Create(Transform rootParent, ILogger logger, IAssetBundleManager assetBundleManager, IPostProcessingManager postProcessingManager) {

@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using HarmonyLib;
 using StoryboardSystem;
+using UnityEngine;
 
 namespace SRXDStoryboard; 
 
@@ -32,16 +33,7 @@ public static class Patches {
         if (!Directory.Exists(storyboardPath))
             Directory.CreateDirectory(storyboardPath);
 
-        string filePath = Path.Combine(storyboardPath, fileRef);
-        
-        if (!File.Exists(Path.ChangeExtension(filePath, ".txt"))) {
-            Plugin.Logger.LogMessage($"Did not find {filePath}");
-            StoryboardManager.Instance.UnloadStoryboard();
-            
-            return;
-        }
-        
-        StoryboardManager.Instance.LoadStoryboard(filePath, new TimeConversion(playState.trackData));
+        StoryboardManager.Instance.LoadStoryboard(fileRef, storyboardPath, new TimeConversion(playState.trackData));
         StoryboardManager.Instance.Play();
     }
 
@@ -49,5 +41,10 @@ public static class Patches {
     private static void Track_ReturnToPickTrack_Postfix() => StoryboardManager.Instance.Stop();
 
     [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
-    private static void Track_Update_Postfix(Track __instance) => StoryboardManager.Instance.SetTime(__instance.currentRenderingTrackTime, true);
+    private static void Track_Update_Postfix(Track __instance) {
+        if (Input.GetKeyDown(KeyCode.F1))
+            StoryboardManager.Instance.RecompileStoryboard();
+        
+        StoryboardManager.Instance.SetTime(__instance.currentRenderingTrackTime, true);
+    }
 }

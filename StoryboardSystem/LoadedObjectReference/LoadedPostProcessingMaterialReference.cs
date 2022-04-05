@@ -25,6 +25,7 @@ internal class LoadedPostProcessingMaterialReference : LoadedInstanceReference<M
             return false;
             
         info = new PostProcessingInfo(Instance, layer);
+        StoryboardManager.Instance.PostProcessingManager.AddPostProcessingInstance(info);
 
         return true;
     }
