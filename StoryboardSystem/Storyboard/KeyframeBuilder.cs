@@ -20,7 +20,7 @@ internal readonly struct KeyframeBuilder {
             return false;
         }
         
-        result = new Keyframe<T>(conversion.Convert(time.Beats, time.Ticks, time.Seconds), converted, interpType, order);
+        result = new Keyframe<T>(conversion.Convert(time.Measures, time.Beats, time.Ticks, time.Seconds), converted, interpType, order);
 
         return true;
     }

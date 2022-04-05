@@ -159,6 +159,7 @@ internal static class Parser {
     }
 
     private static bool TryParseTimestamp(string value, out object timestamp) {
+        int measures = 0;
         int beats = 0;
         float ticks = 0f;
         float seconds = 0f;
@@ -167,7 +168,7 @@ internal static class Parser {
         builder.Clear();
         
         foreach (char c in value) {
-            if (c is not ('b' or 't' or 's')) {
+            if (c is not ('m' or 'b' or 't' or 's')) {
                 builder.Append(c);
                 
                 continue;
@@ -176,6 +177,7 @@ internal static class Parser {
             string s = builder.ToString();
 
             switch (c) {
+                case 'm' when int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out measures):
                 case 'b' when int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out beats):
                 case 't' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out ticks):
                 case 's' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out seconds):
@@ -195,7 +197,7 @@ internal static class Parser {
             return false;
         }
 
-        timestamp = new Timestamp(beats, ticks, seconds);
+        timestamp = new Timestamp(measures, beats, ticks, seconds);
 
         return true;
     }
