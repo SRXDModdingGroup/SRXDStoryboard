@@ -1,22 +1,40 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
+﻿using System.Collections.Generic;
 
 namespace StoryboardSystem; 
 
 internal class CurveBuilder {
+    public string Name { get; }
+    
+    private List<Binding> bindings = new();
     private List<KeyframeBuilder> keyframeBuilders = new();
+    
+    public CurveBuilder(string name) => Name = name;
 
-    public void AddKey(Timestamp time, VectorN value, InterpType interpType, int order) => keyframeBuilders.Add(new KeyframeBuilder(time, value, interpType, order));
+    public void AddBinding(Binding binding) {
+        if (!bindings.Contains(binding))
+            bindings.Add(binding);
+    }
 
-    public Curve CreateCurve<T>(ValueProperty<T> property, ITimeConversion timeConversion) {
-        var keyframes = new Keyframe<T>[keyframeBuilders.Count];
+    public void AddKey(Timestamp time, object value, InterpType interpType, int order) => keyframeBuilders.Add(new KeyframeBuilder(time, value, interpType, order));
 
-        for (int i = 0; i < keyframes.Length; i++)
-            keyframes[i] = keyframeBuilders[i].CreateKeyframe(property, timeConversion);
-        
-        Array.Sort(keyframes);
+    public bool TryCreateCurve(ITimeConversion conversion, out Curve curve) {
+        if (bindings.Count == 0 || keyframeBuilders.Count == 0) {
+            curve = null;
 
-        return new Curve<T>(property, keyframes);
+            return false;
+        }
+
+        var properties = new ValueProperty[bindings.Count];
+
+        for (int i = 0; i < bindings.Count; i++) {
+            if (Binder.TryCreateValuePropertyFromBinding(bindings[i], out properties[i]))
+                continue;
+            
+            curve = null;
+
+            return false;
+        }
+
+        return properties[0].TryCreateCurve(properties, keyframeBuilders, conversion, out curve);
     }
 }

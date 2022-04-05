@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace StoryboardSystem; 
 
@@ -9,8 +8,8 @@ internal class Storyboard {
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
     private LoadedPostProcessingMaterialReference[] postProcessReferences;
-    private Dictionary<Binding, EventBuilder> eventBuilders;
-    private Dictionary<Binding, CurveBuilder> curveBuilders;
+    private List<EventBuilder> eventBuilders;
+    private List<CurveBuilder> curveBuilders;
     private Event[] events;
     private Curve[] curves;
     private float lastTime;
@@ -22,8 +21,8 @@ internal class Storyboard {
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
-        Dictionary<Binding, EventBuilder> eventBuilders,
-        Dictionary<Binding, CurveBuilder> curveBuilders) {
+        List<EventBuilder> eventBuilders,
+        List<CurveBuilder> curveBuilders) {
         this.timeConversion = timeConversion;
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
@@ -42,7 +41,7 @@ internal class Storyboard {
 
         if (triggerEvents) {
             foreach (var @event in events)
-                @event.Evaluate(lastTime, time);
+                @event.Evaluate(time);
         }
 
         lastTime = time;
@@ -69,26 +68,24 @@ internal class Storyboard {
             return false;
         }
 
-        var curvesList = new List<Curve>();
+        curves = new Curve[curveBuilders.Count];
 
-        foreach (var pair in curveBuilders) {
-            if (Binder.TryCreateValuePropertyFromBinding(pair.Key, out var property))
-                curvesList.Add(property.CreateCurve(pair.Value, timeConversion));
-            else {
-                logger.LogWarning($"Failed to bind value property for {pair.Key}");
-                success = false;
-            }
+        for (int i = 0; i < curveBuilders.Count; i++) {
+            if (curveBuilders[i].TryCreateCurve(timeConversion, out curves[i]))
+                continue;
+            
+            logger.LogWarning($"Failed to create curve {curveBuilders[i].Name}");
+            success = false;
         }
 
-        var eventsList = new List<Event>();
-
-        foreach (var pair in eventBuilders) {
-            if (Binder.TryCreateEventPropertyFromBinding(pair.Key, out var property))
-                eventsList.AddRange(property.CreateEvents(pair.Value, timeConversion));
-            else {
-                logger.LogWarning($"Failed to bind event property for {pair.Key}");
-                success = false;
-            }
+        events = new Event[eventBuilders.Count];
+        
+        for (int i = 0; i < curveBuilders.Count; i++) {
+            if (eventBuilders[i].TryCreateEvent(timeConversion, out events[i]))
+                continue;
+            
+            logger.LogWarning($"Failed to create event {eventBuilders[i].Name}");
+            success = false;
         }
 
         if (!success) {
@@ -97,8 +94,6 @@ internal class Storyboard {
             return false;
         }
 
-        events = eventsList.ToArray();
-        curves = curvesList.ToArray();
         lastTime = -1f;
         loaded = true;
 

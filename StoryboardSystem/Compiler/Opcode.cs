@@ -3,7 +3,7 @@
 internal enum Opcode {
     Bundle,
     Call,
-    Event,
+    Curve,
     Inst,
     Key,
     Load,

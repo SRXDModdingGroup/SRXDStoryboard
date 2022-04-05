@@ -31,8 +31,10 @@ internal static class Compiler {
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
         var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
-        var eventBuilders = new Dictionary<Binding, EventBuilder>();
-        var curveBuilders = new Dictionary<Binding, CurveBuilder>();
+        var curveBuilders = new List<CurveBuilder>();
+        var eventBuilders = new List<EventBuilder>();
+        var valueBindings = new Dictionary<Binding, CurveBuilder>();
+        var eventBindings = new Dictionary<Binding, EventBuilder>();
         var procedures = new Dictionary<Name, Procedure>();
         var globals = new Dictionary<Name, object>();
         var globalScope = new Scope(null, 0, 0, 0, Timestamp.Zero, Timestamp.Zero, globals, null);
@@ -109,7 +111,6 @@ internal static class Compiler {
 
                     break;
                 case Opcode.Call:
-                case Opcode.Event:
                 case Opcode.Key:
                 case Opcode.Loop:
                 case Opcode.Set:
@@ -172,24 +173,22 @@ internal static class Compiler {
                         return false;
 
                     break;
-                case Opcode.Event when TryGetArguments(arguments, currentScope, out Timestamp time, out Binding binding):
-                    if (!eventBuilders.TryGetValue(binding, out var eventBuilder)) {
-                        eventBuilder = new EventBuilder();
-                        eventBuilders.Add(binding, eventBuilder);
-                    }
-                    
-                    eventBuilder.AddTime(currentScope.GetGlobalTime(time));
-                    
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out CurveBuilder curveBuilder, out object value, out InterpType interpType): {
+                    curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
+
                     break;
-                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Binding binding, out VectorN value, out InterpType interpType):
-                    if (!curveBuilders.TryGetValue(binding, out var curveBuilder)) {
-                        curveBuilder = new CurveBuilder();
-                        curveBuilders.Add(binding, curveBuilder);
+                }
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Binding binding, out object value, out InterpType interpType): {
+                    if (!valueBindings.TryGetValue(binding, out var curveBuilder)) {
+                        curveBuilder = new CurveBuilder(binding.ToString());
+                        curveBuilders.Add(curveBuilder);
+                        valueBindings.Add(binding, curveBuilder);
                     }
 
                     curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
-                    
+
                     break;
+                }
                 case Opcode.Loop when TryGetArguments(arguments, currentScope, out Timestamp time, out Name name, out int iterations, out Timestamp every, true):
                     if (!TryCallProcedure(time, name, 4, iterations, every))
                         return false;
@@ -262,7 +261,10 @@ internal static class Compiler {
                 return true;
             }
         }
-        
+
+        foreach (var pair in valueBindings)
+            pair.Value.AddBinding(pair.Key);
+
         storyboard = new Storyboard(timeConversion, assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), eventBuilders, curveBuilders);
 
         return true;
@@ -377,50 +379,6 @@ internal static class Compiler {
                 }
 
                 break;
-            }
-        }
-
-        if (typeof(T) == typeof(VectorN)) {
-            if (argument is object[] arr) {
-                if (arr.Length is 0 or > 4)
-                    return false;
-                
-                float x = 0f;
-                float y = 0f;
-                float z = 0f;
-                float w = 0f;
-                int dimensions = arr.Length;
-
-                if (dimensions >= 1 && !TryConvertToFloat(arr[0], out x)
-                    || dimensions >= 2 && !TryConvertToFloat(arr[1], out y)
-                    || dimensions >= 3 && !TryConvertToFloat(arr[2], out z)
-                    || dimensions >= 4 && !TryConvertToFloat(arr[3], out w))
-                    return false;
-
-                argument = new VectorN(new Vector4(x, y, z, w), dimensions);
-            }
-            else if (TryConvertToFloat(argument, out float x))
-                argument = new VectorN(new Vector4(x, 0f, 0f, 0f), 1);
-
-            bool TryConvertToFloat(object obj, out float f) {
-                switch (obj) {
-                    case float floatVal:
-                        f = floatVal;
-
-                        return true;
-                    case int intVal:
-                        f = intVal;
-
-                        return true;
-                    case bool boolVal:
-                        f = boolVal ? 1f : 0f;
-
-                        return true;
-                    default:
-                        f = default;
-
-                        return false;
-                }
             }
         }
 

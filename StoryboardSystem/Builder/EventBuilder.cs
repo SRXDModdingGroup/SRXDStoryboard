@@ -1,24 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace StoryboardSystem; 
 
 internal class EventBuilder {
-    private List<Timestamp> times = new();
+    public string Name { get; }
+    
+    private List<Binding> bindings = new();
+    private List<EventFrameBuilder> eventFrameBuilders = new();
+    
+    public EventBuilder(string name) => Name = name;
 
-    public void AddTime(Timestamp timestamp) => times.Add(timestamp);
+    public void AddFrame(Timestamp time, object value) => eventFrameBuilders.Add(new EventFrameBuilder(time, value));
 
-    public Event[] CreateEvents(EventProperty property, ITimeConversion conversion) {
-        var events = new Event[times.Count];
+    public bool TryCreateEvent(ITimeConversion conversion, out Event @event) {
+        if (bindings.Count == 0 || eventFrameBuilders.Count == 0) {
+            @event = null;
 
-        for (int i = 0; i < events.Length; i++) {
-            var time = times[i];
-
-            events[i] = new Event(conversion.Convert(time.Beats, time.Ticks, time.Seconds), property);
+            return false;
         }
-        
-        Array.Sort(events);
 
-        return events;
+        var properties = new EventProperty[bindings.Count];
+
+        for (int i = 0; i < bindings.Count; i++) {
+            if (Binder.TryCreateEventPropertyFromBinding(bindings[i], out properties[i]))
+                continue;
+            
+            @event = null;
+
+            return false;
+        }
+
+        return properties[0].TryCreateEvent(properties, eventFrameBuilders, conversion, out @event);
     }
 }

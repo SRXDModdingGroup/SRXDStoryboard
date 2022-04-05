@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace StoryboardSystem;
 
@@ -9,25 +7,25 @@ internal abstract class Curve {
 }
 
 internal class Curve<T> : Curve {
-    private ValueProperty<T> property;
+    private ValueProperty<T>[] properties;
     private Keyframe<T>[] keyframes;
     private int lastEvaluatedIndex = -2;
 
-    public Curve(ValueProperty<T> property, Keyframe<T>[] keyframes) {
-        this.property = property;
+    public Curve(ValueProperty<T>[] properties, Keyframe<T>[] keyframes) {
+        this.properties = properties;
         this.keyframes = keyframes;
     }
 
     public override void Evaluate(float time) {
         int index = lastEvaluatedIndex;
 
-        if (index < 0)
-            index = 0;
+        if (index < -1)
+            index = -1;
 
-        while (index >= 0 && index < keyframes.Length) {
+        while (true) {
             if (index < keyframes.Length - 1 && time >= keyframes[index + 1].Time)
                 index++;
-            else if (time < keyframes[index].Time)
+            else if (index >= 0 && time < keyframes[index].Time)
                 index--;
             else
                 break;
@@ -39,7 +37,7 @@ internal class Curve<T> : Curve {
         lastEvaluatedIndex = index;
 
         if (index < 0) {
-            property.Set(keyframes[0].Value);
+            Set(keyframes[0].Value);
             
             return;
         }
@@ -48,7 +46,7 @@ internal class Curve<T> : Curve {
         var interpType = previous.InterpType;
 
         if (interpType == InterpType.Fixed || index == keyframes.Length - 1) {
-            property.Set(previous.Value);
+            Set(previous.Value);
             
             return;
         }
@@ -69,6 +67,16 @@ internal class Curve<T> : Curve {
                 break;
         }
         
-        property.Set(property.Interp(previous.Value, next.Value, interp));
+        SetInterp(previous.Value, next.Value, interp);
+    }
+
+    private void Set(T value) {
+        foreach (var property in properties)
+            property.Set(value);
+    }
+
+    private void SetInterp(T a, T b, float t) {
+        foreach (var property in properties)
+            property.Set(property.Interp(a, b, t));
     }
 }

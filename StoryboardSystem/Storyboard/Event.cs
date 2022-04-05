@@ -1,20 +1,34 @@
-﻿using System;
+﻿namespace StoryboardSystem;
 
-namespace StoryboardSystem; 
+internal abstract class Event {
+    public abstract void Evaluate(float time);
+}
 
-internal readonly struct Event : IComparable<Event> {
-    private readonly float time;
-    private readonly EventProperty property;
+internal class Event<T> : Event {
+    private EventProperty<T>[] properties;
+    private EventFrame<T>[] eventFrames;
+    private int index = -1;
 
-    public Event(float time, EventProperty property) {
-        this.time = time;
-        this.property = property;
+    public Event(EventProperty<T>[] properties, EventFrame<T>[] eventFrames) {
+        this.properties = properties;
+        this.eventFrames = eventFrames;
     }
 
-    public void Evaluate(float fromTime, float toTime) {
-        if (fromTime < time && toTime >= time)
-            property.Execute();
+    public override void Evaluate(float time) {
+        while (true) {
+            if (index < eventFrames.Length - 1 && time >= eventFrames[index + 1].Time) {
+                index++;
+                Execute(eventFrames[index].Value);
+            }
+            else if (index >= 0 && time < eventFrames[index].Time)
+                index--;
+            else
+                break;
+        }
     }
 
-    public int CompareTo(Event other) => time.CompareTo(other.time);
+    private void Execute(T value) {
+        foreach (var property in properties)
+            property.Execute(value);
+    }
 }

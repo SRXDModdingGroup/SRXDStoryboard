@@ -7,7 +7,11 @@ internal class MaterialVectorProperty : MaterialProperty<Vector4> {
 
     public override void Set(Vector4 value) => Material.SetVector(Id, value);
 
-    public override Vector4 Convert(Vector4 value, int dimensions) => value;
-
     public override Vector4 Interp(Vector4 a, Vector4 b, float t) => Vector4.Lerp(a, b, t);
+    
+    protected override bool TryConvert(Vector4 value, int dimensions, out Vector4 result) {
+        result = value;
+
+        return true;
+    }
 }

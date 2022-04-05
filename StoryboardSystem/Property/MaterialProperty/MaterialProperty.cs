@@ -2,7 +2,7 @@
 
 namespace StoryboardSystem; 
 
-internal abstract class MaterialProperty<T> : ValueProperty<T> {
+internal abstract class MaterialProperty<T> : VectorProperty<T> {
     protected Material Material { get; }
     
     protected int Id { get; }

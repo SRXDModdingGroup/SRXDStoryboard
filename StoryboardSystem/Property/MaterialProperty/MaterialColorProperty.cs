@@ -7,25 +7,33 @@ internal class MaterialColorProperty : MaterialProperty<Color> {
 
     public override void Set(Color value) => Material.SetColor(Id, value);
 
-    public override Color Convert(Vector4 value, int dimensions) {
+    public override Color Interp(Color a, Color b, float t) => Color.Lerp(a, b, t);
+    
+    protected override bool TryConvert(Vector4 value, int dimensions, out Color result) {
         switch (dimensions) {
             case 1: {
                 float x = value.x;
 
-                return new Color(x, x, x);
+                result = new Color(x, x, x);
+
+                return true;
             }
             case 2: {
                 float x = value.x;
                 float y = value.y;
 
-                return new Color(x, x, x, y);
+                result = new Color(x, x, x, y);
+
+                return true;
             }
             case 3:
-                return new Color(value.x, value.y, value.z);
+                result = new Color(value.x, value.y, value.z);
+
+                return true;
             default:
-                return new Color(value.x, value.y, value.z, value.w);
+                result = new Color(value.x, value.y, value.z, value.w);
+
+                return true;
         }
     }
-
-    public override Color Interp(Color a, Color b, float t) => Color.Lerp(a, b, t);
 }
