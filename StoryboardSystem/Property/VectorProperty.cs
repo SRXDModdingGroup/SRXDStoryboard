@@ -10,7 +10,6 @@ internal abstract class VectorProperty<T> : ValueProperty<T> {
         result = default;
 
         return false;
-
     }
 
     protected abstract bool TryConvert(Vector4 value, int dimensions, out T result);

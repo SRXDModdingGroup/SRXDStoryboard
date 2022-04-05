@@ -171,24 +171,33 @@ internal static class Compiler {
                         return false;
 
                     break;
-                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out TimelineBuilder curveBuilder, out object value): {
-                    curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out TimelineBuilder timelineBuilder): {
+                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
 
                     break;
                 }
-                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out TimelineBuilder curveBuilder, out object value, out InterpType interpType): {
-                    curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out TimelineBuilder timelineBuilder, out object value): {
+                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
 
                     break;
                 }
-                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Identifier binding, out object value, out InterpType interpType): {
-                    if (!bindings.TryGetValue(binding, out var curveBuilder)) {
-                        curveBuilder = new TimelineBuilder(binding.ToString());
-                        timelineBuilders.Add(curveBuilder);
-                        bindings.Add(binding, curveBuilder);
-                    }
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out TimelineBuilder timelineBuilder, out object value, out InterpType interpType): {
+                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
 
-                    curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
+                    break;
+                }
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Identifier identifier): {
+                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
+
+                    break;
+                }
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Identifier identifier, out object value): {
+                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
+
+                    break;
+                }
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Identifier identifier, out object value, out InterpType interpType): {
+                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
 
                     break;
                 }
@@ -262,6 +271,17 @@ internal static class Compiler {
                 index1 = newIndex;
                 
                 return true;
+            }
+
+            TimelineBuilder GetImplicitTimelineBuilder(Identifier identifier) {
+                if (bindings.TryGetValue(identifier, out var timelineBuilder))
+                    return timelineBuilder;
+
+                timelineBuilder = new TimelineBuilder(identifier.ToString());
+                timelineBuilders.Add(timelineBuilder);
+                bindings.Add(identifier, timelineBuilder);
+
+                return timelineBuilder;
             }
         }
 
