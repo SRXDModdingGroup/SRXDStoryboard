@@ -9,9 +9,13 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
     
     public T Instance { get; private set; }
 
+    private string name;
     private LoadedAssetReference<T> template;
 
-    public LoadedInstanceReference(LoadedAssetReference<T> template) => this.template = template;
+    public LoadedInstanceReference(LoadedAssetReference<T> template, string name) {
+        this.template = template;
+        this.name = name;
+    }
 
     public override bool TryLoad() {
         if (template.Asset == null) {
@@ -24,6 +28,8 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
 
         if (Instance is not GameObject gameObject)
             return true;
+
+        gameObject.name = name;
         
         var transform = gameObject.transform;
             

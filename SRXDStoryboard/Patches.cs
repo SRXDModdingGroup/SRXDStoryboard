@@ -34,7 +34,7 @@ public static class Patches {
 
         string filePath = Path.Combine(storyboardPath, fileRef);
         
-        if (!File.Exists(filePath)) {
+        if (!File.Exists(Path.ChangeExtension(filePath, ".txt"))) {
             Plugin.Logger.LogMessage($"Did not find {filePath}");
             StoryboardManager.Instance.UnloadStoryboard();
             

@@ -69,7 +69,7 @@ internal static class Compiler {
                     break;
                 }
                 case Opcode.Inst when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference assetReference):
-                    var newInstanceReference = assetReference.CreateInstanceReference();
+                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString());
                     
                     instanceReferences.Add(newInstanceReference);
                     globals[name] = newInstanceReference;
@@ -83,7 +83,7 @@ internal static class Compiler {
                     
                     break;
                 case Opcode.Post when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference<Material> materialReference, out int layer):
-                    var newPostProcessingReference = new LoadedPostProcessingMaterialReference(materialReference, layer);
+                    var newPostProcessingReference = new LoadedPostProcessingMaterialReference(materialReference, name.ToString(), layer);
                     
                     postProcessReferences.Add(newPostProcessingReference);
                     globals[name] = newPostProcessingReference;

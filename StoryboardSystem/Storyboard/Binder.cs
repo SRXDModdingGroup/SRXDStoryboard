@@ -18,7 +18,7 @@ internal abstract class Binder {
     }
 
     private static bool TryResolveIdentifier(Identifier identifier, out object result) {
-        result = identifier.Reference.LoadedObject;
+        result = identifier.Reference;
 
         foreach (object item in identifier.Sequence) {
             switch (item) {
@@ -31,15 +31,16 @@ internal abstract class Binder {
                     continue;
                 }
                 case int index when result is GameObject gameObject: {
-                    var transform = gameObject.transform;
-
-                    if (index < 0 || index >= transform.childCount)
-                        break;
-
-                    result = transform.GetChild(index).gameObject;
+                    if (TryGetChildGameObject(gameObject, index, out result))
+                        continue;
                     
-                    continue;
+                    break;
                 }
+                case int index when result is LoadedInstanceReference { LoadedObject: GameObject gameObject }:
+                    if (TryGetChildGameObject(gameObject, index, out result))
+                        continue;
+                    
+                    break;
                 case string name when TryGetSubObject(result, name, out object temp): {
                     result = temp;
 
@@ -99,10 +100,26 @@ internal abstract class Binder {
                 subObject = new PostProcessingEnabledProperty(postProcess);
 
                 return true;
+            case LoadedObjectReference reference:
+                return TryGetSubObject(reference.LoadedObject, name, out subObject);
         }
         
         subObject = null;
 
         return false;
+    }
+
+    private static bool TryGetChildGameObject(GameObject gameObject, int index, out object childObject) {
+        var transform = gameObject.transform;
+
+        if (index < 0 || index >= transform.childCount) {
+            childObject = null;
+                    
+            return false;
+        }
+
+        childObject = transform.GetChild(index).gameObject;
+                    
+        return true;
     }
 }

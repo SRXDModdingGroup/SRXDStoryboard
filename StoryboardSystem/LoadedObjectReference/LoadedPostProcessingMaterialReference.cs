@@ -18,7 +18,7 @@ internal class LoadedPostProcessingMaterialReference : LoadedInstanceReference<M
     private int layer;
     private PostProcessingInfo info;
 
-    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, int layer) : base(template) => this.layer = layer;
+    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, string name, int layer) : base(template, name) => this.layer = layer;
 
     public override bool TryLoad() {
         if (!base.TryLoad())
