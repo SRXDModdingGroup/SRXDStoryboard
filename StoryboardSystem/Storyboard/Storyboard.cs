@@ -4,8 +4,6 @@ using System.IO;
 namespace StoryboardSystem; 
 
 internal class Storyboard {
-    public ITimeConversion TimeConversion { get; set; }
-
     private bool dataSet;
     private bool loaded;
     private string name;
@@ -59,11 +57,11 @@ internal class Storyboard {
         return Compiler.TryCompileFile(name, directory, logger, this);
     }
 
-    public bool TryLoad(ILogger logger) {
+    public void Load(ITimeConversion timeConversion, ILogger logger) {
         if (!dataSet) {
             logger.LogWarning($"Failed to load {name}: Data is not set");
 
-            return false;
+            return;
         }
         
         bool success = true;
@@ -83,13 +81,13 @@ internal class Storyboard {
         if (!success) {
             Unload();
             
-            return false;
+            return;
         }
 
         timelines = new Timeline[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateTimeline(TimeConversion, out var curve)) {
+            if (timelineBuilders[i].TryCreateTimeline(timeConversion, out var curve)) {
                 timelines[i] = curve;
                 
                 continue;
@@ -102,14 +100,12 @@ internal class Storyboard {
         if (!success) {
             Unload();
 
-            return false;
+            return;
         }
 
         lastTime = -1f;
         loaded = true;
         logger.LogMessage($"Successfully loaded {name}");
-
-        return true;
     }
 
     public void Unload() {

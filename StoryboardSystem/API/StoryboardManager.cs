@@ -32,13 +32,12 @@ public class StoryboardManager : MonoBehaviour {
             UnloadStoryboard();
             currentStoryboard = storyboard;
         }
-
-        currentStoryboard.TimeConversion = timeConversion;
         
-        if (!currentStoryboard.TryCompile(Logger, false) || !currentStoryboard.TryLoad(Logger))
-            return;
 
         SetTime(0f, false);
+
+        if (currentStoryboard.TryCompile(Logger, false))
+            currentStoryboard.Load(timeConversion, Logger);
     }
 
     public void UnloadStoryboard() {
@@ -46,12 +45,12 @@ public class StoryboardManager : MonoBehaviour {
         currentStoryboard?.Unload();
     }
 
-    public void RecompileStoryboard() {
+    public void RecompileStoryboard(ITimeConversion timeConversion) {
         if (currentStoryboard == null)
             return;
         
         if (currentStoryboard.TryCompile(Logger, true))
-            currentStoryboard.TryLoad(Logger);
+            currentStoryboard.Load(timeConversion, Logger);
 
         if (active)
             Play();

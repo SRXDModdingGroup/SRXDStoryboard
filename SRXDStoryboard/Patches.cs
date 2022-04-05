@@ -43,7 +43,7 @@ public static class Patches {
     [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
     private static void Track_Update_Postfix(Track __instance) {
         if (Input.GetKeyDown(KeyCode.F1))
-            StoryboardManager.Instance.RecompileStoryboard();
+            StoryboardManager.Instance.RecompileStoryboard(new TimeConversion(__instance.playStateFirst.trackData));
         
         StoryboardManager.Instance.SetTime(__instance.currentRenderingTrackTime, true);
     }
