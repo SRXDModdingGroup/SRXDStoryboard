@@ -11,18 +11,18 @@ internal abstract class Property<T> : Property {
     public abstract void Set(T value);
 
     public abstract bool TryConvert(object value, out T result);
-
+    
     public override bool TryCreateTimeline(Property[] properties, List<KeyframeBuilder> keyframeBuilders, ITimeConversion conversion, out Timeline timeline) {
         var propertiesT = new Property<T>[properties.Length];
 
         for (int i = 0; i < properties.Length; i++) {
-            if (properties[i] is not Property<T> property) {
+            if (properties[i] is not Property<T> propertyT || !Validate(propertyT)) {
                 timeline = null;
 
                 return false;
             }
 
-            propertiesT[i] = property;
+            propertiesT[i] = propertyT;
         }
 
         var keyframes = new Keyframe<T>[keyframeBuilders.Count];
@@ -37,8 +37,12 @@ internal abstract class Property<T> : Property {
         }
 
         Array.Sort(keyframes);
-        timeline = new Curve<T>(propertiesT, keyframes);
+        timeline = CreateTimeline(propertiesT, keyframes);
 
         return true;
     }
+    
+    protected abstract bool Validate(Property<T> property);
+    
+    protected abstract Timeline CreateTimeline(Property<T>[] properties, Keyframe<T>[] keyframes);
 }

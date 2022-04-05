@@ -7,7 +7,7 @@ internal class Curve<T> : Timeline<T> {
     private int lastEvaluatedIndex = -2;
     private Func<T, T, float, T> interpolate;
 
-    public Curve(Property<T>[] properties, Keyframe<T>[] keyframes) : base(properties, keyframes) { }
+    public Curve(Property<T>[] properties, Keyframe<T>[] keyframes) : base(properties, keyframes) => interpolate = ((ValueProperty<T>) properties[0]).Interp;
 
     public override void Evaluate(float time) {
         int index = lastEvaluatedIndex;
