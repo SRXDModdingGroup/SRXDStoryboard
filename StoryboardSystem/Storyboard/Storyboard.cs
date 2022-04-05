@@ -80,7 +80,7 @@ internal class Storyboard {
 
         events = new Event[eventBuilders.Count];
         
-        for (int i = 0; i < curveBuilders.Count; i++) {
+        for (int i = 0; i < eventBuilders.Count; i++) {
             if (eventBuilders[i].TryCreateEvent(timeConversion, out events[i]))
                 continue;
             

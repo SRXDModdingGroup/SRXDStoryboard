@@ -33,8 +33,8 @@ internal static class Compiler {
         var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
         var curveBuilders = new List<CurveBuilder>();
         var eventBuilders = new List<EventBuilder>();
-        var valueBindings = new Dictionary<Binding, CurveBuilder>();
-        var eventBindings = new Dictionary<Binding, EventBuilder>();
+        var valueBindings = new Dictionary<Identifier, CurveBuilder>();
+        var eventBindings = new Dictionary<Identifier, EventBuilder>();
         var procedures = new Dictionary<Name, Procedure>();
         var globals = new Dictionary<Name, object>();
         var globalScope = new Scope(null, 0, 0, 0, Timestamp.Zero, Timestamp.Zero, globals, null);
@@ -178,7 +178,7 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Binding binding, out object value, out InterpType interpType): {
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Identifier binding, out object value, out InterpType interpType): {
                     if (!valueBindings.TryGetValue(binding, out var curveBuilder)) {
                         curveBuilder = new CurveBuilder(binding.ToString());
                         curveBuilders.Add(curveBuilder);
@@ -265,6 +265,9 @@ internal static class Compiler {
         foreach (var pair in valueBindings)
             pair.Value.AddBinding(pair.Key);
 
+        foreach (var pair in eventBindings)
+            pair.Value.AddBinding(pair.Key);
+
         storyboard = new Storyboard(timeConversion, assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), eventBuilders, curveBuilders);
 
         return true;
@@ -346,7 +349,7 @@ internal static class Compiler {
                                     j = 0;
 
                                     break;
-                                case Binding binding:
+                                case Identifier binding:
                                     object[] oldSequence = binding.Sequence;
                                     
                                     newSequence = new object[oldSequence.Length + sequence.Length - i];
@@ -362,7 +365,7 @@ internal static class Compiler {
                             for (; i < sequence.Length; i++, j++)
                                 newSequence[j] = sequence[i];
                             
-                            argument = new Binding(reference0, newSequence);
+                            argument = new Identifier(reference0, newSequence);
                             
                             continue;
                         }

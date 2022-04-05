@@ -5,8 +5,8 @@ namespace StoryboardSystem;
 internal abstract class Binder {
     private static readonly int COLOR_ID = Shader.PropertyToID("_Color");
     
-    public static bool TryCreateValuePropertyFromBinding(Binding binding, out ValueProperty property) {
-        if (TryResolveBinding(binding, out object result) && result is ValueProperty newProperty) {
+    public static bool TryBindValue(Identifier identifier, out ValueProperty property) {
+        if (TryResolveIdentifier(identifier, out object result) && result is ValueProperty newProperty) {
             property = newProperty;
 
             return true;
@@ -17,8 +17,8 @@ internal abstract class Binder {
         return false;
     }
 
-    public static bool TryCreateEventPropertyFromBinding(Binding binding, out EventProperty property) {
-        if (TryResolveBinding(binding, out object result) && result is EventProperty newProperty) {
+    public static bool TryBindEvent(Identifier identifier, out EventProperty property) {
+        if (TryResolveIdentifier(identifier, out object result) && result is EventProperty newProperty) {
             property = newProperty;
 
             return true;
@@ -29,10 +29,10 @@ internal abstract class Binder {
         return false;
     }
 
-    private static bool TryResolveBinding(Binding binding, out object result) {
-        result = binding.Reference.LoadedObject;
+    private static bool TryResolveIdentifier(Identifier identifier, out object result) {
+        result = identifier.Reference.LoadedObject;
 
-        foreach (object item in binding.Sequence) {
+        foreach (object item in identifier.Sequence) {
             switch (item) {
                 case int index when result is object[] arr: {
                     if (index < 0 || index >= arr.Length)

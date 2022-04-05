@@ -5,10 +5,15 @@ namespace StoryboardSystem;
 internal class EventBuilder {
     public string Name { get; }
     
-    private List<Binding> bindings = new();
+    private List<Identifier> bindings = new();
     private List<EventFrameBuilder> eventFrameBuilders = new();
     
     public EventBuilder(string name) => Name = name;
+
+    public void AddBinding(Identifier identifier) {
+        if (!bindings.Contains(identifier))
+            bindings.Add(identifier);
+    }
 
     public void AddFrame(Timestamp time, object value) => eventFrameBuilders.Add(new EventFrameBuilder(time, value));
 
@@ -22,7 +27,7 @@ internal class EventBuilder {
         var properties = new EventProperty[bindings.Count];
 
         for (int i = 0; i < bindings.Count; i++) {
-            if (Binder.TryCreateEventPropertyFromBinding(bindings[i], out properties[i]))
+            if (Binder.TryBindEvent(bindings[i], out properties[i]))
                 continue;
             
             @event = null;

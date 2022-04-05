@@ -2,20 +2,20 @@
 
 namespace StoryboardSystem; 
 
-internal readonly struct Binding {
+internal readonly struct Identifier {
     public LoadedObjectReference Reference { get; }
     
     public object[] Sequence { get; }
 
     private readonly int hash;
 
-    public Binding(LoadedObjectReference reference, object[] sequence) {
+    public Identifier(LoadedObjectReference reference, object[] sequence) {
         Reference = reference;
         Sequence = sequence;
         hash = HashUtility.Combine(reference, HashUtility.Combine(sequence));
     }
 
-    public override bool Equals(object obj) => obj is Binding other && this == other;
+    public override bool Equals(object obj) => obj is Identifier other && this == other;
 
     public override int GetHashCode() => hash;
 
@@ -42,7 +42,7 @@ internal readonly struct Binding {
         return builder.ToString();
     }
 
-    public static bool operator ==(Binding a, Binding b) {
+    public static bool operator ==(Identifier a, Identifier b) {
         if (a.hash != b.hash || a.Reference != b.Reference || a.Sequence.Length != b.Sequence.Length)
             return false;
 
@@ -54,5 +54,5 @@ internal readonly struct Binding {
         return true;
     }
 
-    public static bool operator !=(Binding a, Binding b) => !(a == b);
+    public static bool operator !=(Identifier a, Identifier b) => !(a == b);
 }

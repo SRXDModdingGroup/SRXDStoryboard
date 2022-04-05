@@ -95,7 +95,7 @@
         <Compile Include="Property\ValueProperty.cs" />
         <Compile Include="Property\VectorProperty.cs" />
         <Compile Include="Storyboard\Binder.cs" />
-        <Compile Include="Storyboard\Binding.cs" />
+        <Compile Include="Storyboard\Identifier.cs" />
         <Compile Include="Storyboard\Curve.cs" />
         <Compile Include="Storyboard\Event.cs" />
         <Compile Include="Storyboard\EventFrame.cs" />
