@@ -58,11 +58,8 @@
         <Compile Include="API\ITimeConversion.cs" />
         <Compile Include="API\PostProcessingInfo.cs" />
         <Compile Include="API\StoryboardManager.cs" />
-        <Compile Include="Builder\CurveBuilder.cs" />
-        <Compile Include="Builder\EventBuilder.cs" />
-        <Compile Include="Builder\EventFrameBuilder.cs" />
+        <Compile Include="Builder\TimelineBuilder.cs" />
         <Compile Include="Builder\KeyframeBuilder.cs" />
-        <Compile Include="Builder\VectorN.cs" />
         <Compile Include="Compiler\Compiler.cs" />
         <Compile Include="Compiler\Conversion.cs" />
         <Compile Include="Compiler\Expression.cs" />
@@ -88,20 +85,21 @@
         <Compile Include="Property\MaterialProperty\MaterialProperty.cs" />
         <Compile Include="Property\MaterialProperty\MaterialVectorProperty.cs" />
         <Compile Include="Property\MaterialProperty\MaterialColorProperty.cs" />
+        <Compile Include="Property\Property.cs" />
         <Compile Include="Property\TransformProperty\PositionProperty.cs" />
         <Compile Include="Property\TransformProperty\RotationProperty.cs" />
         <Compile Include="Property\TransformProperty\ScaleProperty.cs" />
         <Compile Include="Property\TransformProperty\TransformProperty.cs" />
         <Compile Include="Property\ValueProperty.cs" />
+        <Compile Include="Property\VectorN.cs" />
         <Compile Include="Property\VectorProperty.cs" />
         <Compile Include="Storyboard\Binder.cs" />
         <Compile Include="Storyboard\Identifier.cs" />
         <Compile Include="Storyboard\Curve.cs" />
-        <Compile Include="Storyboard\Event.cs" />
-        <Compile Include="Storyboard\EventFrame.cs" />
         <Compile Include="Storyboard\InterpType.cs" />
         <Compile Include="Storyboard\Keyframe.cs" />
         <Compile Include="Storyboard\Storyboard.cs" />
+        <Compile Include="Storyboard\Timeline.cs" />
         <Compile Include="Utility\HashUtility.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

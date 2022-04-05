@@ -31,10 +31,10 @@ internal static class Compiler {
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
         var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
-        var curveBuilders = new List<CurveBuilder>();
-        var eventBuilders = new List<EventBuilder>();
-        var valueBindings = new Dictionary<Identifier, CurveBuilder>();
-        var eventBindings = new Dictionary<Identifier, EventBuilder>();
+        var curveBuilders = new List<TimelineBuilder>();
+        var eventBuilders = new List<TimelineBuilder>();
+        var valueBindings = new Dictionary<Identifier, TimelineBuilder>();
+        var eventBindings = new Dictionary<Identifier, TimelineBuilder>();
         var procedures = new Dictionary<Name, Procedure>();
         var globals = new Dictionary<Name, object>();
         var globalScope = new Scope(null, 0, 0, 0, Timestamp.Zero, Timestamp.Zero, globals, null);
@@ -173,14 +173,14 @@ internal static class Compiler {
                         return false;
 
                     break;
-                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out CurveBuilder curveBuilder, out object value, out InterpType interpType): {
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out TimelineBuilder curveBuilder, out object value, out InterpType interpType): {
                     curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
 
                     break;
                 }
                 case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Identifier binding, out object value, out InterpType interpType): {
                     if (!valueBindings.TryGetValue(binding, out var curveBuilder)) {
-                        curveBuilder = new CurveBuilder(binding.ToString());
+                        curveBuilder = new TimelineBuilder(binding.ToString());
                         curveBuilders.Add(curveBuilder);
                         valueBindings.Add(binding, curveBuilder);
                     }

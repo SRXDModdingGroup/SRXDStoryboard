@@ -2,13 +2,13 @@
 
 namespace StoryboardSystem; 
 
-internal class CurveBuilder {
+internal class TimelineBuilder {
     public string Name { get; }
     
     private List<Identifier> bindings = new();
     private List<KeyframeBuilder> keyframeBuilders = new();
     
-    public CurveBuilder(string name) => Name = name;
+    public TimelineBuilder(string name) => Name = name;
 
     public void AddBinding(Identifier identifier) {
         if (!bindings.Contains(identifier))
@@ -17,24 +17,24 @@ internal class CurveBuilder {
 
     public void AddKey(Timestamp time, object value, InterpType interpType, int order) => keyframeBuilders.Add(new KeyframeBuilder(time, value, interpType, order));
 
-    public bool TryCreateCurve(ITimeConversion conversion, out Curve curve) {
+    public bool TryCreateTimeline(ITimeConversion conversion, out Timeline timeline) {
         if (bindings.Count == 0 || keyframeBuilders.Count == 0) {
-            curve = null;
+            timeline = null;
 
             return false;
         }
 
-        var properties = new ValueProperty[bindings.Count];
+        var properties = new Property[bindings.Count];
 
         for (int i = 0; i < bindings.Count; i++) {
-            if (Binder.TryBindValue(bindings[i], out properties[i]))
+            if (Binder.TryBindProperty(bindings[i], out properties[i]))
                 continue;
             
-            curve = null;
+            timeline = null;
 
             return false;
         }
 
-        return properties[0].TryCreateCurve(properties, keyframeBuilders, conversion, out curve);
+        return properties[0].TryCreateTimeline(properties, keyframeBuilders, conversion, out timeline);
     }
 }

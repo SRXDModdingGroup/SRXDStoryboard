@@ -1,20 +1,13 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace StoryboardSystem;
 
-internal abstract class Curve {
-    public abstract void Evaluate(float time);
-}
-
-internal class Curve<T> : Curve {
-    private ValueProperty<T>[] properties;
-    private Keyframe<T>[] keyframes;
+internal class Curve<T> : Timeline<T> {
     private int lastEvaluatedIndex = -2;
+    private Func<T, T, float, T> interpolate;
 
-    public Curve(ValueProperty<T>[] properties, Keyframe<T>[] keyframes) {
-        this.properties = properties;
-        this.keyframes = keyframes;
-    }
+    public Curve(Property<T>[] properties, Keyframe<T>[] keyframes) : base(properties, keyframes) { }
 
     public override void Evaluate(float time) {
         int index = lastEvaluatedIndex;
@@ -23,35 +16,35 @@ internal class Curve<T> : Curve {
             index = -1;
 
         while (true) {
-            if (index < keyframes.Length - 1 && time >= keyframes[index + 1].Time)
+            if (index < Keyframes.Length - 1 && time >= Keyframes[index + 1].Time)
                 index++;
-            else if (index >= 0 && time < keyframes[index].Time)
+            else if (index >= 0 && time < Keyframes[index].Time)
                 index--;
             else
                 break;
         }
         
-        if (index == lastEvaluatedIndex && (index < 0 || index == keyframes.Length - 1 || keyframes[index].InterpType == InterpType.Fixed))
+        if (index == lastEvaluatedIndex && (index < 0 || index == Keyframes.Length - 1 || Keyframes[index].InterpType == InterpType.Fixed))
             return;
 
         lastEvaluatedIndex = index;
 
         if (index < 0) {
-            Set(keyframes[0].Value);
+            Set(Keyframes[0].Value);
             
             return;
         }
 
-        var previous = keyframes[index];
+        var previous = Keyframes[index];
         var interpType = previous.InterpType;
 
-        if (interpType == InterpType.Fixed || index == keyframes.Length - 1) {
+        if (interpType == InterpType.Fixed || index == Keyframes.Length - 1) {
             Set(previous.Value);
             
             return;
         }
 
-        var next = keyframes[index + 1];
+        var next = Keyframes[index + 1];
         float interp = Mathf.InverseLerp(previous.Time, next.Time, time);
 
         switch (interpType) {
@@ -67,16 +60,6 @@ internal class Curve<T> : Curve {
                 break;
         }
         
-        SetInterp(previous.Value, next.Value, interp);
-    }
-
-    private void Set(T value) {
-        foreach (var property in properties)
-            property.Set(value);
-    }
-
-    private void SetInterp(T a, T b, float t) {
-        foreach (var property in properties)
-            property.Set(property.Interp(a, b, t));
+        Set(interpolate(previous.Value, next.Value, interp));
     }
 }

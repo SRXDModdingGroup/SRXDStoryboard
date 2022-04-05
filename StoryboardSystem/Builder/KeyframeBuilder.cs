@@ -13,7 +13,7 @@ internal readonly struct KeyframeBuilder {
         this.order = order;
     }
 
-    public bool TryCreateKeyframe<T>(ValueProperty<T> property, ITimeConversion conversion, out Keyframe<T> result) {
+    public bool TryCreateKeyframe<T>(Property<T> property, ITimeConversion conversion, out Keyframe<T> result) {
         if (!property.TryConvert(value, out var converted)) {
             result = default;
 

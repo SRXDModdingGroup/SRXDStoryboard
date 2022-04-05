@@ -8,10 +8,10 @@ internal class Storyboard {
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
     private LoadedPostProcessingMaterialReference[] postProcessReferences;
-    private List<EventBuilder> eventBuilders;
-    private List<CurveBuilder> curveBuilders;
-    private Event[] events;
-    private Curve[] curves;
+    private List<TimelineBuilder> eventBuilders;
+    private List<TimelineBuilder> curveBuilders;
+    private Timeline[] events;
+    private Timeline[] curves;
     private float lastTime;
     private bool loaded;
 
@@ -21,8 +21,8 @@ internal class Storyboard {
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
-        List<EventBuilder> eventBuilders,
-        List<CurveBuilder> curveBuilders) {
+        List<TimelineBuilder> eventBuilders,
+        List<TimelineBuilder> curveBuilders) {
         this.timeConversion = timeConversion;
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
@@ -68,21 +68,27 @@ internal class Storyboard {
             return false;
         }
 
-        curves = new Curve[curveBuilders.Count];
+        curves = new Timeline[curveBuilders.Count];
 
         for (int i = 0; i < curveBuilders.Count; i++) {
-            if (curveBuilders[i].TryCreateCurve(timeConversion, out curves[i]))
+            if (curveBuilders[i].TryCreateTimeline(timeConversion, out var curve)) {
+                curves[i] = curve;
+                
                 continue;
+            }
             
             logger.LogWarning($"Failed to create curve {curveBuilders[i].Name}");
             success = false;
         }
 
-        events = new Event[eventBuilders.Count];
+        events = new Timeline[eventBuilders.Count];
         
         for (int i = 0; i < eventBuilders.Count; i++) {
-            if (eventBuilders[i].TryCreateEvent(timeConversion, out events[i]))
+            if (eventBuilders[i].TryCreateTimeline(timeConversion, out var @event)) {
+                events[i] = @event;
+                
                 continue;
+            }
             
             logger.LogWarning($"Failed to create event {eventBuilders[i].Name}");
             success = false;

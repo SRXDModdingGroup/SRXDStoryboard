@@ -5,20 +5,8 @@ namespace StoryboardSystem;
 internal abstract class Binder {
     private static readonly int COLOR_ID = Shader.PropertyToID("_Color");
     
-    public static bool TryBindValue(Identifier identifier, out ValueProperty property) {
-        if (TryResolveIdentifier(identifier, out object result) && result is ValueProperty newProperty) {
-            property = newProperty;
-
-            return true;
-        }
-
-        property = null;
-
-        return false;
-    }
-
-    public static bool TryBindEvent(Identifier identifier, out EventProperty property) {
-        if (TryResolveIdentifier(identifier, out object result) && result is EventProperty newProperty) {
+    public static bool TryBindProperty(Identifier identifier, out Property property) {
+        if (TryResolveIdentifier(identifier, out object result) && result is Property newProperty) {
             property = newProperty;
 
             return true;
