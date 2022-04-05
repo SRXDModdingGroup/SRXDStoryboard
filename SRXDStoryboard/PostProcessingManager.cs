@@ -1,32 +1,33 @@
 ﻿using System.Collections.Generic;
 using SRXDPostProcessing;
 using StoryboardSystem;
+using UnityEngine;
 
 namespace SRXDStoryboard; 
 
 public class PostProcessingManager : IPostProcessingManager {
     private Dictionary<int, PostProcessingInstance> postProcessingInfos = new();
 
-    public void AddPostProcessingInstance(PostProcessingInfo info) {
-        if (postProcessingInfos.ContainsKey(info.Material.GetInstanceID()))
+    public void AddPostProcessingInstance(Material material, int layer) {
+        if (postProcessingInfos.ContainsKey(material.GetInstanceID()))
             return;
 
-        var instance = new PostProcessingInstance(info.Material, true, (PostProcessingLayer) info.Layer);
+        var instance = new PostProcessingInstance(material, true, (PostProcessingLayer) layer);
         
         SRXDPostProcessing.PostProcessingManager.AddPostProcessingInstance(instance);
-        postProcessingInfos.Add(info.Material.GetInstanceID(), instance);
+        postProcessingInfos.Add(material.GetInstanceID(), instance);
     }
 
-    public void RemovePostProcessingInstance(PostProcessingInfo info) {
-        if (!postProcessingInfos.TryGetValue(info.Material.GetInstanceID(), out var instance))
+    public void RemovePostProcessingInstance(Material material) {
+        if (!postProcessingInfos.TryGetValue(material.GetInstanceID(), out var instance))
             return;
         
         SRXDPostProcessing.PostProcessingManager.RemovePostProcessingInstance(instance);
-        postProcessingInfos.Remove(info.Material.GetInstanceID());
+        postProcessingInfos.Remove(material.GetInstanceID());
     }
 
-    public void SetPostProcessingInstanceEnabled(PostProcessingInfo info, bool enabled) {
-        if (postProcessingInfos.TryGetValue(info.Material.GetInstanceID(), out var instance))
+    public void SetPostProcessingInstanceEnabled(Material material, bool enabled) {
+        if (postProcessingInfos.TryGetValue(material.GetInstanceID(), out var instance))
             instance.Enabled = enabled;
     }
 }

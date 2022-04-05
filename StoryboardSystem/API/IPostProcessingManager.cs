@@ -1,9 +1,11 @@
-﻿namespace StoryboardSystem; 
+﻿using UnityEngine;
+
+namespace StoryboardSystem; 
 
 public interface IPostProcessingManager {
-    void AddPostProcessingInstance(PostProcessingInfo info);
+    void AddPostProcessingInstance(Material material, int layer);
     
-    void RemovePostProcessingInstance(PostProcessingInfo info);
+    void RemovePostProcessingInstance(Material material);
 
-    void SetPostProcessingInstanceEnabled(PostProcessingInfo info, bool enabled);
+    void SetPostProcessingInstanceEnabled(Material material, bool enabled);
 }

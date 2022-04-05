@@ -56,7 +56,6 @@
         <Compile Include="API\ILogger.cs" />
         <Compile Include="API\IPostProcessingManager.cs" />
         <Compile Include="API\ITimeConversion.cs" />
-        <Compile Include="API\PostProcessingInfo.cs" />
         <Compile Include="API\StoryboardManager.cs" />
         <Compile Include="Compiler\Compiler.cs" />
         <Compile Include="Compiler\Conversion.cs" />

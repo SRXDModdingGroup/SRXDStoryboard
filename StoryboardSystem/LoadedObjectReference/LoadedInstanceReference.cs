@@ -6,8 +6,8 @@ internal abstract class LoadedInstanceReference : LoadedObjectReference { }
 
 internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
     public override object LoadedObject => Instance;
-    
-    public T Instance { get; private set; }
+
+    protected T Instance { get; private set; }
 
     private string name;
     private LoadedAssetReference<T> template;
