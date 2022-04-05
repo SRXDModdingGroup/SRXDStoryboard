@@ -11,7 +11,7 @@ internal static class Compiler {
         
         if (!Parser.TryParseFile(path, out var instructions))
             logger.LogWarning($"Failed to parse {path}");
-        else if (!TryCompile(instructions, timeConversion, logger, out storyboard))
+        else if (!TryCompile(path, instructions, timeConversion, logger, out storyboard))
             logger.LogWarning($"Failed to compile {path}");
         else {
             logger.LogMessage($"Successfully compiled {path}");
@@ -24,7 +24,7 @@ internal static class Compiler {
         return false;
     }
 
-    private static bool TryCompile(List<Instruction> instructions, ITimeConversion timeConversion, ILogger logger, out Storyboard storyboard) {
+    private static bool TryCompile(string path, List<Instruction> instructions, ITimeConversion timeConversion, ILogger logger, out Storyboard storyboard) {
         storyboard = null;
 
         var assetBundleReferences = new List<LoadedAssetBundleReference>();
@@ -44,13 +44,30 @@ internal static class Compiler {
             object[] arguments = instruction.Arguments;
 
             switch (opcode) {
-                case Opcode.Bundle when TryGetArguments(arguments, globalScope, out Name name, out string path):
-                    var newAssetBundleReference = new LoadedAssetBundleReference(path);
+                case Opcode.Bundle when TryGetArguments(arguments, globalScope, out Name name, out string bundlePath):
+                    var newAssetBundleReference = new LoadedAssetBundleReference(bundlePath);
 
                     assetBundleReferences.Add(newAssetBundleReference);
                     globals[name] = newAssetBundleReference;
 
                     break;
+                case Opcode.Curve when TryGetArguments(arguments, globalScope, out Name name, true): {
+                    var timelineBuilder = new TimelineBuilder(name.ToString());
+                    
+                    timelineBuilders.Add(timelineBuilder);
+                    
+                    for (int j = 1; j < arguments.Length; j++) {
+                        if (arguments[j] is not Identifier identifier) {
+                            logger.LogWarning(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Curve"));
+
+                            return false;
+                        }
+                        
+                        bindings.Add(identifier, timelineBuilder);
+                    }
+
+                    break;
+                }
                 case Opcode.Inst when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference assetReference):
                     var newInstanceReference = assetReference.CreateInstanceReference();
                     
@@ -135,7 +152,7 @@ internal static class Compiler {
         }
 
         if (!procedures.TryGetValue(new Name("Main"), out var procedure)) {
-            logger.LogWarning("Failed to compile storyboard: Procedure Main could not be found");
+            logger.LogWarning(GetCompileError(0, "Procedure Main could not be found"));
 
             return false;
         }
@@ -220,6 +237,7 @@ internal static class Compiler {
 
                     break;
                 case Opcode.Bundle:
+                case Opcode.Curve:
                 case Opcode.Inst:
                 case Opcode.Load:
                 case Opcode.Post:
@@ -288,7 +306,7 @@ internal static class Compiler {
         foreach (var pair in bindings)
             pair.Value.AddBinding(pair.Key);
 
-        storyboard = new Storyboard(timeConversion, assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), timelineBuilders);
+        storyboard = new Storyboard(path, timeConversion, assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), timelineBuilders);
 
         return true;
     }

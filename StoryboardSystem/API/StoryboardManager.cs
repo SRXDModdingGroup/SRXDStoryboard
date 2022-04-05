@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace StoryboardSystem; 
@@ -28,7 +29,7 @@ public class StoryboardManager : MonoBehaviour {
         UnloadStoryboard();
 
         if (!exists) {
-            if (!Compiler.TryCompileFile(path, timeConversion, out storyboard))
+            if (!Compiler.TryCompileFile(Path.ChangeExtension(path, ".txt"), timeConversion, out storyboard))
                 return;
             
             storyboards.Add(path, storyboard);
@@ -52,6 +53,22 @@ public class StoryboardManager : MonoBehaviour {
         Stop();
         loadedStoryboard.Unload();
         loadedStoryboard = null;
+    }
+
+    public void RecompileStoryboard() {
+        if (loadedStoryboard == null)
+            return;
+
+        bool wasActive = active;
+        string path = loadedStoryboard.Path;
+        var timeConversion = loadedStoryboard.TimeConversion;
+        
+        UnloadStoryboard();
+        storyboards.Remove(path);
+        LoadStoryboard(path, timeConversion);
+        
+        if (wasActive)
+            Play();
     }
 
     public void Play() {

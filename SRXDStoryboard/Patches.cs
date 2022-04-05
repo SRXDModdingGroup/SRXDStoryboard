@@ -32,7 +32,7 @@ public static class Patches {
         if (!Directory.Exists(storyboardPath))
             Directory.CreateDirectory(storyboardPath);
 
-        string filePath = Path.Combine(storyboardPath, Path.ChangeExtension(fileRef, ".sbrd"));
+        string filePath = Path.Combine(storyboardPath, fileRef);
         
         if (!File.Exists(filePath)) {
             Plugin.Logger.LogMessage($"Did not find {filePath}");

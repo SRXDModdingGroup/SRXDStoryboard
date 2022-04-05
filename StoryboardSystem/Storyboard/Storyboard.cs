@@ -3,7 +3,10 @@
 namespace StoryboardSystem; 
 
 internal class Storyboard {
-    private ITimeConversion timeConversion;
+    public string Path { get; }
+    
+    public ITimeConversion TimeConversion { get; }
+    
     private LoadedAssetBundleReference[] assetBundleReferences;
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
@@ -11,16 +14,19 @@ internal class Storyboard {
     private List<TimelineBuilder> timelineBuilders;
     private Timeline[] timelines;
     private float lastTime;
+
     private bool loaded;
 
     public Storyboard(
+        string path,
         ITimeConversion timeConversion,
         LoadedAssetBundleReference[] assetBundleReferences,
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
         List<TimelineBuilder> timelineBuilders) {
-        this.timeConversion = timeConversion;
+        Path = path;
+        this.TimeConversion = timeConversion;
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
@@ -64,7 +70,7 @@ internal class Storyboard {
         timelines = new Timeline[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateTimeline(timeConversion, out var curve)) {
+            if (timelineBuilders[i].TryCreateTimeline(TimeConversion, out var curve)) {
                 timelines[i] = curve;
                 
                 continue;

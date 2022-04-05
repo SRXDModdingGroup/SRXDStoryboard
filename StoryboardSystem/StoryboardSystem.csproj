@@ -58,8 +58,6 @@
         <Compile Include="API\ITimeConversion.cs" />
         <Compile Include="API\PostProcessingInfo.cs" />
         <Compile Include="API\StoryboardManager.cs" />
-        <Compile Include="Builder\TimelineBuilder.cs" />
-        <Compile Include="Builder\KeyframeBuilder.cs" />
         <Compile Include="Compiler\Compiler.cs" />
         <Compile Include="Compiler\Conversion.cs" />
         <Compile Include="Compiler\Expression.cs" />
@@ -99,8 +97,10 @@
         <Compile Include="Storyboard\Curve.cs" />
         <Compile Include="Storyboard\InterpType.cs" />
         <Compile Include="Storyboard\Keyframe.cs" />
+        <Compile Include="Storyboard\KeyframeBuilder.cs" />
         <Compile Include="Storyboard\Storyboard.cs" />
         <Compile Include="Storyboard\Timeline.cs" />
+        <Compile Include="Storyboard\TimelineBuilder.cs" />
         <Compile Include="Utility\HashUtility.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

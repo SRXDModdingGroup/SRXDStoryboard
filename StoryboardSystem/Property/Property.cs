@@ -14,9 +14,10 @@ internal abstract class Property<T> : Property {
     
     public override bool TryCreateTimeline(Property[] properties, List<KeyframeBuilder> keyframeBuilders, ITimeConversion conversion, out Timeline timeline) {
         var propertiesT = new Property<T>[properties.Length];
+        var type = GetType();
 
         for (int i = 0; i < properties.Length; i++) {
-            if (properties[i] is not Property<T> propertyT || !Validate(propertyT)) {
+            if (properties[i] is not Property<T> propertyT || propertyT.GetType() != type) {
                 timeline = null;
 
                 return false;
@@ -41,8 +42,6 @@ internal abstract class Property<T> : Property {
 
         return true;
     }
-    
-    protected abstract bool Validate(Property<T> property);
-    
+
     protected abstract Timeline CreateTimeline(Property<T>[] properties, Keyframe<T>[] keyframes);
 }
