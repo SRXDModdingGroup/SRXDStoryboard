@@ -31,10 +31,8 @@ internal static class Compiler {
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
         var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
-        var curveBuilders = new List<TimelineBuilder>();
-        var eventBuilders = new List<TimelineBuilder>();
-        var valueBindings = new Dictionary<Identifier, TimelineBuilder>();
-        var eventBindings = new Dictionary<Identifier, TimelineBuilder>();
+        var timelineBuilders = new List<TimelineBuilder>();
+        var bindings = new Dictionary<Identifier, TimelineBuilder>();
         var procedures = new Dictionary<Name, Procedure>();
         var globals = new Dictionary<Name, object>();
         var globalScope = new Scope(null, 0, 0, 0, Timestamp.Zero, Timestamp.Zero, globals, null);
@@ -173,16 +171,21 @@ internal static class Compiler {
                         return false;
 
                     break;
+                case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out TimelineBuilder curveBuilder, out object value): {
+                    curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
+
+                    break;
+                }
                 case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out TimelineBuilder curveBuilder, out object value, out InterpType interpType): {
                     curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
 
                     break;
                 }
                 case Opcode.Key when TryGetArguments(arguments, currentScope, out Timestamp time, out Identifier binding, out object value, out InterpType interpType): {
-                    if (!valueBindings.TryGetValue(binding, out var curveBuilder)) {
+                    if (!bindings.TryGetValue(binding, out var curveBuilder)) {
                         curveBuilder = new TimelineBuilder(binding.ToString());
-                        curveBuilders.Add(curveBuilder);
-                        valueBindings.Add(binding, curveBuilder);
+                        timelineBuilders.Add(curveBuilder);
+                        bindings.Add(binding, curveBuilder);
                     }
 
                     curveBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
@@ -262,13 +265,10 @@ internal static class Compiler {
             }
         }
 
-        foreach (var pair in valueBindings)
+        foreach (var pair in bindings)
             pair.Value.AddBinding(pair.Key);
 
-        foreach (var pair in eventBindings)
-            pair.Value.AddBinding(pair.Key);
-
-        storyboard = new Storyboard(timeConversion, assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), eventBuilders, curveBuilders);
+        storyboard = new Storyboard(timeConversion, assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), timelineBuilders);
 
         return true;
     }

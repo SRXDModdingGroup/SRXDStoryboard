@@ -1,9 +1,10 @@
 ﻿namespace StoryboardSystem;
 
 internal class Event<T> : Timeline<T> {
+    public override bool IsEvent => true;
+
     private int index = -1;
 
-    
     public Event(Property<T>[] properties, Keyframe<T>[] keyframes) : base(properties, keyframes) { }
     
     public override void Evaluate(float time) {

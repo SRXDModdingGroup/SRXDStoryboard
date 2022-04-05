@@ -4,6 +4,8 @@ using UnityEngine;
 namespace StoryboardSystem;
 
 internal class Curve<T> : Timeline<T> {
+    public override bool IsEvent => false;
+    
     private int lastEvaluatedIndex = -2;
     private Func<T, T, float, T> interpolate;
 

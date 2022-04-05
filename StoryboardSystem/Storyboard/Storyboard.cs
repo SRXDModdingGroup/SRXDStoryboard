@@ -8,10 +8,8 @@ internal class Storyboard {
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
     private LoadedPostProcessingMaterialReference[] postProcessReferences;
-    private List<TimelineBuilder> eventBuilders;
-    private List<TimelineBuilder> curveBuilders;
-    private Timeline[] events;
-    private Timeline[] curves;
+    private List<TimelineBuilder> timelineBuilders;
+    private Timeline[] timelines;
     private float lastTime;
     private bool loaded;
 
@@ -21,27 +19,22 @@ internal class Storyboard {
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
-        List<TimelineBuilder> eventBuilders,
-        List<TimelineBuilder> curveBuilders) {
+        List<TimelineBuilder> timelineBuilders) {
         this.timeConversion = timeConversion;
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
-        this.eventBuilders = eventBuilders;
-        this.curveBuilders = curveBuilders;
         this.postProcessReferences = postProcessReferences;
+        this.timelineBuilders = timelineBuilders;
     }
 
     public void Evaluate(float time, bool triggerEvents) {
         if (!loaded || time == lastTime)
             return;
 
-        foreach (var curve in curves)
-            curve.Evaluate(time);
-
-        if (triggerEvents) {
-            foreach (var @event in events)
-                @event.Evaluate(time);
+        foreach (var timeline in timelines) {
+            if (triggerEvents || !timeline.IsEvent)
+                timeline.Evaluate(time);
         }
 
         lastTime = time;
@@ -68,29 +61,16 @@ internal class Storyboard {
             return false;
         }
 
-        curves = new Timeline[curveBuilders.Count];
+        timelines = new Timeline[timelineBuilders.Count];
 
-        for (int i = 0; i < curveBuilders.Count; i++) {
-            if (curveBuilders[i].TryCreateTimeline(timeConversion, out var curve)) {
-                curves[i] = curve;
+        for (int i = 0; i < timelineBuilders.Count; i++) {
+            if (timelineBuilders[i].TryCreateTimeline(timeConversion, out var curve)) {
+                timelines[i] = curve;
                 
                 continue;
             }
             
-            logger.LogWarning($"Failed to create curve {curveBuilders[i].Name}");
-            success = false;
-        }
-
-        events = new Timeline[eventBuilders.Count];
-        
-        for (int i = 0; i < eventBuilders.Count; i++) {
-            if (eventBuilders[i].TryCreateTimeline(timeConversion, out var @event)) {
-                events[i] = @event;
-                
-                continue;
-            }
-            
-            logger.LogWarning($"Failed to create event {eventBuilders[i].Name}");
+            logger.LogWarning($"Failed to create timeline {timelineBuilders[i].Name}");
             success = false;
         }
 
@@ -107,8 +87,7 @@ internal class Storyboard {
     }
 
     public void Unload() {
-        events = null;
-        curves = null;
+        timelines = null;
         
         foreach (var reference in postProcessReferences)
             reference.Unload();

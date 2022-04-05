@@ -1,6 +1,8 @@
 ﻿namespace StoryboardSystem; 
 
 internal abstract class Timeline {
+    public abstract bool IsEvent { get; }
+    
     public abstract void Evaluate(float time);
 }
 
