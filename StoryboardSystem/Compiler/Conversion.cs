@@ -2,7 +2,7 @@
 
 namespace StoryboardSystem; 
 
-public static class Conversion {
+internal static class Conversion {
     public static bool TryConvertToFloat(object value, out float result) {
         switch (value) {
             case float floatVal:

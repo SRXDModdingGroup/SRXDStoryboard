@@ -29,7 +29,9 @@ internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
         AssetName = assetName;
         this.assetBundleReference = assetBundleReference;
     }
-    
+
+    public override void Unload() => Asset = null;
+
     public override bool TryLoad() {
         Asset = assetBundleReference.Bundle.LoadAsset<T>(AssetName);
 
@@ -40,8 +42,6 @@ internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
 
         return false;
     }
-
-    public override void Unload() => Asset = null;
 
     public override LoadedInstanceReference CreateInstanceReference(string name, int layer) => new LoadedInstanceReference<T>(this, name, layer);
 }

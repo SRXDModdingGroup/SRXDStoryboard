@@ -2,7 +2,7 @@
 
 namespace StoryboardSystem; 
 
-public readonly struct VectorN {
+internal readonly struct VectorN {
     public Vector4 Value { get; }
     
     public int Dimensions { get; }

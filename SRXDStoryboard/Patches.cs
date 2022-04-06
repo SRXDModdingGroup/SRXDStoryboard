@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
-using SMU.Extensions;
 using SMU.Utilities;
 using StoryboardSystem;
 using UnityEngine;
@@ -13,17 +12,18 @@ using UnityEngine;
 namespace SRXDStoryboard; 
 
 public static class Patches {
+    internal static Transform TrackTextureCameraTransform { get; private set; }
+    
     private static BackgroundAssetReference OverrideBackgroundIfStoryboardHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
         var info = handle.Setup.TrackDataSegments[0].trackInfoRef;
-        var utilityBackgrounds = BackgroundSystem.UtilityBackgrounds;
 
         if (!Plugin.EnableStoryboards.Value
-            || !info.IsCustomFile 
+            || !info.IsCustomFile
             || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), info.customFile.FileNameNoExtension, out var storyboard))
             return defaultBackground;
         
         if (storyboard.TryGetOutParam("disableBaseBackground", out bool value) && value)
-            return utilityBackgrounds.lowMotionBackground;
+            return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
 
         return null;
     }
@@ -35,7 +35,7 @@ public static class Patches {
         if (!Directory.Exists(customAssetBundlePath))
             Directory.CreateDirectory(customAssetBundlePath);
         
-        StoryboardManager.Create(new Logger(Plugin.Logger), new AssetBundleManager(customAssetBundlePath), new PostProcessingManager());
+        StoryboardManager.Create(new AssetBundleManager(customAssetBundlePath), new SceneManager(), new Logger(Plugin.Logger));
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
@@ -43,38 +43,33 @@ public static class Patches {
         var data = __instance.playStateFirst.trackData;
         var info = data.TrackInfoRef;
         var storyboardManager = StoryboardManager.Instance;
-        
+
         if (!Plugin.EnableStoryboards.Value
             || !info.IsCustomFile
             || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), info.customFile.FileNameNoExtension, out var storyboard)
             || !storyboard.HasData) {
-            storyboardManager.SetCurrentStoryboard(null, null, null);
+            storyboardManager.SetCurrentStoryboard(null, null);
             
             return;
         }
 
-        var mainCamera = MainCamera.Instance;
-
-        storyboardManager.SetCurrentStoryboard(storyboard, new TimeConversion(data),
-            new [] { mainCamera.trackCamera.transform, mainCamera.backgroundCamera.transform });
+        storyboardManager.SetCurrentStoryboard(storyboard, new TimeConversion(data));
         storyboardManager.Play();
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
-    private static void Track_ReturnToPickTrack_Postfix() => StoryboardManager.Instance.SetCurrentStoryboard(null, null, null);
+    private static void Track_ReturnToPickTrack_Postfix() => StoryboardManager.Instance.SetCurrentStoryboard(null, null);
 
     [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
     private static void Track_Update_Postfix(Track __instance) {
-        if (Input.GetKeyDown(KeyCode.F1)) {
-            var mainCamera = MainCamera.Instance;
-            
-            StoryboardManager.Instance.RecompileCurrentStoryboard(
-                new TimeConversion(__instance.playStateFirst.trackData),
-                new [] { mainCamera.trackCamera.transform, mainCamera.backgroundCamera.transform });
-        }
-        
+        if (Input.GetKeyDown(KeyCode.F1))
+            StoryboardManager.Instance.RecompileCurrentStoryboard(new TimeConversion(__instance.playStateFirst.trackData));
+
         StoryboardManager.Instance.SetTime(__instance.currentRenderingTrackTime, true);
     }
+
+    [HarmonyPatch(typeof(TrackCanvasesAndCamera), nameof(TrackCanvasesAndCamera.Awake)), HarmonyPostfix]
+    private static void TrackCanvasesAndCamera_Awake_Postfix(TrackCanvasesAndCamera __instance) => TrackTextureCameraTransform = __instance.trackCamera.transform;
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> PlayableTrackDataHandle_Loading_Transpiler(IEnumerable<CodeInstruction> instructions) {

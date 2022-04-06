@@ -12,31 +12,31 @@ internal class LoadedPostProcessingMaterialReference : LoadedInstanceReference<M
         }
     }
 
-    private bool storyboardEnabled;
+    private bool storyboardActive;
 
     public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, string name, int layer) : base(template, name, layer) { }
-
-    public override bool TryLoad() {
-        if (!base.TryLoad())
-            return false;
-        
-        StoryboardManager.Instance.PostProcessingManager.AddPostProcessingInstance(Instance, Layer);
-
-        return true;
-    }
 
     public override void Unload() {
         if (Instance == null)
             return;
         
-        StoryboardManager.Instance.PostProcessingManager.RemovePostProcessingInstance(Instance);
+        StoryboardManager.Instance.SceneManager.RemovePostProcessingInstance(Instance);
         base.Unload();
     }
 
-    public void SetStoryboardActive(bool storyboardEnabled) {
-        this.storyboardEnabled = storyboardEnabled;
+    public void SetStoryboardActive(bool storyboardActive) {
+        this.storyboardActive = storyboardActive;
         UpdateEnabled();
     }
 
-    private void UpdateEnabled() => StoryboardManager.Instance.PostProcessingManager.SetPostProcessingInstanceEnabled(Instance, enabled && storyboardEnabled);
+    public override bool TryLoad() {
+        if (!base.TryLoad())
+            return false;
+        
+        StoryboardManager.Instance.SceneManager.AddPostProcessingInstance(Instance, Layer);
+
+        return true;
+    }
+
+    private void UpdateEnabled() => StoryboardManager.Instance.SceneManager.SetPostProcessingInstanceEnabled(Instance, enabled && storyboardActive);
 }

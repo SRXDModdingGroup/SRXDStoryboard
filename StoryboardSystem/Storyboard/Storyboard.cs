@@ -21,7 +21,6 @@ public class Storyboard {
     private List<TimelineBuilder> timelineBuilders;
     private Dictionary<string, object> outParams;
     private Timeline[] timelines;
-    private Transform[] sceneRoots;
 
     internal Storyboard(
         string name,
@@ -46,9 +45,6 @@ public class Storyboard {
         active = true;
 
         if (loaded) {
-            foreach (var sceneRoot in sceneRoots)
-                sceneRoot.gameObject.SetActive(true);
-            
             foreach (var reference in postProcessReferences)
                 reference.SetStoryboardActive(true);
         }
@@ -61,9 +57,6 @@ public class Storyboard {
 
         if (!loaded)
             return;
-        
-        foreach (var sceneRoot in sceneRoots)
-            sceneRoot.gameObject.SetActive(false);
             
         foreach (var reference in postProcessReferences)
             reference.SetStoryboardActive(false);
@@ -89,7 +82,7 @@ public class Storyboard {
         Compiler.CompileFile(name, directory, logger, this);
     }
 
-    internal void Recompile(bool force, ITimeConversion conversion, Transform[] sceneRootParents, ILogger logger) {
+    internal void Recompile(bool force, ITimeConversion conversion, ILogger logger) {
         if (HasData && !force)
             return;
 
@@ -98,7 +91,7 @@ public class Storyboard {
         Compile(force, logger);
 
         if (wasLoaded)
-            LoadContents(conversion, sceneRootParents, logger);
+            LoadContents(conversion, logger);
     }
 
     internal void SetData(LoadedAssetBundleReference[] assetBundleReferences,
@@ -128,7 +121,7 @@ public class Storyboard {
         HasData = false;
     }
 
-    internal void LoadContents(ITimeConversion conversion, Transform[] sceneRootParents, ILogger logger) {
+    internal void LoadContents(ITimeConversion conversion, ILogger logger) {
         UnloadContents();
         
         if (!HasData)
@@ -136,16 +129,6 @@ public class Storyboard {
 
         bool success = true;
         var watch = Stopwatch.StartNew();
-
-        sceneRoots = new Transform[sceneRootParents.Length];
-
-        for (int i = 0; i < sceneRootParents.Length; i++) {
-            var newTransform = new GameObject($"SceneRoot_{i}").transform;
-
-            newTransform.SetParent(sceneRootParents[i], false);
-            newTransform.gameObject.SetActive(false);
-            sceneRoots[i] = newTransform;
-        }
         
         foreach (var reference in assetBundleReferences)
             success = reference.TryLoad() && success;
@@ -154,7 +137,7 @@ public class Storyboard {
             success = reference.TryLoad() && success;
         
         foreach (var reference in instanceReferences)
-            success = reference.TryLoad(sceneRoots) && success;
+            success = reference.TryLoad() && success;
 
         foreach (var reference in postProcessReferences)
             success = reference.TryLoad() && success;
@@ -211,12 +194,6 @@ public class Storyboard {
                 reference.Unload();
         }
 
-        if (sceneRoots != null) {
-            foreach (var sceneRoot in sceneRoots)
-                Object.Destroy(sceneRoot.gameObject);
-        }
-
         timelines = null;
-        sceneRoots = null;
     }
 }

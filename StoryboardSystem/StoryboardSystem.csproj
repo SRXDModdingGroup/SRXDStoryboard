@@ -54,7 +54,7 @@
     <ItemGroup>
         <Compile Include="API\IAssetBundleManager.cs" />
         <Compile Include="API\ILogger.cs" />
-        <Compile Include="API\IPostProcessingManager.cs" />
+        <Compile Include="API\ISceneManager.cs" />
         <Compile Include="API\ITimeConversion.cs" />
         <Compile Include="API\StoryboardManager.cs" />
         <Compile Include="Compiler\Compiler.cs" />

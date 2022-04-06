@@ -1,10 +1,10 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace StoryboardSystem;
 
-internal abstract class LoadedInstanceReference : LoadedObjectReference {
-    public abstract bool TryLoad(Transform[] sceneRoots);
-}
+internal abstract class LoadedInstanceReference : LoadedObjectReference { }
 
 internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
     public override object LoadedObject => Instance;
@@ -22,50 +22,38 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
         Layer = layer;
     }
 
-    public override bool TryLoad() {
-        if (template.Asset == null) {
-            StoryboardManager.Instance.Logger.LogWarning($"Failed to create instance of {template.AssetName}");
-            
-            return false;
-        }
-        
-        Instance = Object.Instantiate(template.Asset);
-
-        return Instance is not GameObject;
-    }
-
-    public override bool TryLoad(Transform[] sceneRoots) {
-        if (template.Asset == null) {
-            StoryboardManager.Instance.Logger.LogWarning($"Failed to create instance of {template.AssetName}");
-            
-            return false;
-        }
-        
-        Instance = Object.Instantiate(template.Asset);
-
-        if (Instance is not GameObject gameObject)
-            return true;
-
-        if (Layer < 0 || Layer >= sceneRoots.Length)
-            return false;
-
-        gameObject.name = name;
-        
-        var transform = gameObject.transform;
-            
-        transform.SetParent(sceneRoots[Layer], false);
-        transform.localPosition = Vector3.zero;
-        transform.localRotation = Quaternion.identity;
-        transform.localScale = Vector3.one;
-
-        return true;
-    }
-
     public override void Unload() {
         if (Instance == null)
             return;
         
         Object.Destroy(Instance);
         Instance = null;
+    }
+
+    public override bool TryLoad() {
+        if (template.Asset == null) {
+            StoryboardManager.Instance.Logger.LogWarning($"Failed to create instance of {template.AssetName}");
+            
+            return false;
+        }
+
+        var sceneManager = StoryboardManager.Instance.SceneManager;
+        
+        Instance = Object.Instantiate(template.Asset);
+        
+        if (Instance is GameObject gameObject) {
+            gameObject.name = name;
+        
+            var transform = gameObject.transform;
+            
+            transform.SetParent(sceneManager.GetLayerRoot(Layer), false);
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+        }
+        
+        sceneManager.InitializeObject(Instance, Layer);
+
+        return true;
     }
 }

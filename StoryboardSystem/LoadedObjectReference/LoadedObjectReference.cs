@@ -2,7 +2,9 @@
 
 internal abstract class LoadedObjectReference {
     private static int instanceCounter;
-
+    
+    public abstract object LoadedObject { get; }
+    
     private readonly int instanceId;
 
     protected LoadedObjectReference() {
@@ -13,9 +15,6 @@ internal abstract class LoadedObjectReference {
         }
     }
     
-    public abstract object LoadedObject { get; }
-
-
     public abstract void Unload();
     
     public abstract bool TryLoad();
