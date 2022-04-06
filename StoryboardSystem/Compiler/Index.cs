@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal readonly struct Index {
+internal class Index {
     public object[] Array { get; }
     
     public int index { get; }

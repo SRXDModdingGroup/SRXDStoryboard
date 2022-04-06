@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace StoryboardSystem;
+﻿namespace StoryboardSystem;
 
 internal abstract class EventProperty : Property<object> {
     public override void Set(object value) => Execute();

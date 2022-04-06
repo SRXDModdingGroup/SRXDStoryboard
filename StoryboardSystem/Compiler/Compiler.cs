@@ -447,6 +447,9 @@ internal static class Compiler {
 
                 break;
             }
+            case Expression expression: {
+                break;
+            }
         }
 
         if (argument is not T result)

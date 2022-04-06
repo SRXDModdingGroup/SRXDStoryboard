@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal readonly struct Timestamp {
+internal class Timestamp {
     public static Timestamp Zero => new(0, 0, 0f, 0f);
     
     public int Measures { get; }

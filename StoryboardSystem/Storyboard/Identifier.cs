@@ -2,7 +2,7 @@
 
 namespace StoryboardSystem; 
 
-internal readonly struct Identifier {
+internal class Identifier {
     public LoadedObjectReference Reference { get; }
     
     public object[] Sequence { get; }
@@ -43,6 +43,9 @@ internal readonly struct Identifier {
     }
 
     public static bool operator ==(Identifier a, Identifier b) {
+        if (a is null || b is null)
+            return a is null && b is null;
+        
         if (a.hash != b.hash || a.Reference != b.Reference || a.Sequence.Length != b.Sequence.Length)
             return false;
 

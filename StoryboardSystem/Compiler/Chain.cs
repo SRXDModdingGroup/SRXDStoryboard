@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal readonly struct Chain {
+internal class Chain {
     public int Length => chain.Length;
     
     private readonly object[] chain;

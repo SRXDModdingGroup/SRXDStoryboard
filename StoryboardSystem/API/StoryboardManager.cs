@@ -25,7 +25,7 @@ public class StoryboardManager : MonoBehaviour {
 
     public void Stop() {
         for (int i = 0; i < SceneManager.LayerCount; i++)
-            SceneManager.GetLayerRoot(i).gameObject.SetActive(true);
+            SceneManager.GetLayerRoot(i).gameObject.SetActive(false);
         
         currentStoryboard?.Stop();
     }

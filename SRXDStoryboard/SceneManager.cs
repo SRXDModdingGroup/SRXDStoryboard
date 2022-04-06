@@ -13,6 +13,12 @@ public class SceneManager : ISceneManager {
 
     public int LayerCount => 3;
 
+    public SceneManager(Transform foregroundRoot, Transform backgroundRoot, Transform trackRoot) {
+        this.foregroundRoot = foregroundRoot;
+        this.backgroundRoot = backgroundRoot;
+        this.trackRoot = trackRoot;
+    }
+
     public void Update(float time, bool triggerEvents) {
         var target = Patches.TrackTextureCameraTransform;
             
@@ -69,39 +75,10 @@ public class SceneManager : ISceneManager {
             instance.Enabled = enabled;
     }
 
-    public Transform GetLayerRoot(int index) {
-        switch (index) {
-            case 1:
-                if (backgroundRoot != null)
-                    return backgroundRoot;
-                
-                backgroundRoot = new GameObject("BackgroundRoot").transform;
-                backgroundRoot.SetParent(MainCamera.Instance.backgroundCamera.transform, false);
-                backgroundRoot.localPosition = Vector3.zero;
-                backgroundRoot.localRotation = Quaternion.identity;
-                backgroundRoot.localScale = Vector3.one;
-
-                return backgroundRoot;
-            case 2:
-                if (trackRoot != null)
-                    return trackRoot;
-
-                trackRoot = new GameObject("TrackRoot").transform;
-                trackRoot.SetParent(null, false);
-                trackRoot.localScale = Vector3.one;
-
-                return trackRoot;
-        }
-        
-        if (foregroundRoot != null)
-            return foregroundRoot;
-                
-        foregroundRoot = new GameObject("ForegroundRoot").transform;
-        foregroundRoot.SetParent(MainCamera.Instance.trackCamera.transform, false);
-        foregroundRoot.localPosition = Vector3.zero;
-        foregroundRoot.localRotation = Quaternion.identity;
-        foregroundRoot.localScale = Vector3.one;
-
-        return foregroundRoot;
-    }
+    public Transform GetLayerRoot(int index) =>
+        index switch {
+            1 => backgroundRoot,
+            2 => trackRoot,
+            _ => foregroundRoot
+        };
 }

@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal readonly struct Expression {
+internal class Expression {
     public Name Name { get; }
     
     public object[] Arguments { get; }
