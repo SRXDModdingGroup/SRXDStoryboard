@@ -4,7 +4,7 @@ using Object = UnityEngine.Object;
 namespace StoryboardSystem;
 
 internal abstract class LoadedAssetReference : LoadedObjectReference {
-    public abstract LoadedInstanceReference CreateInstanceReference(string name);
+    public abstract LoadedInstanceReference CreateInstanceReference(string name, int layer);
 
     public static LoadedAssetReference Create(LoadedAssetBundleReference assetBundleReference, string assetName, AssetType type) => type switch {
         AssetType.Material => new LoadedAssetReference<Material>(assetBundleReference, assetName),
@@ -43,5 +43,5 @@ internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
 
     public override void Unload() => Asset = null;
 
-    public override LoadedInstanceReference CreateInstanceReference(string name) => new LoadedInstanceReference<T>(this, name);
+    public override LoadedInstanceReference CreateInstanceReference(string name, int layer) => new LoadedInstanceReference<T>(this, name, layer);
 }

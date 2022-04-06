@@ -13,15 +13,14 @@ internal class LoadedPostProcessingMaterialReference : LoadedInstanceReference<M
     }
 
     private bool storyboardEnabled;
-    private int layer;
 
-    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, string name, int layer) : base(template, name) => this.layer = layer;
+    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, string name, int layer) : base(template, name, layer) { }
 
     public override bool TryLoad() {
         if (!base.TryLoad())
             return false;
         
-        StoryboardManager.Instance.PostProcessingManager.AddPostProcessingInstance(Instance, layer);
+        StoryboardManager.Instance.PostProcessingManager.AddPostProcessingInstance(Instance, Layer);
 
         return true;
     }
@@ -34,7 +33,7 @@ internal class LoadedPostProcessingMaterialReference : LoadedInstanceReference<M
         base.Unload();
     }
 
-    public void SetStoryboardEnabled(bool storyboardEnabled) {
+    public void SetStoryboardActive(bool storyboardEnabled) {
         this.storyboardEnabled = storyboardEnabled;
         UpdateEnabled();
     }

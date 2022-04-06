@@ -1,11 +1,17 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using UnityEngine;
 
 namespace StoryboardSystem; 
 
-internal class Storyboard {
+public class Storyboard {
+    public bool HasData => dataSet;
+    
+    private bool active;
     private bool dataSet;
     private bool loaded;
+    private float lastTime;
     private string name;
     private string directory;
     private LoadedAssetBundleReference[] assetBundleReferences;
@@ -14,20 +20,80 @@ internal class Storyboard {
     private LoadedPostProcessingMaterialReference[] postProcessReferences;
     private List<TimelineBuilder> timelineBuilders;
     private Timeline[] timelines;
-    private float lastTime;
+    private Transform[] sceneRoots;
 
-    public Storyboard(
+    internal Storyboard(
         string name,
         string directory) {
         this.name = name;
         this.directory = directory;
     }
 
-    public void SetData(LoadedAssetBundleReference[] assetBundleReferences,
+    internal void Play() {
+        active = true;
+
+        if (loaded) {
+            foreach (var sceneRoot in sceneRoots)
+                sceneRoot.gameObject.SetActive(true);
+            
+            foreach (var reference in postProcessReferences)
+                reference.SetStoryboardActive(true);
+        }
+        
+        Evaluate(lastTime, false);
+    }
+
+    internal void Stop() {
+        active = false;
+
+        if (!loaded)
+            return;
+        
+        foreach (var sceneRoot in sceneRoots)
+            sceneRoot.gameObject.SetActive(false);
+            
+        foreach (var reference in postProcessReferences)
+            reference.SetStoryboardActive(false);
+    }
+
+    internal void Evaluate(float time, bool triggerEvents) {
+        lastTime = time;
+        
+        if (!loaded || !active)
+            return;
+
+        foreach (var timeline in timelines) {
+            if (triggerEvents || !timeline.IsEvent)
+                timeline.Evaluate(time);
+        }
+    }
+
+    internal void Compile(bool force, ILogger logger) {
+        if (dataSet && !force)
+            return;
+        
+        ClearData();
+        Compiler.CompileFile(name, directory, logger, this);
+    }
+
+    internal void Recompile(bool force, ITimeConversion conversion, Transform[] sceneRootParents, ILogger logger) {
+        if (dataSet && !force)
+            return;
+
+        bool wasLoaded = loaded;
+        
+        Compile(force, logger);
+
+        if (wasLoaded)
+            LoadContents(conversion, sceneRootParents, logger);
+    }
+
+    internal void SetData(LoadedAssetBundleReference[] assetBundleReferences,
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
         List<TimelineBuilder> timelineBuilders) {
+        UnloadContents();
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
@@ -35,36 +101,35 @@ internal class Storyboard {
         this.timelineBuilders = timelineBuilders;
         dataSet = true;
     }
-    
-    public void Evaluate(float time, bool triggerEvents) {
-        if (!loaded || time == lastTime)
-            return;
 
-        foreach (var timeline in timelines) {
-            if (triggerEvents || !timeline.IsEvent)
-                timeline.Evaluate(time);
-        }
-
-        lastTime = time;
+    internal void ClearData() {
+        UnloadContents();
+        assetBundleReferences = null;
+        assetReferences = null;
+        instanceReferences = null;
+        postProcessReferences = null;
+        timelineBuilders = null;
+        dataSet = false;
     }
 
-    public bool TryCompile(ILogger logger, bool force) {
-        if (dataSet && !force)
-            return true;
+    internal void LoadContents(ITimeConversion conversion, Transform[] sceneRootParents, ILogger logger) {
+        UnloadContents();
         
-        ClearData();
-        
-        return Compiler.TryCompileFile(name, directory, logger, this);
-    }
-
-    public void Load(ITimeConversion timeConversion, ILogger logger) {
-        if (!dataSet) {
-            logger.LogWarning($"Failed to load {name}: Data is not set");
-
+        if (!dataSet)
             return;
-        }
-        
+
         bool success = true;
+        var watch = Stopwatch.StartNew();
+
+        sceneRoots = new Transform[sceneRootParents.Length];
+
+        for (int i = 0; i < sceneRootParents.Length; i++) {
+            var newTransform = new GameObject($"SceneRoot_{i}").transform;
+
+            newTransform.SetParent(sceneRootParents[i], false);
+            newTransform.gameObject.SetActive(false);
+            sceneRoots[i] = newTransform;
+        }
         
         foreach (var reference in assetBundleReferences)
             success = reference.TryLoad() && success;
@@ -73,13 +138,13 @@ internal class Storyboard {
             success = reference.TryLoad() && success;
         
         foreach (var reference in instanceReferences)
-            success = reference.TryLoad() && success;
+            success = reference.TryLoad(sceneRoots) && success;
 
         foreach (var reference in postProcessReferences)
             success = reference.TryLoad() && success;
 
         if (!success) {
-            Unload();
+            UnloadContents();
             
             return;
         }
@@ -87,7 +152,7 @@ internal class Storyboard {
         timelines = new Timeline[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateTimeline(timeConversion, out var curve)) {
+            if (timelineBuilders[i].TryCreateTimeline(conversion, out var curve)) {
                 timelines[i] = curve;
                 
                 continue;
@@ -98,51 +163,44 @@ internal class Storyboard {
         }
 
         if (!success) {
-            Unload();
+            UnloadContents();
 
             return;
         }
+        
+        if (active)
+            Play();
+        else
+            Stop();
 
-        lastTime = -1f;
         loaded = true;
-        logger.LogMessage($"Successfully loaded {name}");
+        watch.Stop();
+        logger.LogMessage($"Successfully loaded {name} in {watch.ElapsedMilliseconds}ms");
     }
 
-    public void Unload() {
-        timelines = null;
+    internal void UnloadContents() {
         loaded = false;
-        
-        if (!dataSet)
-            return;
-        
-        foreach (var reference in postProcessReferences)
-            reference.Unload();
-        
-        foreach (var reference in instanceReferences)
-            reference.Unload();
-        
-        foreach (var reference in assetReferences)
-            reference.Unload();
-        
-        foreach (var reference in assetBundleReferences)
-            reference.Unload();
-    }
 
-    public void SetEnabled(bool enabled) {
-        if (!loaded)
-            return;
+        if (dataSet) {
+            foreach (var reference in postProcessReferences)
+                reference.Unload();
 
-        foreach (var reference in postProcessReferences)
-            reference.SetStoryboardEnabled(enabled);
-    }
-    
-    private void ClearData() {
-        Unload();
-        assetBundleReferences = null;
-        assetReferences = null;
-        instanceReferences = null;
-        postProcessReferences = null;
-        timelineBuilders = null;
-        dataSet = false;
+            foreach (var reference in instanceReferences)
+                reference.Unload();
+
+            foreach (var reference in assetReferences)
+                reference.Unload();
+
+            foreach (var reference in assetBundleReferences)
+                reference.Unload();
+        }
+
+        if (sceneRoots != null) {
+            foreach (var sceneRoot in sceneRoots)
+                Object.Destroy(sceneRoot.gameObject);
+        }
+
+        timelines = null;
+        sceneRoots = null;
     }
 }

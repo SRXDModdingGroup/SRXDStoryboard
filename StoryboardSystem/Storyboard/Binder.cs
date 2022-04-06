@@ -23,10 +23,10 @@ internal abstract class Binder {
         foreach (object item in identifier.Sequence) {
             switch (item) {
                 case int index when result is object[] arr: {
-                    if (index < 0 || index >= arr.Length)
+                    if (arr.Length == 0)
                         break;
 
-                    result = arr[index];
+                    result = arr[MathUtility.Mod(index, arr.Length)];
 
                     continue;
                 }
@@ -109,13 +109,13 @@ internal abstract class Binder {
     private static bool TryGetChildGameObject(GameObject gameObject, int index, out object childObject) {
         var transform = gameObject.transform;
 
-        if (index < 0 || index >= transform.childCount) {
+        if (transform.childCount == 0) {
             childObject = null;
                     
             return false;
         }
 
-        childObject = transform.GetChild(index).gameObject;
+        childObject = transform.GetChild(MathUtility.Mod(index, transform.childCount)).gameObject;
                     
         return true;
     }

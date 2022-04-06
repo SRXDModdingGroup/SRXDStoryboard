@@ -7,78 +7,65 @@ namespace StoryboardSystem;
 public class StoryboardManager : MonoBehaviour {
     public static StoryboardManager Instance { get; private set; }
     
-    internal Transform SceneRoot { get; private set; }
-    
     internal ILogger Logger { get; private set; }
     
     internal IAssetBundleManager AssetBundleManager { get; private set; }
     
     internal IPostProcessingManager PostProcessingManager { get; private set; }
 
-    private bool active;
-    private float currentTime;
     private Storyboard currentStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
 
-    public void LoadStoryboard(string name, string directory, ITimeConversion timeConversion) {
-        string key = Path.Combine(directory, name);
-        
-        if (!storyboards.TryGetValue(key, out var storyboard)) {
-            storyboard = new Storyboard(name, directory);
-            storyboards.Add(key, storyboard);
+    public void Play() => currentStoryboard?.Play();
+
+    public void Stop() => currentStoryboard?.Stop();
+
+    public void SetTime(float time, bool triggerEvents) => currentStoryboard?.Evaluate(time, triggerEvents);
+
+    public void SetCurrentStoryboard(Storyboard storyboard, ITimeConversion conversion, Transform[] sceneRootParents) {
+        if (currentStoryboard != null) {
+            currentStoryboard.Stop();
+            currentStoryboard.UnloadContents();
         }
-
-        if (storyboard != currentStoryboard) {
-            UnloadStoryboard();
-            currentStoryboard = storyboard;
-        }
         
-
-        SetTime(0f, false);
-
-        if (currentStoryboard.TryCompile(Logger, false))
-            currentStoryboard.Load(timeConversion, Logger);
-    }
-
-    public void UnloadStoryboard() {
-        Stop();
-        currentStoryboard?.Unload();
-    }
-
-    public void RecompileStoryboard(ITimeConversion timeConversion) {
-        if (currentStoryboard == null)
+        currentStoryboard = storyboard;
+        
+        if (storyboard == null)
             return;
         
-        if (currentStoryboard.TryCompile(Logger, true))
-            currentStoryboard.Load(timeConversion, Logger);
-
-        if (active)
-            Play();
-        else
-            Stop();
+        storyboard.Compile(false, Logger);
+        storyboard.LoadContents(conversion, sceneRootParents, Logger);
     }
 
-    public void Play() {
-        active = true;
-        SceneRoot.gameObject.SetActive(true);
-        currentStoryboard?.SetEnabled(true);
-        SetTime(currentTime, false);
+    public void RecompileCurrentStoryboard(ITimeConversion conversion, Transform[] sceneRootParents)
+        => currentStoryboard?.Recompile(true, conversion, sceneRootParents, Logger);
+
+    public bool TryGetStoryboard(string directory, string name, out Storyboard storyboard)
+        => storyboards.TryGetValue(Path.Combine(directory, name), out storyboard);
+
+    public bool TryGetCurrentStoryboard(out Storyboard storyboard) {
+        storyboard = currentStoryboard;
+        
+        return storyboard != null;
     }
 
-    public void Stop() {
-        active = false;
-        SceneRoot.gameObject.SetActive(false);
-        currentStoryboard?.SetEnabled(false);
+    public bool TryGetOrCreateStoryboard(string directory, string name, out Storyboard storyboard) {
+        string key = Path.Combine(directory, name);
+        
+        if (storyboards.TryGetValue(key, out storyboard))
+            return true;
+
+        if (!File.Exists(Path.Combine(directory, Path.ChangeExtension(name, ".txt"))))
+            return false;
+
+        storyboard = new Storyboard(name, directory);
+        storyboards.Add(key, storyboard);
+        storyboard.Compile(false, Logger);
+
+        return true;
     }
 
-    public void SetTime(float time, bool triggerEvents) {
-        currentTime = time;
-
-        if (active)
-            currentStoryboard?.Evaluate(time, triggerEvents);
-    }
-
-    public static void Create(Transform rootParent, ILogger logger, IAssetBundleManager assetBundleManager, IPostProcessingManager postProcessingManager) {
+    public static void Create(ILogger logger, IAssetBundleManager assetBundleManager, IPostProcessingManager postProcessingManager) {
         if (Instance != null)
             return;
         
@@ -88,8 +75,5 @@ public class StoryboardManager : MonoBehaviour {
         Instance.Logger = logger;
         Instance.AssetBundleManager = assetBundleManager;
         Instance.PostProcessingManager = postProcessingManager;
-        Instance.SceneRoot = new GameObject("Scene Root").transform;
-        Instance.SceneRoot.SetParent(rootParent, false);
-        Instance.SceneRoot.gameObject.SetActive(false);
     }
 }

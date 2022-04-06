@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using UnityEngine;
@@ -7,20 +8,22 @@ using UnityEngine;
 namespace StoryboardSystem;
 
 internal static class Compiler {
-    public static bool TryCompileFile(string name, string directory, ILogger logger, Storyboard storyboard) {
+    public static void CompileFile(string name, string directory, ILogger logger, Storyboard storyboard) {
         string path = Path.Combine(directory, Path.ChangeExtension(name, ".txt"));
-        
+
+        if (!File.Exists(path))
+            return;
+
+        var watch = Stopwatch.StartNew();
+
         if (!Parser.TryParseFile(path, out var instructions))
             logger.LogWarning($"Failed to parse {name}");
         else if (!TryCompile(instructions, logger, storyboard))
             logger.LogWarning($"Failed to compile {name}");
         else {
-            logger.LogMessage($"Successfully compiled {name}");
-            
-            return true;
+            watch.Stop();
+            logger.LogMessage($"Successfully compiled {name} in {watch.ElapsedMilliseconds}ms");
         }
-            
-        return false;
     }
 
     private static bool TryCompile(List<Instruction> instructions, ILogger logger, Storyboard storyboard) {
@@ -65,13 +68,22 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference assetReference):
-                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString());
-                    
+                case Opcode.Inst when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference assetReference): {
+                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), 0);
+
                     instanceReferences.Add(newInstanceReference);
                     globals[name] = newInstanceReference;
-                    
+
                     break;
+                }
+                case Opcode.Inst when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference assetReference, out int layer): {
+                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), layer);
+
+                    instanceReferences.Add(newInstanceReference);
+                    globals[name] = newInstanceReference;
+
+                    break;
+                }
                 case Opcode.Load when TryGetArguments(arguments, globalScope, out Name name, out AssetType type, out LoadedAssetBundleReference assetBundleReference, out string assetName):
                     var newAssetReference = LoadedAssetReference.Create(assetBundleReference, assetName, type);
                     
@@ -362,12 +374,14 @@ internal static class Compiler {
 
                 for (int i = 0; i < sequence.Length; i++) {
                     if (argument is Index index0) {
-                        if (index0.index < 0 || index0.index >= index0.Array.Length)
+                        object[] array = index0.Array;
+
+                        if (array.Length == 0)
                             return false;
-                    
-                        argument = index0.Array[index0.index];
+                        
+                        argument = array[MathUtility.Mod(index0.index, array.Length)];
                     }
-                
+
                     switch (sequence[i]) {
                         case int index1 when argument is object[] arr: {
                             argument = new Index(arr, index1);
@@ -413,10 +427,12 @@ internal static class Compiler {
                 }
                 
                 if (argument is Index index2 && typeof(T) != typeof(Index)) {
-                    if (index2.index < 0 || index2.index >= index2.Array.Length)
-                        return false;
+                    object[] array = index2.Array;
 
-                    argument = index2.Array[index2.index];
+                    if (array.Length == 0)
+                        return false;
+                    
+                    argument = array[MathUtility.Mod(index2.index, array.Length)];
                 }
 
                 break;
