@@ -108,9 +108,9 @@ internal static class Parser {
                     return false;
                 }
                 case '(': {
-                    string nameString = value.Substring(startIndex, i - startIndex);
+                    string name = value.Substring(startIndex, i - startIndex);
 
-                    foreach (char c in nameString) {
+                    foreach (char c in name) {
                         if (char.IsLetterOrDigit(c) || c == '_')
                             continue;
                         
@@ -119,11 +119,11 @@ internal static class Parser {
                         return false;
                     }
                     
-                    if (!string.IsNullOrWhiteSpace(nameString) && TryGetWithin(value, ref i, '(', ')', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
+                    if (!string.IsNullOrWhiteSpace(name) && TryGetWithin(value, ref i, '(', ')', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
                         if (!TryTokenize(subString, lineIndex, logger, out object[] arguments))
                             return false;
 
-                        tokenList.Add(new Expression(new Name(nameString), arguments));
+                        tokenList.Add(new Expression(name, arguments));
                         startIndex = i + 1;
 
                         continue;

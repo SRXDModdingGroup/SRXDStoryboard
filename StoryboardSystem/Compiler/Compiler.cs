@@ -448,6 +448,17 @@ internal static class Compiler {
                 break;
             }
             case Expression expression: {
+                object[] args = expression.Arguments;
+                object[] resolvedArgs = new object[args.Length];
+
+                for (int i = 0; i < args.Length; i++) {
+                    if (!TryResolveArgument(args[i], scope, out resolvedArgs[i]))
+                        return false;
+                }
+
+                if (!Operations.TryDoOperation(expression.Name, resolvedArgs, out argument))
+                    return false;
+                
                 break;
             }
         }
