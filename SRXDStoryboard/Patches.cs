@@ -15,13 +15,17 @@ namespace SRXDStoryboard;
 public static class Patches {
     private static BackgroundAssetReference OverrideBackgroundIfStoryboardHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
         var info = handle.Setup.TrackDataSegments[0].trackInfoRef;
+        var utilityBackgrounds = BackgroundSystem.UtilityBackgrounds;
 
-        if (info.IsCustomFile
-            && StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), info.customFile.FileNameNoExtension, out var storyboard)
-            && storyboard.HasData)
-            return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
+        if (!Plugin.EnableStoryboards.Value
+            || !info.IsCustomFile 
+            || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), info.customFile.FileNameNoExtension, out var storyboard))
+            return defaultBackground;
         
-        return defaultBackground;
+        if (storyboard.TryGetOutParam("disableBaseBackground", out bool value) && value)
+            return utilityBackgrounds.lowMotionBackground;
+
+        return null;
     }
     
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
@@ -35,12 +39,13 @@ public static class Patches {
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
-    private static void Track_PlayTrack_Prefix(Track __instance) {
+    private static void Track_PlayTrack_Postfix(Track __instance) {
         var data = __instance.playStateFirst.trackData;
         var info = data.TrackInfoRef;
         var storyboardManager = StoryboardManager.Instance;
         
-        if (!info.IsCustomFile
+        if (!Plugin.EnableStoryboards.Value
+            || !info.IsCustomFile
             || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), info.customFile.FileNameNoExtension, out var storyboard)
             || !storyboard.HasData) {
             storyboardManager.SetCurrentStoryboard(null, null, null);
@@ -69,18 +74,6 @@ public static class Patches {
         }
         
         StoryboardManager.Instance.SetTime(__instance.currentRenderingTrackTime, true);
-    }
-
-    [HarmonyPatch(typeof(TrackData), nameof(TrackData.BackgroundAssetReference), MethodType.Getter), HarmonyPrefix]
-    private static bool TrackData_get_BackgroundAssetReference_Prefix(TrackData __instance, ref BackgroundAssetReference __result) {
-        if (!__instance.IsCustom
-            || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), __instance.CustomFile.FileNameNoExtension, out var storyboard)
-            || !storyboard.HasData)
-            return true;
-        
-        __result = BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
-
-        return false;
     }
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]

@@ -8,6 +8,7 @@ internal enum Opcode {
     Key,
     Load,
     Loop,
+    Out,
     Post,
     Proc,
     Set,

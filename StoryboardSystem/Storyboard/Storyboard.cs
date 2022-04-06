@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using UnityEngine;
@@ -6,10 +7,9 @@ using UnityEngine;
 namespace StoryboardSystem; 
 
 public class Storyboard {
-    public bool HasData => dataSet;
-    
+    public bool HasData { get; private set; }
+
     private bool active;
-    private bool dataSet;
     private bool loaded;
     private float lastTime;
     private string name;
@@ -19,6 +19,7 @@ public class Storyboard {
     private LoadedInstanceReference[] instanceReferences;
     private LoadedPostProcessingMaterialReference[] postProcessReferences;
     private List<TimelineBuilder> timelineBuilders;
+    private Dictionary<string, object> outParams;
     private Timeline[] timelines;
     private Transform[] sceneRoots;
 
@@ -27,6 +28,18 @@ public class Storyboard {
         string directory) {
         this.name = name;
         this.directory = directory;
+    }
+    
+    public bool TryGetOutParam<T>(string name, out T value) {
+        if (outParams != null && outParams.TryGetValue(name, out object obj) && obj is T cast) {
+            value = cast;
+
+            return true;
+        }
+
+        value = default;
+
+        return false;
     }
 
     internal void Play() {
@@ -69,7 +82,7 @@ public class Storyboard {
     }
 
     internal void Compile(bool force, ILogger logger) {
-        if (dataSet && !force)
+        if (HasData && !force)
             return;
         
         ClearData();
@@ -77,7 +90,7 @@ public class Storyboard {
     }
 
     internal void Recompile(bool force, ITimeConversion conversion, Transform[] sceneRootParents, ILogger logger) {
-        if (dataSet && !force)
+        if (HasData && !force)
             return;
 
         bool wasLoaded = loaded;
@@ -92,14 +105,16 @@ public class Storyboard {
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
-        List<TimelineBuilder> timelineBuilders) {
+        List<TimelineBuilder> timelineBuilders,
+        Dictionary<string, object> outParams) {
         UnloadContents();
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
         this.postProcessReferences = postProcessReferences;
         this.timelineBuilders = timelineBuilders;
-        dataSet = true;
+        this.outParams = outParams;
+        HasData = true;
     }
 
     internal void ClearData() {
@@ -109,13 +124,14 @@ public class Storyboard {
         instanceReferences = null;
         postProcessReferences = null;
         timelineBuilders = null;
-        dataSet = false;
+        outParams = null;
+        HasData = false;
     }
 
     internal void LoadContents(ITimeConversion conversion, Transform[] sceneRootParents, ILogger logger) {
         UnloadContents();
         
-        if (!dataSet)
+        if (!HasData)
             return;
 
         bool success = true;
@@ -181,7 +197,7 @@ public class Storyboard {
     internal void UnloadContents() {
         loaded = false;
 
-        if (dataSet) {
+        if (HasData) {
             foreach (var reference in postProcessReferences)
                 reference.Unload();
 
