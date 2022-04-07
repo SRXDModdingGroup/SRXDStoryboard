@@ -31,6 +31,7 @@ internal static class Compiler {
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
         var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
+        var externalObjectReferences = new List<LoadedExternalObjectReference>();
         var timelineBuilders = new List<TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
         var bindings = new Dictionary<Identifier, TimelineBuilder>();
@@ -69,6 +70,14 @@ internal static class Compiler {
 
                     break;
                 }
+                case Opcode.In when TryGetArguments(arguments, globalScope, out Name name, out string paramName): {
+                    var newObjectReference = new LoadedExternalObjectReference(paramName);
+                    
+                    externalObjectReferences.Add(newObjectReference);
+                    globals[name] = newObjectReference;
+
+                    break;
+                }
                 case Opcode.Inst when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference assetReference): {
                     var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), 0);
 
@@ -103,8 +112,7 @@ internal static class Compiler {
                     
                     break;
                 case Opcode.Out when TryGetArguments(arguments, globalScope, out string name, out object value):
-                    if (!inProcs)
-                        outParams[name] = value;
+                    outParams[name] = value;
 
                     break;
                 case Opcode.Post when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference<Material> materialReference, out int layer):
@@ -261,10 +269,6 @@ internal static class Compiler {
                         return false;
                     
                     break;
-                case Opcode.Out when TryGetArguments(arguments, globalScope, out string name, out object value):
-                    outParams[name] = value;
-
-                    break;
                 case Opcode.Set when TryGetArguments(arguments, currentScope, out Name name, out object value):
                     currentScope.SetValue(name, value);
 
@@ -280,9 +284,11 @@ internal static class Compiler {
                     break;
                 case Opcode.Bundle:
                 case Opcode.Curve:
+                case Opcode.In:
                 case Opcode.Inst:
                 case Opcode.InstA:
                 case Opcode.Load:
+                case Opcode.Out:
                 case Opcode.Post:
                     logger.LogWarning(GetCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure"));
 
@@ -349,7 +355,14 @@ internal static class Compiler {
         foreach (var pair in bindings)
             pair.Value.AddBinding(pair.Key);
         
-        storyboard.SetData(assetBundleReferences.ToArray(), assetReferences.ToArray(), instanceReferences.ToArray(), postProcessReferences.ToArray(), timelineBuilders, outParams);
+        storyboard.SetData(
+            assetBundleReferences.ToArray(),
+            assetReferences.ToArray(),
+            instanceReferences.ToArray(),
+            postProcessReferences.ToArray(),
+            externalObjectReferences.ToArray(),
+            timelineBuilders,
+            outParams);
 
         return true;
     }

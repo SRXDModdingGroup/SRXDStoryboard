@@ -184,24 +184,24 @@ public class Storyboard {
 
     internal void Close() {
         loaded = false;
-
-        if (HasData) {
-            foreach (var reference in externalObjectReferences)
-                reference.Unload();
-
-            foreach (var reference in postProcessReferences)
-                reference.Unload();
-
-            foreach (var reference in instanceReferences)
-                reference.Unload();
-
-            foreach (var reference in assetReferences)
-                reference.Unload();
-
-            foreach (var reference in assetBundleReferences)
-                reference.Unload();
-        }
-
         timelines = null;
+
+        if (!HasData)
+            return;
+        
+        foreach (var reference in externalObjectReferences)
+            reference.Unload();
+
+        foreach (var reference in postProcessReferences)
+            reference.Unload();
+
+        foreach (var reference in instanceReferences)
+            reference.Unload();
+
+        foreach (var reference in assetReferences)
+            reference.Unload();
+
+        foreach (var reference in assetBundleReferences)
+            reference.Unload();
     }
 }

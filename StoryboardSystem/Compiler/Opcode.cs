@@ -4,6 +4,7 @@ internal enum Opcode {
     Bundle,
     Call,
     Curve,
+    In,
     Inst,
     InstA,
     Key,
