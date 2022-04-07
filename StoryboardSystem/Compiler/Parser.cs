@@ -10,9 +10,8 @@ namespace StoryboardSystem;
 internal static class Parser {
     private static readonly Regex MATCH_INDEXER = new (@"^(\w+)(\[.+\])?$");
     
-    public static bool TryParseFile(string path, out List<Instruction> instructions) {
+    public static bool TryParseFile(string path, ILogger logger, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
-        var logger = StoryboardManager.Instance.Logger;
         bool success = true;
         int lineIndex = 1;
         

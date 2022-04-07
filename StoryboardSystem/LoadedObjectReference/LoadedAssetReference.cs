@@ -4,6 +4,10 @@ using Object = UnityEngine.Object;
 namespace StoryboardSystem;
 
 internal abstract class LoadedAssetReference : LoadedObjectReference {
+    public abstract void Unload();
+
+    public abstract bool TryLoad(ILogger logger);
+    
     public abstract LoadedInstanceReference CreateInstanceReference(string name, int layer);
 
     public static LoadedAssetReference Create(LoadedAssetBundleReference assetBundleReference, string assetName, AssetType type) => type switch {
@@ -17,7 +21,7 @@ internal abstract class LoadedAssetReference : LoadedObjectReference {
 }
 
 internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
-    public override object LoadedObject => Asset;
+    public override Object LoadedObject => Asset;
 
     public T Asset { get; private set; }
 
@@ -32,13 +36,13 @@ internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
 
     public override void Unload() => Asset = null;
 
-    public override bool TryLoad() {
+    public override bool TryLoad(ILogger logger) {
         Asset = assetBundleReference.Bundle.LoadAsset<T>(AssetName);
 
         if (Asset != null)
             return true;
         
-        StoryboardManager.Instance.Logger.LogWarning($"Failed to load asset {AssetName}");
+        logger.LogWarning($"Failed to load asset {AssetName}");
 
         return false;
     }

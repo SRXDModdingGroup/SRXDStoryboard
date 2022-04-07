@@ -3,10 +3,14 @@ using Object = UnityEngine.Object;
 
 namespace StoryboardSystem;
 
-internal abstract class LoadedInstanceReference : LoadedObjectReference { }
+internal abstract class LoadedInstanceReference : LoadedObjectReference {
+    public abstract void Unload();
+
+    public abstract bool TryLoad(ISceneManager sceneManager, ILogger logger);
+}
 
 internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
-    public override object LoadedObject => Instance;
+    public override Object LoadedObject => Instance;
 
     protected T Instance { get; private set; }
     
@@ -29,14 +33,12 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
         Instance = null;
     }
 
-    public override bool TryLoad() {
+    public override bool TryLoad(ISceneManager sceneManager, ILogger logger) {
         if (template.Asset == null) {
-            StoryboardManager.Instance.Logger.LogWarning($"Failed to create instance of {template.AssetName}");
+            logger.LogWarning($"Failed to create instance of {template.AssetName}");
             
             return false;
         }
-
-        var sceneManager = StoryboardManager.Instance.SceneManager;
         
         Instance = Object.Instantiate(template.Asset);
         

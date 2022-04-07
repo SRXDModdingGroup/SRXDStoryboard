@@ -36,11 +36,12 @@ internal abstract class Binder {
                     
                     break;
                 }
-                case int index when result is LoadedInstanceReference { LoadedObject: GameObject gameObject }:
+                case int index when result is LoadedInstanceReference { LoadedObject: GameObject gameObject }: {
                     if (TryGetChildGameObject(gameObject, index, out result))
                         continue;
-                    
+
                     break;
+                }
                 case string name when TryGetSubObject(result, name, out object temp): {
                     result = temp;
 

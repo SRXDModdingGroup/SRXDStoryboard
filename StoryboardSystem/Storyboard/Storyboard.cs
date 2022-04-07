@@ -15,6 +15,7 @@ public class Storyboard {
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
     private LoadedPostProcessingMaterialReference[] postProcessReferences;
+    private LoadedExternalObjectReference[] externalObjectReferences;
     private List<TimelineBuilder> timelineBuilders;
     private Dictionary<string, object> outParams;
     private Timeline[] timelines;
@@ -79,7 +80,7 @@ public class Storyboard {
         Compiler.CompileFile(name, directory, logger, this);
     }
 
-    internal void Recompile(bool force, IStoryboardParams conversion, ILogger logger) {
+    internal void Recompile(bool force, IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
         if (HasData && !force)
             return;
 
@@ -88,13 +89,15 @@ public class Storyboard {
         Compile(force, logger);
 
         if (wasLoaded)
-            Open(conversion, logger);
+            Open(assetBundleManager, sceneManager, storyboardParams, logger);
     }
 
-    internal void SetData(LoadedAssetBundleReference[] assetBundleReferences,
+    internal void SetData(
+        LoadedAssetBundleReference[] assetBundleReferences,
         LoadedAssetReference[] assetReferences,
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
+        LoadedExternalObjectReference[] externalObjectReferences,
         List<TimelineBuilder> timelineBuilders,
         Dictionary<string, object> outParams) {
         Close();
@@ -102,6 +105,7 @@ public class Storyboard {
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
         this.postProcessReferences = postProcessReferences;
+        this.externalObjectReferences = externalObjectReferences;
         this.timelineBuilders = timelineBuilders;
         this.outParams = outParams;
         HasData = true;
@@ -113,12 +117,13 @@ public class Storyboard {
         assetReferences = null;
         instanceReferences = null;
         postProcessReferences = null;
+        externalObjectReferences = null;
         timelineBuilders = null;
         outParams = null;
         HasData = false;
     }
 
-    internal void Open(IStoryboardParams sParams, ILogger logger) {
+    internal void Open(IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
         Close();
         
         if (!HasData)
@@ -128,16 +133,19 @@ public class Storyboard {
         var watch = Stopwatch.StartNew();
         
         foreach (var reference in assetBundleReferences)
-            success = reference.TryLoad() && success;
+            success = reference.TryLoad(assetBundleManager, logger) && success;
         
         foreach (var reference in assetReferences)
-            success = reference.TryLoad() && success;
+            success = reference.TryLoad(logger) && success;
         
         foreach (var reference in instanceReferences)
-            success = reference.TryLoad() && success;
+            success = reference.TryLoad(sceneManager, logger) && success;
 
         foreach (var reference in postProcessReferences)
-            success = reference.TryLoad() && success;
+            success = reference.TryLoad(sceneManager, logger) && success;
+
+        foreach (var reference in externalObjectReferences)
+            success = reference.TryLoad(storyboardParams, logger) && success;
 
         if (!success) {
             Close();
@@ -148,7 +156,7 @@ public class Storyboard {
         timelines = new Timeline[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateTimeline(sParams, out var curve)) {
+            if (timelineBuilders[i].TryCreateTimeline(storyboardParams, out var curve)) {
                 timelines[i] = curve;
                 
                 continue;
@@ -178,6 +186,9 @@ public class Storyboard {
         loaded = false;
 
         if (HasData) {
+            foreach (var reference in externalObjectReferences)
+                reference.Unload();
+
             foreach (var reference in postProcessReferences)
                 reference.Unload();
 

@@ -6,33 +6,30 @@ namespace StoryboardSystem;
 
 public class StoryboardManager : MonoBehaviour {
     public static StoryboardManager Instance { get; private set; }
-    
-    internal ILogger Logger { get; private set; }
-    
-    internal IAssetBundleManager AssetBundleManager { get; private set; }
-    
-    internal ISceneManager SceneManager { get; private set; }
 
+    private ILogger logger;
+    private IAssetBundleManager assetBundleManager;
+    private ISceneManager sceneManager;
     private Storyboard currentStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
 
     public void Play() {
-        for (int i = 0; i < SceneManager.LayerCount; i++)
-            SceneManager.GetLayerRoot(i).gameObject.SetActive(true);
+        for (int i = 0; i < sceneManager.LayerCount; i++)
+            sceneManager.GetLayerRoot(i).gameObject.SetActive(true);
 
         currentStoryboard?.Play();
     }
 
     public void Stop() {
-        for (int i = 0; i < SceneManager.LayerCount; i++)
-            SceneManager.GetLayerRoot(i).gameObject.SetActive(false);
+        for (int i = 0; i < sceneManager.LayerCount; i++)
+            sceneManager.GetLayerRoot(i).gameObject.SetActive(false);
         
         currentStoryboard?.Stop();
     }
 
     public void SetTime(float time, bool triggerEvents) {
         currentStoryboard?.Evaluate(time, triggerEvents);
-        SceneManager.Update(time, triggerEvents);
+        sceneManager.Update(time, triggerEvents);
     }
 
     public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams sParams) {
@@ -46,12 +43,12 @@ public class StoryboardManager : MonoBehaviour {
         if (storyboard == null)
             return;
         
-        storyboard.Compile(false, Logger);
-        storyboard.Open(sParams, Logger);
+        storyboard.Compile(false, logger);
+        storyboard.Open(assetBundleManager, sceneManager, sParams, logger);
     }
 
     public void RecompileCurrentStoryboard(IStoryboardParams conversion)
-        => currentStoryboard?.Recompile(true, conversion, Logger);
+        => currentStoryboard?.Recompile(true, assetBundleManager, sceneManager, conversion, logger);
 
     public bool TryGetStoryboard(string directory, string name, out Storyboard storyboard)
         => storyboards.TryGetValue(Path.Combine(directory, name), out storyboard);
@@ -73,7 +70,7 @@ public class StoryboardManager : MonoBehaviour {
 
         storyboard = new Storyboard(name, directory);
         storyboards.Add(key, storyboard);
-        storyboard.Compile(false, Logger);
+        storyboard.Compile(false, logger);
 
         return true;
     }
@@ -85,8 +82,8 @@ public class StoryboardManager : MonoBehaviour {
         var gameObject = new GameObject("Storyboard Manager");
         
         Instance = gameObject.AddComponent<StoryboardManager>();
-        Instance.AssetBundleManager = assetBundleManager;
-        Instance.SceneManager = sceneManager;
-        Instance.Logger = logger;
+        Instance.assetBundleManager = assetBundleManager;
+        Instance.sceneManager = sceneManager;
+        Instance.logger = logger;
     }
 }

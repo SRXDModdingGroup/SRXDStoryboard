@@ -74,6 +74,7 @@
         <Compile Include="LoadedObjectReference\AssetType.cs" />
         <Compile Include="LoadedObjectReference\LoadedAssetBundleReference.cs" />
         <Compile Include="LoadedObjectReference\LoadedAssetReference.cs" />
+        <Compile Include="LoadedObjectReference\LoadedExternalObjectReference.cs" />
         <Compile Include="LoadedObjectReference\LoadedInstanceReference.cs" />
         <Compile Include="LoadedObjectReference\LoadedObjectReference.cs" />
         <Compile Include="LoadedObjectReference\LoadedPostProcessingMaterialReference.cs" />

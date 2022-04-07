@@ -28,4 +28,8 @@ public class StoryboardParams : IStoryboardParams {
         
         return Mathf.LerpUnclamped(beatArray[index1], beatArray[index1 + 1], beat - index1) + seconds;
     }
+
+    public Object GetExternalObject(string name) {
+        return null;
+    }
 }

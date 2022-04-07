@@ -1,9 +1,11 @@
-﻿namespace StoryboardSystem;
+﻿using UnityEngine;
+
+namespace StoryboardSystem;
 
 internal abstract class LoadedObjectReference {
     private static int instanceCounter;
     
-    public abstract object LoadedObject { get; }
+    public abstract Object LoadedObject { get; }
     
     private readonly int instanceId;
 
@@ -14,10 +16,6 @@ internal abstract class LoadedObjectReference {
             instanceCounter++;
         }
     }
-    
-    public abstract void Unload();
-    
-    public abstract bool TryLoad();
 
     public override int GetHashCode() => instanceId;
 }

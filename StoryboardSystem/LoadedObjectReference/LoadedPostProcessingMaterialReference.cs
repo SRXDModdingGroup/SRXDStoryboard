@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace StoryboardSystem; 
 
@@ -13,14 +14,15 @@ internal class LoadedPostProcessingMaterialReference : LoadedInstanceReference<M
     }
 
     private bool storyboardActive;
+    private ISceneManager sceneManager;
 
     public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, string name, int layer) : base(template, name, layer) { }
 
     public override void Unload() {
-        if (Instance == null)
-            return;
+        if (Instance != null && sceneManager != null)
+            sceneManager.RemovePostProcessingInstance(Instance);
         
-        StoryboardManager.Instance.SceneManager.RemovePostProcessingInstance(Instance);
+        sceneManager = null;
         base.Unload();
     }
 
@@ -29,14 +31,15 @@ internal class LoadedPostProcessingMaterialReference : LoadedInstanceReference<M
         UpdateEnabled();
     }
 
-    public override bool TryLoad() {
-        if (!base.TryLoad())
+    public override bool TryLoad(ISceneManager sceneManager, ILogger logger) {
+        if (!base.TryLoad(sceneManager, logger))
             return false;
-        
-        StoryboardManager.Instance.SceneManager.AddPostProcessingInstance(Instance, Layer);
+
+        this.sceneManager = sceneManager;
+        sceneManager.AddPostProcessingInstance(Instance, Layer);
 
         return true;
     }
 
-    private void UpdateEnabled() => StoryboardManager.Instance.SceneManager.SetPostProcessingInstanceEnabled(Instance, enabled && storyboardActive);
+    private void UpdateEnabled() => sceneManager.SetPostProcessingInstanceEnabled(Instance, enabled && storyboardActive);
 }

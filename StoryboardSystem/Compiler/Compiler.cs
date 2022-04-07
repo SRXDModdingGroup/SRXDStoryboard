@@ -16,7 +16,7 @@ internal static class Compiler {
 
         var watch = Stopwatch.StartNew();
 
-        if (!Parser.TryParseFile(path, out var instructions))
+        if (!Parser.TryParseFile(path, logger, out var instructions))
             logger.LogWarning($"Failed to parse {name}");
         else if (!TryCompile(instructions, logger, storyboard))
             logger.LogWarning($"Failed to compile {name}");
