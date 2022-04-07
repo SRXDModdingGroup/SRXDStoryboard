@@ -5,6 +5,7 @@ internal enum Opcode {
     Call,
     Curve,
     Inst,
+    InstA,
     Key,
     Load,
     Loop,

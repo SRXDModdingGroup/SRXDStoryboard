@@ -85,6 +85,20 @@ internal static class Compiler {
 
                     break;
                 }
+                case Opcode.InstA when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference assetReference, out int layer, out int count): {
+                    object[] newArr = new object[count];
+
+                    for (int j = 0; j < count; j++) {
+                        var newInstanceReference = assetReference.CreateInstanceReference($"{name}_{j}", layer);
+
+                        instanceReferences.Add(newInstanceReference);
+                        newArr[i] = newInstanceReference;
+                    }
+
+                    globals[name] = newArr;
+
+                    break;
+                }
                 case Opcode.Load when TryGetArguments(arguments, globalScope, out Name name, out AssetType type, out LoadedAssetBundleReference assetBundleReference, out string assetName):
                     var newAssetReference = LoadedAssetReference.Create(assetBundleReference, assetName, type);
                     
@@ -261,6 +275,7 @@ internal static class Compiler {
                 case Opcode.Bundle:
                 case Opcode.Curve:
                 case Opcode.Inst:
+                case Opcode.InstA:
                 case Opcode.Load:
                 case Opcode.Post:
                     logger.LogWarning(GetCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure"));
