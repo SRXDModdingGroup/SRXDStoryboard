@@ -30,6 +30,10 @@ internal class Scope {
         this.every = every;
         this.globals = globals;
         this.locals = locals;
+        
+        if (locals == null)
+            return;
+        
         locals[ITER_NAME] = 0;
         locals[COUNT_NAME] = iterations;
     }

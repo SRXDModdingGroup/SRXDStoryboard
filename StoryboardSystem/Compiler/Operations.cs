@@ -219,12 +219,6 @@ internal static class Operations {
         return null;
     }
 
-    private static object Abs(object value) => value switch {
-        int intVal => Math.Abs(intVal),
-        float floatVal => Mathf.Abs(floatVal),
-        _ => null
-    };
-
     private static object Lerp(object a, object b, object t) {
         if (!TryRaiseToFloat(t, out float floatT))
             return null;
@@ -268,6 +262,12 @@ internal static class Operations {
 
         return newArr;
     }
+
+    private static object Abs(object value) => value switch {
+        int intVal => Math.Abs(intVal),
+        float floatVal => Mathf.Abs(floatVal),
+        _ => null
+    };
 
     private static object Sign(object value) => value switch {
         int intVal => Math.Sign(intVal),

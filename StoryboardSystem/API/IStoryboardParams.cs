@@ -1,5 +1,5 @@
 ﻿namespace StoryboardSystem; 
 
-public interface ITimeConversion {
+public interface IStoryboardParams {
     float Convert(int measures, int beats, float ticks, float seconds);
 }

@@ -17,7 +17,7 @@ internal class TimelineBuilder {
 
     public void AddKey(Timestamp time, object value, InterpType interpType, int order) => keyframeBuilders.Add(new KeyframeBuilder(time, value, interpType, order));
 
-    public bool TryCreateTimeline(ITimeConversion conversion, out Timeline timeline) {
+    public bool TryCreateTimeline(IStoryboardParams sParams, out Timeline timeline) {
         if (bindings.Count == 0 || keyframeBuilders.Count == 0) {
             timeline = null;
 
@@ -35,6 +35,6 @@ internal class TimelineBuilder {
             return false;
         }
 
-        return properties[0].TryCreateTimeline(properties, keyframeBuilders, conversion, out timeline);
+        return properties[0].TryCreateTimeline(properties, keyframeBuilders, sParams, out timeline);
     }
 }

@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace SRXDStoryboard; 
 
-public class TimeConversion : ITimeConversion {
+public class StoryboardParams : IStoryboardParams {
     private float[] beatArray;
     private TimeSignatureSegment[] segments;
     
-    public TimeConversion(PlayableTrackData trackData) {
+    public StoryboardParams(PlayableTrackData trackData) {
         beatArray = trackData.BeatArray;
         segments = trackData.TimeSignatureSegments;
     }

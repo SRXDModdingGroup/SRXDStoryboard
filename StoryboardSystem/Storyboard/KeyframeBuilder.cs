@@ -13,14 +13,14 @@ internal readonly struct KeyframeBuilder {
         this.order = order;
     }
 
-    public bool TryCreateKeyframe<T>(Property<T> property, ITimeConversion conversion, out Keyframe<T> result) {
+    public bool TryCreateKeyframe<T>(Property<T> property, IStoryboardParams sParams, out Keyframe<T> result) {
         if (!property.TryConvert(value, out var converted)) {
             result = default;
 
             return false;
         }
         
-        result = new Keyframe<T>(conversion.Convert(time.Measures, time.Beats, time.Ticks, time.Seconds), converted, interpType, order);
+        result = new Keyframe<T>(sParams.Convert(time.Measures, time.Beats, time.Ticks, time.Seconds), converted, interpType, order);
 
         return true;
     }

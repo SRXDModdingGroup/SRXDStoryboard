@@ -79,7 +79,7 @@ public class Storyboard {
         Compiler.CompileFile(name, directory, logger, this);
     }
 
-    internal void Recompile(bool force, ITimeConversion conversion, ILogger logger) {
+    internal void Recompile(bool force, IStoryboardParams conversion, ILogger logger) {
         if (HasData && !force)
             return;
 
@@ -88,7 +88,7 @@ public class Storyboard {
         Compile(force, logger);
 
         if (wasLoaded)
-            LoadContents(conversion, logger);
+            Open(conversion, logger);
     }
 
     internal void SetData(LoadedAssetBundleReference[] assetBundleReferences,
@@ -97,7 +97,7 @@ public class Storyboard {
         LoadedPostProcessingMaterialReference[] postProcessReferences,
         List<TimelineBuilder> timelineBuilders,
         Dictionary<string, object> outParams) {
-        UnloadContents();
+        Close();
         this.assetBundleReferences = assetBundleReferences;
         this.assetReferences = assetReferences;
         this.instanceReferences = instanceReferences;
@@ -108,7 +108,7 @@ public class Storyboard {
     }
 
     internal void ClearData() {
-        UnloadContents();
+        Close();
         assetBundleReferences = null;
         assetReferences = null;
         instanceReferences = null;
@@ -118,8 +118,8 @@ public class Storyboard {
         HasData = false;
     }
 
-    internal void LoadContents(ITimeConversion conversion, ILogger logger) {
-        UnloadContents();
+    internal void Open(IStoryboardParams sParams, ILogger logger) {
+        Close();
         
         if (!HasData)
             return;
@@ -140,7 +140,7 @@ public class Storyboard {
             success = reference.TryLoad() && success;
 
         if (!success) {
-            UnloadContents();
+            Close();
             
             return;
         }
@@ -148,18 +148,18 @@ public class Storyboard {
         timelines = new Timeline[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateTimeline(conversion, out var curve)) {
+            if (timelineBuilders[i].TryCreateTimeline(sParams, out var curve)) {
                 timelines[i] = curve;
                 
                 continue;
             }
             
-            logger.LogWarning($"Failed to load {name}: Could not create timeline {timelineBuilders[i].Name}");
+            logger.LogWarning($"Failed to open {name}: Could not create timeline {timelineBuilders[i].Name}");
             success = false;
         }
 
         if (!success) {
-            UnloadContents();
+            Close();
 
             return;
         }
@@ -171,10 +171,10 @@ public class Storyboard {
 
         loaded = true;
         watch.Stop();
-        logger.LogMessage($"Successfully loaded {name} in {watch.ElapsedMilliseconds}ms");
+        logger.LogMessage($"Successfully opened {name} in {watch.ElapsedMilliseconds}ms");
     }
 
-    internal void UnloadContents() {
+    internal void Close() {
         loaded = false;
 
         if (HasData) {

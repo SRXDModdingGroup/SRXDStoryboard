@@ -72,7 +72,7 @@ public static class Patches {
             return;
         }
 
-        storyboardManager.SetCurrentStoryboard(storyboard, new TimeConversion(data));
+        storyboardManager.SetCurrentStoryboard(storyboard, new StoryboardParams(data));
         storyboardManager.Play();
     }
 
@@ -82,7 +82,7 @@ public static class Patches {
     [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
     private static void Track_Update_Postfix(Track __instance) {
         if (Input.GetKeyDown(KeyCode.F1))
-            StoryboardManager.Instance.RecompileCurrentStoryboard(new TimeConversion(__instance.playStateFirst.trackData));
+            StoryboardManager.Instance.RecompileCurrentStoryboard(new StoryboardParams(__instance.playStateFirst.trackData));
 
         StoryboardManager.Instance.SetTime(__instance.currentRenderingTrackTime, true);
     }

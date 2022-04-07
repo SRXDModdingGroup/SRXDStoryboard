@@ -35,10 +35,10 @@ public class StoryboardManager : MonoBehaviour {
         SceneManager.Update(time, triggerEvents);
     }
 
-    public void SetCurrentStoryboard(Storyboard storyboard, ITimeConversion conversion) {
+    public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams sParams) {
         if (currentStoryboard != null) {
             currentStoryboard.Stop();
-            currentStoryboard.UnloadContents();
+            currentStoryboard.Close();
         }
         
         currentStoryboard = storyboard;
@@ -47,10 +47,10 @@ public class StoryboardManager : MonoBehaviour {
             return;
         
         storyboard.Compile(false, Logger);
-        storyboard.LoadContents(conversion, Logger);
+        storyboard.Open(sParams, Logger);
     }
 
-    public void RecompileCurrentStoryboard(ITimeConversion conversion)
+    public void RecompileCurrentStoryboard(IStoryboardParams conversion)
         => currentStoryboard?.Recompile(true, conversion, Logger);
 
     public bool TryGetStoryboard(string directory, string name, out Storyboard storyboard)

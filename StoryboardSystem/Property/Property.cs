@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace StoryboardSystem; 
 
 internal abstract class Property {
-    public abstract bool TryCreateTimeline(Property[] properties, List<KeyframeBuilder> keyframeBuilders, ITimeConversion conversion, out Timeline timeline);
+    public abstract bool TryCreateTimeline(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, out Timeline timeline);
 }
 
 internal abstract class Property<T> : Property {
@@ -12,7 +12,7 @@ internal abstract class Property<T> : Property {
 
     public abstract bool TryConvert(object value, out T result);
     
-    public override bool TryCreateTimeline(Property[] properties, List<KeyframeBuilder> keyframeBuilders, ITimeConversion conversion, out Timeline timeline) {
+    public override bool TryCreateTimeline(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, out Timeline timeline) {
         var propertiesT = new Property<T>[properties.Length];
         var type = GetType();
 
@@ -29,7 +29,7 @@ internal abstract class Property<T> : Property {
         var keyframes = new Keyframe<T>[keyframeBuilders.Count];
 
         for (int i = 0; i < keyframeBuilders.Count; i++) {
-            if (keyframeBuilders[i].TryCreateKeyframe(this, conversion, out keyframes[i]))
+            if (keyframeBuilders[i].TryCreateKeyframe(this, sParams, out keyframes[i]))
                 continue;
             
             timeline = null;
