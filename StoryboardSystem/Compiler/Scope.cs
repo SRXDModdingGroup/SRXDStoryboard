@@ -3,6 +3,9 @@
 namespace StoryboardSystem; 
 
 internal class Scope {
+    private static readonly Name ITER_NAME = new("iter");
+    private static readonly Name COUNT_NAME = new("count");
+    
     public Scope Parent { get; }
 
     public int StartIndex { get; }
@@ -27,6 +30,8 @@ internal class Scope {
         this.every = every;
         this.globals = globals;
         this.locals = locals;
+        locals[ITER_NAME] = 0;
+        locals[COUNT_NAME] = iterations;
     }
 
     public void SetValue(Name name, object value) => locals[name] = value;
@@ -38,6 +43,7 @@ internal class Scope {
 
     public bool NextIteration() {
         CurrentIteration++;
+        locals[ITER_NAME] = CurrentIteration;
 
         return CurrentIteration < iterations;
     }

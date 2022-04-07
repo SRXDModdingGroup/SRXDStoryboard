@@ -205,20 +205,18 @@ internal static class Operations {
     
     private static object Arr(object value, object count) {
         switch (value, count) {
-            case (null, int int1): {
-                return new object[int1];
-            }
-            case (not null, int int1 and > 0): {
+            case (null, int int0):
+                return new object[int0];
+            case (not null, int int1 and > 0):
                 object[] newArr = new object[int1];
 
                 for (int i = 0; i < int1; i++)
                     newArr[i] = value;
 
                 return newArr;
-            }
-            default:
-                return null;
         }
+
+        return null;
     }
 
     private static object Abs(object value) => value switch {

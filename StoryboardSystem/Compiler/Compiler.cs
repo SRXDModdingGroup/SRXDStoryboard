@@ -85,17 +85,13 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(arguments, globalScope, out Name name, out LoadedAssetReference assetReference, out int layer, out int count): {
-                    object[] newArr = new object[count];
+                case Opcode.InstA when TryGetArguments(arguments, globalScope, out Name name, out int count, out LoadedAssetReference assetReference): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, 0);
 
-                    for (int j = 0; j < count; j++) {
-                        var newInstanceReference = assetReference.CreateInstanceReference($"{name}_{j}", layer);
-
-                        instanceReferences.Add(newInstanceReference);
-                        newArr[i] = newInstanceReference;
-                    }
-
-                    globals[name] = newArr;
+                    break;
+                }
+                case Opcode.InstA when TryGetArguments(arguments, globalScope, out Name name, out int count, out LoadedAssetReference assetReference, out int layer): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, layer);
 
                     break;
                 }
@@ -181,6 +177,19 @@ internal static class Compiler {
 
                     return false;
             }
+
+            object[] CreateInstanceArray(string name, int count, LoadedAssetReference assetReference, int layer) {
+                object[] newArr = new object[count];
+
+                for (int j = 0; j < count; j++) {
+                    var newInstanceReference = assetReference.CreateInstanceReference($"{name}_{j}", layer);
+
+                    instanceReferences.Add(newInstanceReference);
+                    newArr[i] = newInstanceReference;
+                }
+
+                return newArr;
+            }
         }
 
         if (!procedures.TryGetValue(new Name("Main"), out var procedure)) {
@@ -192,7 +201,6 @@ internal static class Compiler {
         int index1 = procedure.StartIndex;
         int orderCounter = 0;
         var currentScope = new Scope(null, index1, 0, 1, Timestamp.Zero, Timestamp.Zero, globals, new Dictionary<Name, object>());
-        var iterName = new Name("iter");
 
         while (currentScope != null) {
             index1++;
@@ -207,8 +215,6 @@ internal static class Compiler {
 
                 continue;
             }
-
-            globals[iterName] = currentScope.CurrentIteration;
             
             var instruction = instructions[index1];
             var opcode = instruction.Opcode;
