@@ -4,7 +4,7 @@ namespace StoryboardSystem;
 
 internal class LoadedAssetBundleReference : LoadedObjectReference {
 
-    public override Object LoadedObject => Bundle;
+    public override object LoadedObject => Bundle;
     
     public AssetBundle Bundle { get; private set; }
     
@@ -14,10 +14,9 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
     public LoadedAssetBundleReference(string bundleName) => this.bundleName = bundleName;
 
     public bool TryLoad(IAssetBundleManager assetBundleManager, ILogger logger) {
-        this.assetBundleManager = assetBundleManager;
-        
         if (assetBundleManager.TryGetAssetBundle(bundleName, out var bundle)) {
             Bundle = bundle;
+            this.assetBundleManager = assetBundleManager;
 
             return true;
         }
@@ -30,7 +29,7 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
     }
 
     public void Unload() {
-        assetBundleManager.UnloadAssetBundle(bundleName);
+        assetBundleManager?.UnloadAssetBundle(bundleName);
         Bundle = null;
         assetBundleManager = null;
     }

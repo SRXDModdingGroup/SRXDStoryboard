@@ -21,7 +21,7 @@ internal abstract class LoadedAssetReference : LoadedObjectReference {
 }
 
 internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
-    public override Object LoadedObject => Asset;
+    public override object LoadedObject => Asset;
 
     public T Asset { get; private set; }
 

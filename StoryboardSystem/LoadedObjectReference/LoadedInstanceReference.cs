@@ -10,7 +10,7 @@ internal abstract class LoadedInstanceReference : LoadedObjectReference {
 }
 
 internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
-    public override Object LoadedObject => Instance;
+    public override object LoadedObject => Instance;
 
     protected T Instance { get; private set; }
     

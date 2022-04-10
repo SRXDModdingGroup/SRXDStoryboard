@@ -1,11 +1,9 @@
-﻿using UnityEngine;
-
-namespace StoryboardSystem;
+﻿namespace StoryboardSystem;
 
 internal abstract class LoadedObjectReference {
     private static int instanceCounter;
     
-    public abstract Object LoadedObject { get; }
+    public abstract object LoadedObject { get; }
     
     private readonly int instanceId;
 

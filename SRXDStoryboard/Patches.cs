@@ -12,8 +12,6 @@ using UnityEngine;
 namespace SRXDStoryboard; 
 
 public static class Patches {
-    internal static Transform TrackTextureCameraTransform { get; private set; }
-    
     private static BackgroundAssetReference OverrideBackgroundIfStoryboardHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
         var info = handle.Setup.TrackDataSegments[0].trackInfoRef;
 
@@ -54,7 +52,7 @@ public static class Patches {
         trackRoot.SetParent(null, false);
         trackRoot.localScale = Vector3.one;
         
-        StoryboardManager.Create(new AssetBundleManager(customAssetBundlePath), new SceneManager(foregroundRoot, backgroundRoot, trackRoot), new Logger(Plugin.Logger));
+        StoryboardManager.Create(new AssetBundleManager(customAssetBundlePath), new SceneManager(foregroundRoot, backgroundRoot), new Logger(Plugin.Logger));
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
@@ -86,9 +84,6 @@ public static class Patches {
 
         StoryboardManager.Instance.SetTime(__instance.currentRenderingTrackTime, true);
     }
-
-    [HarmonyPatch(typeof(TrackCanvasesAndCamera), nameof(TrackCanvasesAndCamera.Awake)), HarmonyPostfix]
-    private static void TrackCanvasesAndCamera_Awake_Postfix(TrackCanvasesAndCamera __instance) => TrackTextureCameraTransform = __instance.trackCamera.transform;
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> PlayableTrackDataHandle_Loading_Transpiler(IEnumerable<CodeInstruction> instructions) {

@@ -3,7 +3,7 @@
 namespace StoryboardSystem; 
 
 internal class LoadedExternalObjectReference : LoadedObjectReference {
-    public override Object LoadedObject => externalObject;
+    public override object LoadedObject => externalObject;
 
     private string name;
     private Object externalObject;

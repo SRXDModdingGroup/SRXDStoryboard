@@ -32,7 +32,7 @@ public class StoryboardManager : MonoBehaviour {
         sceneManager.Update(time, triggerEvents);
     }
 
-    public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams sParams) {
+    public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams storyboardParams) {
         if (currentStoryboard != null) {
             currentStoryboard.Stop();
             currentStoryboard.Close();
@@ -44,11 +44,11 @@ public class StoryboardManager : MonoBehaviour {
             return;
         
         storyboard.Compile(false, logger);
-        storyboard.Open(assetBundleManager, sceneManager, sParams, logger);
+        storyboard.Open(assetBundleManager, sceneManager, storyboardParams, logger);
     }
 
-    public void RecompileCurrentStoryboard(IStoryboardParams conversion)
-        => currentStoryboard?.Recompile(true, assetBundleManager, sceneManager, conversion, logger);
+    public void RecompileCurrentStoryboard(IStoryboardParams storyboardParams)
+        => currentStoryboard?.Recompile(true, assetBundleManager, sceneManager, storyboardParams, logger);
 
     public bool TryGetStoryboard(string directory, string name, out Storyboard storyboard)
         => storyboards.TryGetValue(Path.Combine(directory, name), out storyboard);

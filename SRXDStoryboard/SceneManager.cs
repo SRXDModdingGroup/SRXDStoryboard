@@ -8,47 +8,26 @@ namespace SRXDStoryboard;
 public class SceneManager : ISceneManager {
     private Transform foregroundRoot;
     private Transform backgroundRoot;
-    private Transform trackRoot;
     private Dictionary<int, PostProcessingInstance> postProcessingInfos = new();
 
-    public int LayerCount => 3;
+    public int LayerCount => 2;
 
-    public SceneManager(Transform foregroundRoot, Transform backgroundRoot, Transform trackRoot) {
+    public SceneManager(Transform foregroundRoot, Transform backgroundRoot) {
         this.foregroundRoot = foregroundRoot;
         this.backgroundRoot = backgroundRoot;
-        this.trackRoot = trackRoot;
     }
 
-    public void Update(float time, bool triggerEvents) {
-        var target = Patches.TrackTextureCameraTransform;
-            
-        if (target == null || trackRoot == null)
-            return;
-
-        trackRoot.position = target.position;
-        trackRoot.rotation = target.rotation;
-    }
+    public void Update(float time, bool triggerEvents) { }
 
     public void InitializeObject(Object uObject, int layer) {
         if (uObject is not GameObject gameObject)
             return;
 
-        Layers.Layer renderLayer;
-        
-        switch (layer) {
-            case 0:
-                renderLayer = Layers.Default;
-                break;
-            case 1:
-                renderLayer = Layers.Background;
-                break;
-            case 2:
-                renderLayer = Layers.TrackTexture;
-                break;
-            default:
-                return;
-        }
-        
+        var renderLayer = layer switch {
+            1 => Layers.Background,
+            _ => Layers.Default
+        };
+
         renderLayer.ApplyToObject(gameObject);
     }
 
@@ -75,10 +54,8 @@ public class SceneManager : ISceneManager {
             instance.Enabled = enabled;
     }
 
-    public Transform GetLayerRoot(int index) =>
-        index switch {
-            1 => backgroundRoot,
-            2 => trackRoot,
-            _ => foregroundRoot
-        };
+    public Transform GetLayerRoot(int index) => index switch {
+        1 => backgroundRoot,
+        _ => foregroundRoot
+    };
 }

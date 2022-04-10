@@ -46,6 +46,19 @@ internal static class Compiler {
             object[] arguments = instruction.Arguments;
 
             switch (opcode) {
+                case Opcode.Bind when TryGetArguments(arguments, globalScope, out TimelineBuilder timelineBuilder, out Identifier identifier):
+                    if (inProcs)
+                        break;
+                    
+                    if (bindings.ContainsKey(identifier)) {
+                        logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple curves"));
+
+                        return false;
+                    }
+                    
+                    bindings.Add(identifier, timelineBuilder);
+
+                    break;
                 case Opcode.Bundle when TryGetArguments(arguments, globalScope, out Name name, out string bundlePath):
                     var newAssetBundleReference = new LoadedAssetBundleReference(bundlePath);
 
@@ -57,10 +70,17 @@ internal static class Compiler {
                     var timelineBuilder = new TimelineBuilder(name.ToString());
                     
                     timelineBuilders.Add(timelineBuilder);
+                    globals[name] = timelineBuilder;
                     
                     for (int j = 1; j < arguments.Length; j++) {
                         if (arguments[j] is not Identifier identifier) {
                             logger.LogWarning(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Curve"));
+
+                            return false;
+                        }
+
+                        if (bindings.ContainsKey(identifier)) {
+                            logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple curves"));
 
                             return false;
                         }
@@ -229,6 +249,16 @@ internal static class Compiler {
             object[] arguments = instruction.Arguments;
             
             switch (opcode) {
+                case Opcode.Bind when TryGetArguments(arguments, currentScope, out TimelineBuilder timelineBuilder, out Identifier identifier):
+                    if (bindings.ContainsKey(identifier)) {
+                        logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple curves"));
+
+                        return false;
+                    }
+                    
+                    bindings.Add(identifier, timelineBuilder);
+
+                    break;
                 case Opcode.Call when TryGetArguments(arguments, currentScope, out Timestamp time, out Name name, true):
                     if (!TryCallProcedure(time, name, 2, 1, Timestamp.Zero))
                         return false;
