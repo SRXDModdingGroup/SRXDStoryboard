@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace StoryboardSystem; 
 
 internal abstract class Property {
-    public abstract bool TryCreateTimeline(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, out Timeline timeline);
+    public abstract bool TryCreateBinding(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, out Binding binding);
 }
 
 internal abstract class Property<T> : Property {
@@ -12,13 +12,13 @@ internal abstract class Property<T> : Property {
 
     public abstract bool TryConvert(object value, out T result);
     
-    public override bool TryCreateTimeline(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, out Timeline timeline) {
+    public override bool TryCreateBinding(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, out Binding binding) {
         var propertiesT = new Property<T>[properties.Length];
         var type = GetType();
 
         for (int i = 0; i < properties.Length; i++) {
             if (properties[i] is not Property<T> propertyT || propertyT.GetType() != type) {
-                timeline = null;
+                binding = null;
 
                 return false;
             }
@@ -32,16 +32,16 @@ internal abstract class Property<T> : Property {
             if (keyframeBuilders[i].TryCreateKeyframe(this, sParams, out keyframes[i]))
                 continue;
             
-            timeline = null;
+            binding = null;
 
             return false;
         }
 
         Array.Sort(keyframes);
-        timeline = CreateTimeline(propertiesT, keyframes);
+        binding = CreateBinding(propertiesT, keyframes);
 
         return true;
     }
 
-    protected abstract Timeline CreateTimeline(Property<T>[] properties, Keyframe<T>[] keyframes);
+    protected abstract Binding CreateBinding(Property<T>[] properties, Keyframe<T>[] keyframes);
 }

@@ -1,17 +1,17 @@
-﻿namespace StoryboardSystem;
+﻿using System;
 
-internal class Event<T> : Timeline<T> {
-    public override bool IsEvent => true;
+namespace StoryboardSystem;
 
+internal class EventController<T> : TimelineController<T> {
     private int index = -1;
 
-    public Event(Property<T>[] properties, Keyframe<T>[] keyframes) : base(properties, keyframes) { }
+    public EventController(Keyframe<T>[] keyframes) : base(keyframes) { }
     
-    public override void Evaluate(float time) {
+    public override void Evaluate(float time, Action<T> set) {
         while (true) {
             if (index < Keyframes.Length - 1 && time >= Keyframes[index + 1].Time) {
                 index++;
-                Set(Keyframes[index].Value);
+                set(Keyframes[index].Value);
             }
             else if (index >= 0 && time < Keyframes[index].Time)
                 index--;

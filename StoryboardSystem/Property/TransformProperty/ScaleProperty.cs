@@ -23,5 +23,5 @@ internal class ScaleProperty : TransformProperty<Vector3> {
         return true;
     }
 
-    public override Vector3 Interp(Vector3 a, Vector3 b, float t) => Vector3.Lerp(a, b, t);
+    protected override Vector3 Interp(Vector3 a, Vector3 b, float t) => Vector3.Lerp(a, b, t);
 }

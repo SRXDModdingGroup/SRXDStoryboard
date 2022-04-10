@@ -3,15 +3,13 @@ using UnityEngine;
 
 namespace StoryboardSystem;
 
-internal class Curve<T> : Timeline<T> {
-    public override bool IsEvent => false;
-    
+internal class CurveController<T> : TimelineController<T> {
     private int lastEvaluatedIndex = -2;
     private Func<T, T, float, T> interpolate;
 
-    public Curve(Property<T>[] properties, Keyframe<T>[] keyframes) : base(properties, keyframes) => interpolate = ((ValueProperty<T>) properties[0]).Interp;
+    public CurveController(Keyframe<T>[] keyframes, Func<T, T, float, T> interpolate) : base(keyframes) => this.interpolate = interpolate;
 
-    public override void Evaluate(float time) {
+    public override void Evaluate(float time, Action<T> set) {
         int index = lastEvaluatedIndex;
 
         if (index < -1)
@@ -32,8 +30,8 @@ internal class Curve<T> : Timeline<T> {
         lastEvaluatedIndex = index;
 
         if (index < 0) {
-            Set(Keyframes[0].Value);
-            
+            set(Keyframes[0].Value);
+
             return;
         }
 
@@ -41,7 +39,7 @@ internal class Curve<T> : Timeline<T> {
         var interpType = previous.InterpType;
 
         if (interpType == InterpType.Fixed || index == Keyframes.Length - 1) {
-            Set(previous.Value);
+            set(previous.Value);
             
             return;
         }
@@ -61,7 +59,7 @@ internal class Curve<T> : Timeline<T> {
                 interp = 1f - interp * interp;
                 break;
         }
-        
-        Set(interpolate(previous.Value, next.Value, interp));
+
+        set(interpolate(previous.Value, next.Value, interp));
     }
 }

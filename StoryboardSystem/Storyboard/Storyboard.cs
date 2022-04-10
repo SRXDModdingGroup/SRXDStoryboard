@@ -18,7 +18,7 @@ public class Storyboard {
     private LoadedExternalObjectReference[] externalObjectReferences;
     private List<TimelineBuilder> timelineBuilders;
     private Dictionary<string, object> outParams;
-    private Timeline[] timelines;
+    private Binding[] bindings;
 
     internal Storyboard(
         string name,
@@ -66,9 +66,9 @@ public class Storyboard {
         if (!loaded || !active)
             return;
 
-        foreach (var timeline in timelines) {
-            if (triggerEvents || !timeline.IsEvent)
-                timeline.Evaluate(time);
+        foreach (var binding in bindings) {
+            if (triggerEvents || !binding.IsEvent)
+                binding.Evaluate(time);
         }
     }
 
@@ -124,11 +124,11 @@ public class Storyboard {
             return;
         }
 
-        timelines = new Timeline[timelineBuilders.Count];
+        bindings = new Binding[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateTimeline(storyboardParams, out var curve)) {
-                timelines[i] = curve;
+            if (timelineBuilders[i].TryCreateBinding(storyboardParams, out var binding)) {
+                bindings[i] = binding;
                 
                 continue;
             }
@@ -155,7 +155,7 @@ public class Storyboard {
 
     internal void Close() {
         loaded = false;
-        timelines = null;
+        bindings = null;
 
         if (!HasData)
             return;

@@ -1,7 +1,8 @@
 ﻿namespace StoryboardSystem;
 
 internal abstract class ValueProperty<T> : Property<T> {
-    public abstract T Interp(T a, T b, float t);
+    protected abstract T Interp(T a, T b, float t);
 
-    protected override Timeline CreateTimeline(Property<T>[] properties, Keyframe<T>[] keyframes) => new Curve<T>(properties, keyframes);
+    protected override Binding CreateBinding(Property<T>[] properties, Keyframe<T>[] keyframes)
+        => new Binding<T>(false, properties, new CurveController<T>(keyframes, ((ValueProperty<T>) properties[0]).Interp));
 }

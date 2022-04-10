@@ -7,7 +7,7 @@ internal class RotationProperty : TransformProperty<Quaternion> {
     
     public override void Set(Quaternion value) => Transform.rotation = value;
 
-    public override Quaternion Interp(Quaternion a, Quaternion b, float t) => Quaternion.Slerp(a, b, t);
+    protected override Quaternion Interp(Quaternion a, Quaternion b, float t) => Quaternion.Slerp(a, b, t);
     
     protected override bool TryConvert(Vector4 value, int dimensions, out Quaternion result) {
         if (dimensions == 2) {
