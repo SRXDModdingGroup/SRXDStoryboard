@@ -77,7 +77,9 @@ public class Storyboard {
             return;
         
         ClearData();
-        Compiler.CompileFile(name, directory, logger, this);
+        
+        if (Compiler.TryCompileFile(name, directory, logger, out var result))
+            SetData(result);
     }
 
     internal void Recompile(bool force, IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
@@ -90,37 +92,6 @@ public class Storyboard {
 
         if (wasLoaded)
             Open(assetBundleManager, sceneManager, storyboardParams, logger);
-    }
-
-    internal void SetData(
-        LoadedAssetBundleReference[] assetBundleReferences,
-        LoadedAssetReference[] assetReferences,
-        LoadedInstanceReference[] instanceReferences,
-        LoadedPostProcessingMaterialReference[] postProcessReferences,
-        LoadedExternalObjectReference[] externalObjectReferences,
-        List<TimelineBuilder> timelineBuilders,
-        Dictionary<string, object> outParams) {
-        Close();
-        this.assetBundleReferences = assetBundleReferences;
-        this.assetReferences = assetReferences;
-        this.instanceReferences = instanceReferences;
-        this.postProcessReferences = postProcessReferences;
-        this.externalObjectReferences = externalObjectReferences;
-        this.timelineBuilders = timelineBuilders;
-        this.outParams = outParams;
-        HasData = true;
-    }
-
-    internal void ClearData() {
-        Close();
-        assetBundleReferences = null;
-        assetReferences = null;
-        instanceReferences = null;
-        postProcessReferences = null;
-        externalObjectReferences = null;
-        timelineBuilders = null;
-        outParams = null;
-        HasData = false;
     }
 
     internal void Open(IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
@@ -203,5 +174,29 @@ public class Storyboard {
 
         foreach (var reference in assetBundleReferences)
             reference.Unload();
+    }
+
+    private void SetData(StoryboardData data) {
+        Close();
+        assetBundleReferences = data.AssetBundleReferences;
+        assetReferences = data.AssetReferences;
+        instanceReferences = data.InstanceReferences;
+        postProcessReferences = data.PostProcessReferences;
+        externalObjectReferences = data.ExternalObjectReferences;
+        timelineBuilders = data.TimelineBuilders;
+        outParams = data.OutParams;
+        HasData = true;
+    }
+
+    private void ClearData() {
+        Close();
+        assetBundleReferences = null;
+        assetReferences = null;
+        instanceReferences = null;
+        postProcessReferences = null;
+        externalObjectReferences = null;
+        timelineBuilders = null;
+        outParams = null;
+        HasData = false;
     }
 }

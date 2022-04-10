@@ -58,6 +58,7 @@
         <Compile Include="API\IStoryboardParams.cs" />
         <Compile Include="API\StoryboardManager.cs" />
         <Compile Include="Compiler\Compiler.cs" />
+        <Compile Include="Compiler\StoryboardData.cs" />
         <Compile Include="Compiler\Conversion.cs" />
         <Compile Include="Compiler\Expression.cs" />
         <Compile Include="Compiler\Operations.cs" />

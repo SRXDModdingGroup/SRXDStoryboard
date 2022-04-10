@@ -8,25 +8,36 @@ using UnityEngine;
 namespace StoryboardSystem;
 
 internal static class Compiler {
-    public static void CompileFile(string name, string directory, ILogger logger, Storyboard storyboard) {
+    public static bool TryCompileFile(string name, string directory, ILogger logger, out StoryboardData result) {
         string path = Path.Combine(directory, Path.ChangeExtension(name, ".txt"));
 
-        if (!File.Exists(path))
-            return;
+        if (!File.Exists(path)) {
+            result = null;
+            
+            return false;
+        }
 
         var watch = Stopwatch.StartNew();
 
         if (!Parser.TryParseFile(path, logger, out var instructions))
             logger.LogWarning($"Failed to parse {name}");
-        else if (!TryCompile(instructions, logger, storyboard))
+        else if (!TryCompile(instructions, logger, out result))
             logger.LogWarning($"Failed to compile {name}");
         else {
             watch.Stop();
             logger.LogMessage($"Successfully compiled {name} in {watch.ElapsedMilliseconds}ms");
+
+            return false;
         }
+
+        result = null;
+
+        return false;
     }
 
-    private static bool TryCompile(List<Instruction> instructions, ILogger logger, Storyboard storyboard) {
+    private static bool TryCompile(List<Instruction> instructions, ILogger logger, out StoryboardData result) {
+        result = null;
+        
         var assetBundleReferences = new List<LoadedAssetBundleReference>();
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
@@ -384,8 +395,8 @@ internal static class Compiler {
 
         foreach (var pair in bindings)
             pair.Value.AddBinding(pair.Key);
-        
-        storyboard.SetData(
+
+        result = new StoryboardData(
             assetBundleReferences.ToArray(),
             assetReferences.ToArray(),
             instanceReferences.ToArray(),
