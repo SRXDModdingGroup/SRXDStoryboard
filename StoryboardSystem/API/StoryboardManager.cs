@@ -15,14 +15,14 @@ public class StoryboardManager : MonoBehaviour {
 
     public void Play() {
         for (int i = 0; i < sceneManager.LayerCount; i++)
-            sceneManager.GetLayerRoot(i).gameObject.SetActive(true);
+            sceneManager.GetSceneRoot(i).gameObject.SetActive(true);
 
         currentStoryboard?.Play();
     }
 
     public void Stop() {
         for (int i = 0; i < sceneManager.LayerCount; i++)
-            sceneManager.GetLayerRoot(i).gameObject.SetActive(false);
+            sceneManager.GetSceneRoot(i).gameObject.SetActive(false);
         
         currentStoryboard?.Stop();
     }
@@ -35,7 +35,7 @@ public class StoryboardManager : MonoBehaviour {
     public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams storyboardParams) {
         if (currentStoryboard != null) {
             currentStoryboard.Stop();
-            currentStoryboard.Close();
+            currentStoryboard.Close(true);
         }
         
         currentStoryboard = storyboard;
@@ -65,8 +65,11 @@ public class StoryboardManager : MonoBehaviour {
         if (storyboards.TryGetValue(key, out storyboard))
             return true;
 
-        if (!File.Exists(Path.Combine(directory, Path.ChangeExtension(name, ".txt"))))
+        if (!File.Exists(Path.Combine(directory, Path.ChangeExtension(name, ".txt")))) {
+            logger.LogMessage($"File {Path.Combine(directory, Path.ChangeExtension(name, ".txt"))} not found");
+            
             return false;
+        }
 
         storyboard = new Storyboard(name, directory);
         storyboards.Add(key, storyboard);

@@ -41,7 +41,7 @@ internal static class Operations {
         { "Max", Max }
     };
 
-    public static bool TryDoOperation(string name, object[] args, out object result) {
+    public static bool TryDoOperation(string name, object[] args, ILogger logger, out object result) {
         if (BINARY_OPERATIONS.TryGetValue(name, out var binOp)) {
             if (args.Length == 2)
                 return TryDoBinaryOp(args[0], args[1], binOp, out result);
@@ -67,6 +67,7 @@ internal static class Operations {
         }
 
         result = null;
+        logger.LogWarning($"Operation {name} not found");
 
         return false;
     }

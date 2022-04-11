@@ -17,11 +17,13 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
     protected int Layer { get; }
 
     private string name;
+    private int sceneRootIndex;
     private LoadedAssetReference<T> template;
 
-    public LoadedInstanceReference(LoadedAssetReference<T> template, string name, int layer) {
+    public LoadedInstanceReference(LoadedAssetReference<T> template, string name, int sceneRootIndex, int layer) {
         this.template = template;
         this.name = name;
+        this.sceneRootIndex = sceneRootIndex;
         Layer = layer;
     }
 
@@ -47,7 +49,7 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
         
             var transform = gameObject.transform;
             
-            transform.SetParent(sceneManager.GetLayerRoot(Layer), false);
+            transform.SetParent(sceneManager.GetSceneRoot(sceneRootIndex), false);
             transform.localPosition = Vector3.zero;
             transform.localRotation = Quaternion.identity;
             transform.localScale = Vector3.one;

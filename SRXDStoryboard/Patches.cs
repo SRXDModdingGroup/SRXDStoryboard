@@ -63,19 +63,23 @@ public static class Patches {
 
         if (!Plugin.EnableStoryboards.Value
             || !info.IsCustomFile
-            || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), info.customFile.FileNameNoExtension, out var storyboard)
-            || !storyboard.HasData) {
+            || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), info.customFile.FileNameNoExtension, out var storyboard)) {
             storyboardManager.SetCurrentStoryboard(null, null);
+            MainCamera.Instance.GetComponent<Camera>().farClipPlane = 100f;
             
             return;
         }
 
         storyboardManager.SetCurrentStoryboard(storyboard, new StoryboardParams(data));
         storyboardManager.Play();
+        MainCamera.Instance.GetComponent<Camera>().farClipPlane = 500f;
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
-    private static void Track_ReturnToPickTrack_Postfix() => StoryboardManager.Instance.SetCurrentStoryboard(null, null);
+    private static void Track_ReturnToPickTrack_Postfix() {
+        StoryboardManager.Instance.SetCurrentStoryboard(null, null);
+        MainCamera.Instance.GetComponent<Camera>().farClipPlane = 100f;
+    }
 
     [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
     private static void Track_Update_Postfix(Track __instance) {

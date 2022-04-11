@@ -20,7 +20,7 @@ internal class Identifier {
     public override int GetHashCode() => hash;
 
     public override string ToString() {
-        var builder = new StringBuilder($"Binding_{Reference.GetHashCode()}");
+        var builder = new StringBuilder($"Reference_{Reference.GetHashCode()}");
 
         foreach (object item in Sequence) {
             switch (item) {

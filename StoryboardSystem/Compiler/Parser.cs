@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 namespace StoryboardSystem;
 
 internal static class Parser {
-    private static readonly Regex MATCH_INDEXER = new (@"^(\w+)(\[.+\])?$");
+    private static readonly Regex MATCH_INDEXER = new (@"^(\w+)(\[(.+)\])?$");
     
     public static bool TryParseFile(string path, ILogger logger, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
@@ -67,7 +67,7 @@ internal static class Parser {
                 if (string.IsNullOrWhiteSpace(subString))
                     continue;
 
-                if (!TryParseToken(subString, out object token)) {
+                if (!TryParseToken(subString, logger, out object token)) {
                     logger.LogWarning($"Incorrectly formatted token: {subString}");
 
                     return false;
@@ -140,7 +140,7 @@ internal static class Parser {
         return true;
     }
 
-    private static bool TryParseToken(string str, out object token) {
+    private static bool TryParseToken(string str, ILogger logger, out object token) {
         if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
         else if (Enum.TryParse<Opcode>(str, true, out var opcode))
             token = opcode;
@@ -148,7 +148,7 @@ internal static class Parser {
             token = interpType;
         else if (Enum.TryParse<AssetType>(str, true, out var assetType))
             token = assetType;
-        else if (!TryParseNameOrChain(str, out token)) {
+        else if (!TryParseNameOrChain(str, logger, out token)) {
             token = null;
 
             return false;
@@ -217,7 +217,7 @@ internal static class Parser {
         return true;
     }
 
-    private static bool TryParseNameOrChain(string token, out object nameOrChain) {
+    private static bool TryParseNameOrChain(string token, ILogger logger, out object nameOrChain) {
         nameOrChain = null;
 
         foreach (char c in token) {
@@ -241,17 +241,20 @@ internal static class Parser {
 
             var match = MATCH_INDEXER.Match(s);
 
-            if (!match.Success)
+            if (!match.Success) {
+                logger.LogWarning($"Regex did not match {s}");
+                
                 return false;
-            
+            }
+
             chain.Add(new Name(match.Groups[1].ToString()));
 
-            string indexer = match.Groups[2].ToString();
+            string indexer = match.Groups[3].ToString();
 
             if (string.IsNullOrWhiteSpace(indexer))
                 continue;
             
-            if (TryParseToken(indexer, out object indexerToken))
+            if (TryParseToken(indexer, logger, out object indexerToken))
                 chain.Add(new Indexer(indexerToken));
             else
                 return false;

@@ -15,5 +15,5 @@ public interface ISceneManager {
 
     void SetPostProcessingInstanceEnabled(Material material, bool enabled);
 
-    Transform GetLayerRoot(int index);
+    Transform GetSceneRoot(int index);
 }

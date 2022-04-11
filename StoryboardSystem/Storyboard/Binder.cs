@@ -68,7 +68,7 @@ internal abstract class Binder {
                     "scale" => new ScaleProperty(transform),
                     "mat" => gameObject.GetComponent<Renderer>()?.material,
                     "mats" => gameObject.GetComponent<Renderer>()?.materials,
-                    _ => transform.Find(name)
+                    _ => transform.Find(name).gameObject
                 };
 
                 return subObject != null;

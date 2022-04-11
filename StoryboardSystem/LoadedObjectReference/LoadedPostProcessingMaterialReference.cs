@@ -15,7 +15,7 @@ internal class LoadedPostProcessingMaterialReference : LoadedInstanceReference<M
     private bool storyboardActive;
     private ISceneManager sceneManager;
 
-    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, string name, int layer) : base(template, name, layer) { }
+    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, string name, int layer) : base(template, name, 0, layer) { }
 
     public override void Unload() {
         if (Instance != null && sceneManager != null)

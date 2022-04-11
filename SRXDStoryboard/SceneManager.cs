@@ -54,7 +54,7 @@ public class SceneManager : ISceneManager {
             instance.Enabled = enabled;
     }
 
-    public Transform GetLayerRoot(int index) => index switch {
+    public Transform GetSceneRoot(int index) => index switch {
         1 => backgroundRoot,
         _ => foregroundRoot
     };

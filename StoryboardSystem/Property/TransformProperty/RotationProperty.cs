@@ -5,7 +5,7 @@ namespace StoryboardSystem;
 internal class RotationProperty : TransformProperty<Quaternion> {
     public RotationProperty(Transform transform) : base(transform) { }
     
-    public override void Set(Quaternion value) => Transform.rotation = value;
+    public override void Set(Quaternion value) => Transform.localRotation = value;
 
     protected override Quaternion Interp(Quaternion a, Quaternion b, float t) => Quaternion.Slerp(a, b, t);
     

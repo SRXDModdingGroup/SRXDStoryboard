@@ -7,7 +7,8 @@ public class Storyboard {
     public bool HasData { get; private set; }
 
     private bool active;
-    private bool loaded;
+    private bool opened;
+    private bool shouldOpenOnRecompile;
     private float lastTime;
     private string name;
     private string directory;
@@ -42,7 +43,7 @@ public class Storyboard {
     internal void Play() {
         active = true;
 
-        if (loaded) {
+        if (opened) {
             foreach (var reference in postProcessReferences)
                 reference.SetStoryboardActive(true);
         }
@@ -53,7 +54,7 @@ public class Storyboard {
     internal void Stop() {
         active = false;
 
-        if (!loaded)
+        if (!opened)
             return;
             
         foreach (var reference in postProcessReferences)
@@ -63,7 +64,7 @@ public class Storyboard {
     internal void Evaluate(float time, bool triggerEvents) {
         lastTime = time;
         
-        if (!loaded || !active)
+        if (!opened || !active)
             return;
 
         foreach (var binding in bindings) {
@@ -85,17 +86,16 @@ public class Storyboard {
     internal void Recompile(bool force, IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
         if (HasData && !force)
             return;
-
-        bool wasLoaded = loaded;
         
         Compile(force, logger);
 
-        if (wasLoaded)
+        if (shouldOpenOnRecompile)
             Open(assetBundleManager, sceneManager, storyboardParams, logger);
     }
 
     internal void Open(IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
         Close();
+        shouldOpenOnRecompile = true;
         
         if (!HasData)
             return;
@@ -133,7 +133,7 @@ public class Storyboard {
                 continue;
             }
             
-            logger.LogWarning($"Failed to open {name}: Could not create timeline {timelineBuilders[i].Name}");
+            logger.LogWarning($"Failed to open {name}: Could not create timeline for {timelineBuilders[i].Name}");
             success = false;
         }
 
@@ -148,14 +148,17 @@ public class Storyboard {
         else
             Stop();
 
-        loaded = true;
+        opened = true;
         watch.Stop();
         logger.LogMessage($"Successfully opened {name} in {watch.ElapsedMilliseconds}ms");
     }
 
-    internal void Close() {
-        loaded = false;
+    internal void Close(bool clearOpenOnRecompile = false) {
+        opened = false;
         bindings = null;
+
+        if (clearOpenOnRecompile)
+            shouldOpenOnRecompile = false;
 
         if (!HasData)
             return;
