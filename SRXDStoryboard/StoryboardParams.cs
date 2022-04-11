@@ -12,7 +12,7 @@ public class StoryboardParams : IStoryboardParams {
         segments = trackData.TimeSignatureSegments;
     }
 
-    public float Convert(int measures, int beats, float ticks, float seconds) {
+    public float Convert(float measures, float beats, float ticks, float seconds) {
         float beat = beats + 0.125f * ticks;
         
         if (segments.Length > 0) {
@@ -20,13 +20,16 @@ public class StoryboardParams : IStoryboardParams {
 
             while (index0 < segments.Length - 1 && segments[index0 + 1].startingBar <= measures)
                 index0++;
+
+            var segment = segments[index0];
             
-            beat += segments[index0].startingBeat;
+            beat += segments[index0].startingBeat + (measures - segment.startingBar) * segment.ticksPerBar * segment.beatsPerTick;
         }
          
         int index1 = Mathf.Clamp(Mathf.FloorToInt(beat), 0, beatArray.Length - 2);
+        float time = Mathf.LerpUnclamped(beatArray[index1], beatArray[index1 + 1], beat - index1) + seconds;
         
-        return Mathf.LerpUnclamped(beatArray[index1], beatArray[index1 + 1], beat - index1) + seconds;
+        return time;
     }
 
     public Object GetExternalObject(string name) {

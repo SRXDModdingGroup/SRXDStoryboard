@@ -158,8 +158,8 @@ internal static class Parser {
     }
 
     private static bool TryParseTimestamp(string value, out object timestamp) {
-        int measures = 0;
-        int beats = 0;
+        float measures = 0f;
+        float beats = 0f;
         float ticks = 0f;
         float seconds = 0f;
         var builder = new StringBuilder();
@@ -176,8 +176,8 @@ internal static class Parser {
             string s = builder.ToString();
 
             switch (c) {
-                case 'm' when int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out measures):
-                case 'b' when int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out beats):
+                case 'm' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out measures):
+                case 'b' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out beats):
                 case 't' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out ticks):
                 case 's' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out seconds):
                     break;

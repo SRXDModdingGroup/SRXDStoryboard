@@ -9,13 +9,13 @@ internal readonly struct Keyframe<T> : IComparable<Keyframe<T>> {
     
     public InterpType InterpType { get; }
 
-    private readonly int order;
+    public int Order { get; }
 
     public Keyframe(float time, T value, InterpType interpType, int order) {
         Time = time;
         Value = value;
         InterpType = interpType;
-        this.order = order;
+        this.Order = order;
     }
 
     public int CompareTo(Keyframe<T> other) {
@@ -24,6 +24,6 @@ internal readonly struct Keyframe<T> : IComparable<Keyframe<T>> {
         if (timeComparison != 0)
             return timeComparison;
         
-        return order.CompareTo(other.order);
+        return Order.CompareTo(other.Order);
     }
 }

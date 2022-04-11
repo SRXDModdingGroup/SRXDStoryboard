@@ -322,6 +322,7 @@ internal static class Operations {
         (int int0, float float1) => int0 + float1,
         (float float0, int int1) => float0 + int1,
         (float float0, float float1) => float0 + float1,
+        (Timestamp time0, Timestamp time1) => time0 + time1,
         _ => null
     };
     
@@ -330,14 +331,19 @@ internal static class Operations {
         (int int0, float float1) => int0 - float1,
         (float float0, int int1) => float0 - int1,
         (float float0, float float1) => float0 - float1,
+        (Timestamp time0, Timestamp time1) => time0 - time1,
         _ => null
     };
     
     private static object Mult(object a, object b) => (a, b) switch {
         (int int0, int int1) => int0 * int1,
         (int int0, float float1) => int0 * float1,
+        (int int0, Timestamp time1) => int0 * time1,
         (float float0, int int1) => float0 * int1,
         (float float0, float float1) => float0 * float1,
+        (float float0, Timestamp time1) => float0 * time1,
+        (Timestamp time0, int int1) => time0 * int1,
+        (Timestamp time0, float float1) => time0 * float1, 
         _ => null
     };
     
@@ -346,6 +352,8 @@ internal static class Operations {
         (int int0, float float1) => int0 / float1,
         (float float0, int int1) => float0 / int1,
         (float float0, float float1) => float0 / float1,
+        (Timestamp time0, int int1) => time0 / int1,
+        (Timestamp time0, float float1) => time0 / float1,
         _ => null
     };
     

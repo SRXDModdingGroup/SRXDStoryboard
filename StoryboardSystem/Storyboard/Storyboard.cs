@@ -127,7 +127,7 @@ public class Storyboard {
         bindings = new Binding[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateBinding(storyboardParams, out var binding)) {
+            if (timelineBuilders[i].TryCreateBinding(storyboardParams, logger, out var binding)) {
                 bindings[i] = binding;
                 
                 continue;

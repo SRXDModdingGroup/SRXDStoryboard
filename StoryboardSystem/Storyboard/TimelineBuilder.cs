@@ -17,9 +17,10 @@ internal class TimelineBuilder {
 
     public void AddKey(Timestamp time, object value, InterpType interpType, int order) => keyframeBuilders.Add(new KeyframeBuilder(time, value, interpType, order));
 
-    public bool TryCreateBinding(IStoryboardParams sParams, out Binding binding) {
+    public bool TryCreateBinding(IStoryboardParams sParams, ILogger logger, out Binding binding) {
         if (identifiers.Count == 0 || keyframeBuilders.Count == 0) {
             binding = null;
+            logger.LogWarning($"Error creating binding for timeline {Name}: No identifiers or keyframes found");
 
             return false;
         }
@@ -31,10 +32,11 @@ internal class TimelineBuilder {
                 continue;
             
             binding = null;
+            logger.LogWarning($"Error creating binding for timeline {Name}: Could not bind property for {identifiers[i]}");
 
             return false;
         }
 
-        return properties[0].TryCreateBinding(properties, keyframeBuilders, sParams, out binding);
+        return properties[0].TryCreateBinding(properties, keyframeBuilders, sParams, logger, out binding);
     }
 }
