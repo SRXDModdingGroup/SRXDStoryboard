@@ -8,7 +8,8 @@ using System.Text.RegularExpressions;
 namespace StoryboardSystem;
 
 internal static class Parser {
-    private static readonly Regex MATCH_INDEXER = new (@"^(\w+)(\[(.+)\])?$");
+    private static readonly Regex MATCH_EXPRESSION = new (@"^(\w+)\((.*)\)$");
+    private static readonly Regex MATCH_CHAIN_ELEMENT = new (@"^(\w+)(\[(.+)\])?$");
     
     public static bool TryParseFile(string path, ILogger logger, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
@@ -67,8 +68,8 @@ internal static class Parser {
                 if (string.IsNullOrWhiteSpace(subString))
                     continue;
 
-                if (!TryParseToken(subString, logger, out object token)) {
-                    logger.LogWarning($"Incorrectly formatted token: {subString}");
+                if (!TryParseToken(subString, lineIndex, logger, out object token)) {
+                    logger.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {subString}"));
 
                     return false;
                 }
@@ -79,59 +80,34 @@ internal static class Parser {
             }
             
             switch (value[i]) {
-                case '\"': {
-                    if (i == startIndex && TryGetWithin(value, ref i, '\"', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
-                        tokenList.Add(subString);
-                        startIndex = i + 1;
+                case '\"' when !TrySkipTo(value, ref i, '\"'):
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing quote"));
 
-                        continue;
-                    }
-
-                    logger.LogWarning(GetParseError(lineIndex, "Incorrectly formatted string"));
-                        
                     return false;
-                }
-                case '{': {
-                    if (i == startIndex && TryGetWithin(value, ref i, '{', '}', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
-                        if (!TryTokenize(subString, lineIndex, logger, out object[] subTokens))
-                            return false;
+                case '{' when !TrySkipTo(value, ref i, '{', '}'):
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing brace"));
 
-                        tokenList.Add(subTokens);
-                        startIndex = i + 1;
-
-                        continue;
-                    }
-
-                    logger.LogWarning(GetParseError(lineIndex, "Incorrectly formatted array"));
-                        
                     return false;
-                }
-                case '(': {
-                    string name = value.Substring(startIndex, i - startIndex);
+                case '(' when !TrySkipTo(value, ref i, '(', ')'):
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing parenthesis"));
 
-                    foreach (char c in name) {
-                        if (char.IsLetterOrDigit(c) || c == '_')
-                            continue;
-                        
-                        logger.LogWarning(GetParseError(lineIndex, "Invalid expression name"));
-                        
-                        return false;
-                    }
-                    
-                    if (!string.IsNullOrWhiteSpace(name) && TryGetWithin(value, ref i, '(', ')', out string subString) && (i >= value.Length - 1 || char.IsWhiteSpace(value[i + 1]))) {
-                        if (!TryTokenize(subString, lineIndex, logger, out object[] arguments))
-                            return false;
-
-                        tokenList.Add(new Expression(name, arguments));
-                        startIndex = i + 1;
-
-                        continue;
-                    }
-
-                    logger.LogWarning(GetParseError(lineIndex, "Incorrectly formatted expression"));
-                        
                     return false;
-                }
+                case '[' when !TrySkipTo(value, ref i, '[', ']'):
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing bracket"));
+
+                    return false;
+                case '}':
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening brace"));
+
+                    return false;
+                case ')':
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening parenthesis"));
+
+                    return false;
+                case ']':
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening bracket"));
+
+                    return false;
             }
         }
 
@@ -140,15 +116,28 @@ internal static class Parser {
         return true;
     }
 
-    private static bool TryParseToken(string str, ILogger logger, out object token) {
-        if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
+    private static bool TryParseToken(string str, int lineIndex, ILogger logger, out object token) {
+        if (str[0] == '\"' && str[str.Length - 1] == '\"') {
+            string subString = str.Substring(1, str.Length - 2);
+
+            if (subString.Contains("\"")) {
+                token = null;
+
+                return false;
+            }
+            
+            token = subString;
+        }
+        else if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
         else if (Enum.TryParse<Opcode>(str, true, out var opcode))
             token = opcode;
         else if (Enum.TryParse<InterpType>(str, true, out var interpType))
             token = interpType;
         else if (Enum.TryParse<AssetType>(str, true, out var assetType))
             token = assetType;
-        else if (!TryParseNameOrChain(str, logger, out token)) {
+        else if (!TryParseArray(str, lineIndex, logger, out token)
+                 && !TryParseExpression(str, lineIndex, logger, out token)
+                 && !TryParseNameOrChain(str, lineIndex, logger, out token)) {
             token = null;
 
             return false;
@@ -217,21 +206,39 @@ internal static class Parser {
         return true;
     }
 
-    private static bool TryParseNameOrChain(string token, ILogger logger, out object nameOrChain) {
-        nameOrChain = null;
+    private static bool TryParseArray(string value, int lineIndex, ILogger logger, out object array) {
+        if (value[0] == '{' && value[value.Length - 1] == '}' && TryTokenize(value.Substring(1, value.Length - 2), lineIndex, logger, out object[] tokens)) {
+            array = tokens;
 
-        foreach (char c in token) {
-            if (!char.IsLetterOrDigit(c) && c is not ('.' or '[' or ']' or '_'))
-                return false;
+            return true;
         }
+
+        array = null;
+
+        return false;
+    }
+
+    private static bool TryParseExpression(string value, int lineIndex, ILogger logger, out object expression) {
+        var match = MATCH_EXPRESSION.Match(value);
+
+        if (match.Success && TryTokenize(match.Groups[2].Value, lineIndex, logger, out object[] tokens)) {
+            expression = new Expression(match.Groups[1].Value, tokens);
+
+            return true;
+        }
+
+        expression = null;
+
+        return false;
+    }
+
+    private static bool TryParseNameOrChain(string token, int lineIndex, ILogger logger, out object nameOrChain) {
+        nameOrChain = null;
 
         string[] split = token.Split('.');
 
-        if (split.Length == 0) {
-            nameOrChain = null;
-
+        if (split.Length == 0)
             return false;
-        }
 
         var chain = new List<object>();
 
@@ -239,22 +246,19 @@ internal static class Parser {
             if (string.IsNullOrWhiteSpace(s))
                 return false;
 
-            var match = MATCH_INDEXER.Match(s);
+            var match = MATCH_CHAIN_ELEMENT.Match(s);
 
-            if (!match.Success) {
-                logger.LogWarning($"Regex did not match {s}");
-                
+            if (!match.Success)
                 return false;
-            }
 
-            chain.Add(new Name(match.Groups[1].ToString()));
+            chain.Add(new Name(match.Groups[1].Value));
 
-            string indexer = match.Groups[3].ToString();
+            string indexer = match.Groups[3].Value;
 
             if (string.IsNullOrWhiteSpace(indexer))
                 continue;
             
-            if (TryParseToken(indexer, logger, out object indexerToken))
+            if (TryParseToken(indexer, lineIndex, logger, out object indexerToken))
                 chain.Add(new Indexer(indexerToken));
             else
                 return false;
@@ -268,32 +272,21 @@ internal static class Parser {
         return true;
     }
     
-    private static bool TryGetWithin(string str, ref int index, char bounds, out string subString) {
-        index++;
-        
-        int startIndex = index;
-
-        while (index < str.Length && str[index] != bounds)
+    private static bool TrySkipTo(string str, ref int index, char bounds) {
+        do {
             index++;
+            
+            if (str[index] == bounds)
+                return true;
+        } while (index < str.Length);
 
-        if (index == str.Length) {
-            subString = null;
-
-            return false;
-        }
-
-        subString = str.Substring(startIndex, index - startIndex);
-
-        return true;
+        return false;
     }
     
-    private static bool TryGetWithin(string str, ref int index, char start, char end, out string subString) {
-        index++;
-        
-        int startIndex = index;
-        int depth = 1;
+    private static bool TrySkipTo(string str, ref int index, char start, char end) {
+        int depth = 0;
 
-        while (index < str.Length && depth > 0) {
+        while (index < str.Length) {
             char c = str[index];
 
             if (c == start)
@@ -301,19 +294,13 @@ internal static class Parser {
             else if (c == end)
                 depth--;
 
-            if (depth > 0)
-                index++;
+            if (depth == 0)
+                return true;
+
+            index++;
         }
 
-        if (depth > 0) {
-            subString = null;
-
-            return false;
-        }
-
-        subString = str.Substring(startIndex, index - startIndex);
-
-        return true;
+        return false;
     }
     
     private static string GetParseError(int line, string message) => $"Failed to parse storyboard line {line}: {message}";

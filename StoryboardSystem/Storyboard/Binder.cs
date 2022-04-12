@@ -68,12 +68,12 @@ internal abstract class Binder {
                     "scale" => new ScaleProperty(transform),
                     "mat" => gameObject.GetComponent<Renderer>()?.material,
                     "mats" => gameObject.GetComponent<Renderer>()?.materials,
-                    _ => transform.Find(name).gameObject
+                    _ => transform.Find(name)?.gameObject
                 };
 
                 return subObject != null;
             case Material material:
-                if (name == "color") {
+                if (name == "color" && material.HasColor(COLOR_ID)) {
                     subObject = new MaterialColorProperty(material, COLOR_ID);
 
                     return true;
