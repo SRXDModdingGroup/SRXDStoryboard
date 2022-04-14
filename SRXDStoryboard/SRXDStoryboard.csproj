@@ -83,6 +83,7 @@
         <Compile Include="Logger.cs" />
         <Compile Include="Patches.cs" />
         <Compile Include="Plugin.cs" />
+        <Compile Include="PostProcessingInfo.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="SceneManager.cs" />
         <Compile Include="StoryboardParams.cs" />

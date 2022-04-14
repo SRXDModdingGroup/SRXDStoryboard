@@ -10,29 +10,27 @@ internal abstract class LoadedInstanceReference : LoadedObjectReference {
 }
 
 internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
-    public override object LoadedObject => Instance;
-
-    protected T Instance { get; private set; }
+    public override object LoadedObject => instance;
     
-    protected int Layer { get; }
-
     private string name;
     private int sceneRootIndex;
+    private int layer;
+    private T instance;
     private LoadedAssetReference<T> template;
 
     public LoadedInstanceReference(LoadedAssetReference<T> template, string name, int sceneRootIndex, int layer) {
         this.template = template;
         this.name = name;
         this.sceneRootIndex = sceneRootIndex;
-        Layer = layer;
+        this.layer = layer;
     }
 
     public override void Unload() {
-        if (Instance == null)
+        if (instance == null)
             return;
         
-        Object.Destroy(Instance);
-        Instance = null;
+        Object.Destroy(instance);
+        instance = null;
     }
 
     public override bool TryLoad(ISceneManager sceneManager, ILogger logger) {
@@ -42,21 +40,35 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
             return false;
         }
         
-        Instance = Object.Instantiate(template.Asset);
+        instance = Object.Instantiate(template.Asset);
         
-        if (Instance is GameObject gameObject) {
+        if (instance is GameObject gameObject) {
             gameObject.name = name;
         
             var transform = gameObject.transform;
-            
-            transform.SetParent(sceneManager.GetSceneRoot(sceneRootIndex), false);
+
+            if (sceneRootIndex >= 0 && sceneRootIndex < sceneManager.SceneRoots.Count)
+                transform.SetParent(sceneManager.SceneRoots[sceneRootIndex]);
+            else
+                transform.SetParent(null, false);
+
             transform.localPosition = Vector3.zero;
             transform.localRotation = Quaternion.identity;
             transform.localScale = Vector3.one;
+            SetLayer(transform);
+            
+            void SetLayer(Transform subTransform) {
+                subTransform.gameObject.layer = layer;
+
+                for (int i = 0; i < subTransform.childCount; i++)
+                    SetLayer(subTransform.GetChild(i));
+            }
         }
-        
-        sceneManager.InitializeObject(Instance, Layer);
+
+        sceneManager.InitializeObject(instance);
 
         return true;
+
+        
     }
 }

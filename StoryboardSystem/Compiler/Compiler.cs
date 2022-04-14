@@ -46,6 +46,7 @@ internal static class Compiler {
         var instanceReferences = new List<LoadedInstanceReference>();
         var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
         var externalObjectReferences = new List<LoadedExternalObjectReference>();
+        var cameraIdentifiers = new List<CameraIdentifier>();
         var timelineBuilders = new List<TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
         var bindings = new Dictionary<Identifier, TimelineBuilder>();
@@ -206,7 +207,7 @@ internal static class Compiler {
 
                     break;
                 case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference<Material> materialReference, out int layer):
-                    var newPostProcessingReference = new LoadedPostProcessingMaterialReference(materialReference, name.ToString(), layer);
+                    var newPostProcessingReference = new LoadedPostProcessingMaterialReference(materialReference, layer);
                     
                     postProcessReferences.Add(newPostProcessingReference);
                     globals[name] = newPostProcessingReference;
@@ -462,6 +463,7 @@ internal static class Compiler {
             instanceReferences.ToArray(),
             postProcessReferences.ToArray(),
             externalObjectReferences.ToArray(),
+            cameraIdentifiers.ToArray(),
             timelineBuilders,
             outParams);
 

@@ -6,56 +6,45 @@ using UnityEngine;
 namespace SRXDStoryboard; 
 
 public class SceneManager : ISceneManager {
-    private Transform foregroundRoot;
-    private Transform backgroundRoot;
-    private Dictionary<int, PostProcessingInstance> postProcessingInfos = new();
+    public IReadOnlyList<Transform> SceneRoots { get; }
+    
+    public IReadOnlyList<Camera> Cameras { get; }
 
-    public int LayerCount => 2;
+    private Dictionary<PostProcessingInfo, PostProcessingInstance> postProcessingInstances = new();
 
-    public SceneManager(Transform foregroundRoot, Transform backgroundRoot) {
-        this.foregroundRoot = foregroundRoot;
-        this.backgroundRoot = backgroundRoot;
+    public SceneManager(Transform mainCameraRoot, Camera mainCamera, Camera backgroundCamera) {
+        SceneRoots = new[] { mainCameraRoot };
+        Cameras = new[] { mainCamera, backgroundCamera };
     }
 
     public void Update(float time, bool triggerEvents) { }
 
-    public void InitializeObject(Object uObject, int layer) {
-        if (uObject is not GameObject gameObject)
+    public void InitializeObject(Object uObject) { }
+
+    public void AddPostProcessingInstance(Material material, Camera targetCamera) {
+        var info = new PostProcessingInfo(material, targetCamera);
+        
+        if (postProcessingInstances.ContainsKey(info))
             return;
 
-        var renderLayer = layer switch {
-            1 => Layers.Background,
-            _ => Layers.Default
-        };
-
-        renderLayer.ApplyToObject(gameObject);
-    }
-
-    public void AddPostProcessingInstance(Material material, int layer) {
-        if (postProcessingInfos.ContainsKey(material.GetInstanceID()))
-            return;
-
-        var instance = new PostProcessingInstance(material, true, (PostProcessingLayer) layer);
+        var instance = new PostProcessingInstance(material, targetCamera);
         
         PostProcessingManager.AddPostProcessingInstance(instance);
-        postProcessingInfos.Add(material.GetInstanceID(), instance);
+        postProcessingInstances.Add(info, instance);
     }
 
-    public void RemovePostProcessingInstance(Material material) {
-        if (!postProcessingInfos.TryGetValue(material.GetInstanceID(), out var instance))
+    public void RemovePostProcessingInstance(Material material, Camera targetCamera) {
+        var info = new PostProcessingInfo(material, targetCamera);
+        
+        if (!postProcessingInstances.TryGetValue(info, out var instance))
             return;
         
         PostProcessingManager.RemovePostProcessingInstance(instance);
-        postProcessingInfos.Remove(material.GetInstanceID());
+        postProcessingInstances.Remove(info);
     }
 
-    public void SetPostProcessingInstanceEnabled(Material material, bool enabled) {
-        if (postProcessingInfos.TryGetValue(material.GetInstanceID(), out var instance))
+    public void SetPostProcessingInstanceEnabled(Material material, Camera targetCamera, bool enabled) {
+        if (postProcessingInstances.TryGetValue(new PostProcessingInfo(material, targetCamera), out var instance))
             instance.Enabled = enabled;
     }
-
-    public Transform GetSceneRoot(int index) => index switch {
-        1 => backgroundRoot,
-        _ => foregroundRoot
-    };
 }

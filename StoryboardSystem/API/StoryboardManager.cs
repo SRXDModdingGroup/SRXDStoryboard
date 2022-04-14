@@ -13,19 +13,9 @@ public class StoryboardManager : MonoBehaviour {
     private Storyboard currentStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
 
-    public void Play() {
-        for (int i = 0; i < sceneManager.LayerCount; i++)
-            sceneManager.GetSceneRoot(i).gameObject.SetActive(true);
+    public void Play() => currentStoryboard?.Play();
 
-        currentStoryboard?.Play();
-    }
-
-    public void Stop() {
-        for (int i = 0; i < sceneManager.LayerCount; i++)
-            sceneManager.GetSceneRoot(i).gameObject.SetActive(false);
-        
-        currentStoryboard?.Stop();
-    }
+    public void Stop() => currentStoryboard?.Stop();
 
     public void SetTime(float time, bool triggerEvents) {
         currentStoryboard?.Evaluate(time, triggerEvents);
@@ -35,7 +25,7 @@ public class StoryboardManager : MonoBehaviour {
     public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams storyboardParams) {
         if (currentStoryboard != null) {
             currentStoryboard.Stop();
-            currentStoryboard.Close(true);
+            currentStoryboard.Close(sceneManager, true);
         }
         
         currentStoryboard = storyboard;
@@ -43,7 +33,7 @@ public class StoryboardManager : MonoBehaviour {
         if (storyboard == null)
             return;
         
-        storyboard.Compile(false, logger);
+        storyboard.Compile(sceneManager, logger);
         storyboard.Open(assetBundleManager, sceneManager, storyboardParams, logger);
     }
 
@@ -73,7 +63,7 @@ public class StoryboardManager : MonoBehaviour {
 
         storyboard = new Storyboard(name, directory);
         storyboards.Add(key, storyboard);
-        storyboard.Compile(false, logger);
+        storyboard.Compile(sceneManager, logger);
 
         return true;
     }

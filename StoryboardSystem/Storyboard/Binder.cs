@@ -17,7 +17,7 @@ internal abstract class Binder {
         return false;
     }
 
-    private static bool TryResolveIdentifier(Identifier identifier, out object result) {
+    public static bool TryResolveIdentifier(Identifier identifier, out object result) {
         result = identifier.Reference;
 
         foreach (object item in identifier.Sequence) {

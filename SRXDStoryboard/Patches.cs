@@ -32,27 +32,10 @@ public static class Patches {
 
         if (!Directory.Exists(customAssetBundlePath))
             Directory.CreateDirectory(customAssetBundlePath);
+
+        var mainCamera = MainCamera.Instance;
         
-        var foregroundRoot = new GameObject("ForegroundRoot").transform;
-        
-        foregroundRoot.SetParent(MainCamera.Instance.trackCamera.transform, false);
-        foregroundRoot.localPosition = Vector3.zero;
-        foregroundRoot.localRotation = Quaternion.identity;
-        foregroundRoot.localScale = Vector3.one;
-        
-        var backgroundRoot = new GameObject("BackgroundRoot").transform;
-        
-        backgroundRoot.SetParent(MainCamera.Instance.backgroundCamera.transform, false);
-        backgroundRoot.localPosition = Vector3.zero;
-        backgroundRoot.localRotation = Quaternion.identity;
-        backgroundRoot.localScale = Vector3.one;
-        
-        var trackRoot = new GameObject("TrackRoot").transform;
-        
-        trackRoot.SetParent(null, false);
-        trackRoot.localScale = Vector3.one;
-        
-        StoryboardManager.Create(new AssetBundleManager(customAssetBundlePath), new SceneManager(foregroundRoot, backgroundRoot), new Logger(Plugin.Logger));
+        StoryboardManager.Create(new AssetBundleManager(customAssetBundlePath), new SceneManager(mainCamera.transform, mainCamera.GetComponent<Camera>(), mainCamera.backgroundCamera), new Logger(Plugin.Logger));
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
