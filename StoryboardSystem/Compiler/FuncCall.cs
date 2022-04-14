@@ -1,11 +1,11 @@
 ﻿namespace StoryboardSystem; 
 
-internal class Expression {
-    public string Name { get; }
+internal class FuncCall {
+    public FuncName Name { get; }
     
     public object[] Arguments { get; }
 
-    public Expression(string name, object[] arguments) {
+    public FuncCall(FuncName name, object[] arguments) {
         Name = name;
         Arguments = arguments;
     }

@@ -4,61 +4,61 @@ using UnityEngine;
 
 namespace StoryboardSystem; 
 
-internal static class Operations {
+internal static class Functions {
     private static readonly float TWO_PI = 2f * Mathf.PI;
     
-    private static Dictionary<string, Func<object, object, object>> BINARY_OPERATIONS = new() {
-        { "Arr", Arr }
+    private static Dictionary<FuncName, Func<object, object, object>> BINARY_FUNCTIONS = new() {
+        { FuncName.Arr, Arr }
     };
     
-    private static Dictionary<string, Func<object, object, object, object>> TERNARY_OPERATIONS = new() {
-        { "Lerp", Lerp },
-        { "ILerp", ILerp }
+    private static Dictionary<FuncName, Func<object, object, object, object>> TERNARY_FUNCTIONS = new() {
+        { FuncName.Lerp, Lerp },
+        { FuncName.ILerp, ILerp }
     };
     
-    private static Dictionary<string, Func<object, object>> UNARY_MATH_OPERATIONS = new() {
-        { "Abs", Abs },
-        { "Sign", Sign },
-        { "Floor", Floor },
-        { "Ceil", Ceil },
-        { "Round", Round },
-        { "Sqrt", Sqrt },
-        { "Sin", Sin },
-        { "Cos", Cos }
+    private static Dictionary<FuncName, Func<object, object>> UNARY_MATH_FUNCTIONS = new() {
+        { FuncName.Abs, Abs },
+        { FuncName.Sign, Sign },
+        { FuncName.Floor, Floor },
+        { FuncName.Ceil, Ceil },
+        { FuncName.Round, Round },
+        { FuncName.Sqrt, Sqrt },
+        { FuncName.Sin, Sin },
+        { FuncName.Cos, Cos }
     };
     
-    private static Dictionary<string, Func<object, object, object>> BINARY_MATH_OPERATIONS = new() {
-        { "Mod", Mod }
+    private static Dictionary<FuncName, Func<object, object, object>> BINARY_MATH_FUNCTIONS = new() {
+        { FuncName.Mod, Mod }
     };
     
-    private static Dictionary<string, Func<object, object, object>> CHAINABLE_MATH_OPERATIONS = new() {
-        { "Add", Add },
-        { "Sub", Sub },
-        { "Mult", Mult },
-        { "Div", Div },
-        { "DivF", DivF },
-        { "Min", Min },
-        { "Max", Max }
+    private static Dictionary<FuncName, Func<object, object, object>> CHAINABLE_MATH_FUNCTIONS = new() {
+        { FuncName.Add, Add },
+        { FuncName.Sub, Sub },
+        { FuncName.Mult, Mult },
+        { FuncName.Div, Div },
+        { FuncName.DivF, DivF },
+        { FuncName.Min, Min },
+        { FuncName.Max, Max }
     };
 
-    public static bool TryDoOperation(string name, object[] args, ILogger logger, out object result) {
-        if (BINARY_OPERATIONS.TryGetValue(name, out var binOp)) {
+    public static bool TryDoFunction(FuncName name, object[] args, ILogger logger, out object result) {
+        if (BINARY_FUNCTIONS.TryGetValue(name, out var binOp)) {
             if (args.Length == 2)
                 return TryDoBinaryOp(args[0], args[1], binOp, out result);
         }
-        else if (TERNARY_OPERATIONS.TryGetValue(name, out var ternOp)) {
+        else if (TERNARY_FUNCTIONS.TryGetValue(name, out var ternOp)) {
             if (args.Length == 3)
                 return TryDoTernaryOp(args[0], args[1], args[2], ternOp, out result);
         }
-        else if (UNARY_MATH_OPERATIONS.TryGetValue(name, out var unMOp)) {
+        else if (UNARY_MATH_FUNCTIONS.TryGetValue(name, out var unMOp)) {
             if (args.Length == 1)
                 return TryDoUnaryMathOp(args[0], unMOp, out result);
         }
-        else if (BINARY_MATH_OPERATIONS.TryGetValue(name, out var binMOp)) {
+        else if (BINARY_MATH_FUNCTIONS.TryGetValue(name, out var binMOp)) {
             if (args.Length == 2)
                 return TryDoBinaryMathOp(args[0], args[1], binMOp, out result);
         }
-        else if (CHAINABLE_MATH_OPERATIONS.TryGetValue(name, out var chMOp)) {
+        else if (CHAINABLE_MATH_FUNCTIONS.TryGetValue(name, out var chMOp)) {
             if (args.Length == 2)
                 return TryDoBinaryMathOp(args[0], args[1], chMOp, out result);
             
@@ -67,7 +67,7 @@ internal static class Operations {
         }
 
         result = null;
-        logger.LogWarning($"Operation {name} not found");
+        logger.LogWarning($"Function {name} not found");
 
         return false;
     }

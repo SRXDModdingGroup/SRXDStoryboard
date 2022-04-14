@@ -575,8 +575,8 @@ internal static class Compiler {
 
                 return true;
             }
-            case Expression expression: {
-                object[] args = expression.Arguments;
+            case FuncCall call: {
+                object[] args = call.Arguments;
                 object[] resolvedArgs = new object[args.Length];
 
                 for (int i = 0; i < args.Length; i++) {
@@ -584,10 +584,10 @@ internal static class Compiler {
                         return false;
                 }
 
-                if (Operations.TryDoOperation(expression.Name, resolvedArgs, logger, out result))
+                if (Functions.TryDoFunction(call.Name, resolvedArgs, logger, out result))
                     return true;
                 
-                logger.LogWarning($"Could not evaluate operation {expression.Name}");
+                logger.LogWarning($"Could not evaluate function call {call.Name}");
                     
                 return false;
             }

@@ -8,28 +8,31 @@ using System.Text.RegularExpressions;
 namespace StoryboardSystem;
 
 internal static class Parser {
-    private static readonly Regex MATCH_EXPRESSION = new (@"^(\w+)\((.*)\)$");
+    private static readonly Regex MATCH_FUNC_CALL = new (@"^(\w+)\((.*)\)$");
     private static readonly Regex MATCH_CHAIN_ELEMENT = new (@"^(\w+)(\[(.+)\])?$");
     
     public static bool TryParseFile(string path, ILogger logger, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
         bool success = true;
-        int lineIndex = 1;
+        int lineIndex = 0;
         
         instructions = new List<Instruction>();
 
         while (!reader.EndOfStream) {
+            lineIndex++;
+            
             string line = reader.ReadLine();
+            
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
             int commentIndex = line.IndexOf("//", StringComparison.Ordinal);
 
             if (commentIndex >= 0)
                 line = line.Substring(0, commentIndex);
 
-            if (string.IsNullOrWhiteSpace(line)) {
-                lineIndex++;
-                
+            if (string.IsNullOrWhiteSpace(line))
                 continue;
-            }
 
             if (!TryTokenize(line, lineIndex, logger, out object[] tokens))
                 success = false;
@@ -45,8 +48,6 @@ internal static class Parser {
                 
                 instructions.Add(new Instruction(opcode, arguments, lineIndex));
             }
-
-            lineIndex++;
         }
 
         return success;
@@ -136,7 +137,7 @@ internal static class Parser {
         else if (Enum.TryParse<AssetType>(str, true, out var assetType))
             token = assetType;
         else if (!TryParseArray(str, lineIndex, logger, out token)
-                 && !TryParseExpression(str, lineIndex, logger, out token)
+                 && !TryParseFuncCall(str, lineIndex, logger, out token)
                  && !TryParseChain(str, lineIndex, logger, out token)) {
             token = null;
 
@@ -218,16 +219,16 @@ internal static class Parser {
         return false;
     }
 
-    private static bool TryParseExpression(string value, int lineIndex, ILogger logger, out object expression) {
-        var match = MATCH_EXPRESSION.Match(value);
+    private static bool TryParseFuncCall(string value, int lineIndex, ILogger logger, out object funcCall) {
+        var match = MATCH_FUNC_CALL.Match(value);
 
-        if (match.Success && TryTokenize(match.Groups[2].Value, lineIndex, logger, out object[] tokens)) {
-            expression = new Expression(match.Groups[1].Value, tokens);
+        if (match.Success && Enum.TryParse<FuncName>(match.Groups[1].Value, true, out var name) && TryTokenize(match.Groups[2].Value, lineIndex, logger, out object[] tokens)) {
+            funcCall = new FuncCall(name, tokens);
 
             return true;
         }
 
-        expression = null;
+        funcCall = null;
 
         return false;
     }

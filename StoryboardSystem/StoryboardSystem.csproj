@@ -62,10 +62,11 @@
         <Compile Include="API\IStoryboardParams.cs" />
         <Compile Include="API\StoryboardManager.cs" />
         <Compile Include="Compiler\Compiler.cs" />
+        <Compile Include="Compiler\FuncName.cs" />
         <Compile Include="Compiler\StoryboardData.cs" />
         <Compile Include="Compiler\Conversion.cs" />
-        <Compile Include="Compiler\Expression.cs" />
-        <Compile Include="Compiler\Operations.cs" />
+        <Compile Include="Compiler\FuncCall.cs" />
+        <Compile Include="Compiler\Functions.cs" />
         <Compile Include="Compiler\Index.cs" />
         <Compile Include="Compiler\Indexer.cs" />
         <Compile Include="Compiler\Instruction.cs" />
