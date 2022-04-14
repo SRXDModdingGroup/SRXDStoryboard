@@ -8,7 +8,7 @@ internal abstract class LoadedAssetReference : LoadedObjectReference {
 
     public abstract bool TryLoad(ILogger logger);
     
-    public abstract LoadedInstanceReference CreateInstanceReference(string name, object parent, int layer);
+    public abstract LoadedInstanceReference CreateInstanceReference(string name, Identifier parentIdentifier, int layer);
 
     public static LoadedAssetReference Create(LoadedAssetBundleReference assetBundleReference, string assetName, AssetType type) => type switch {
         AssetType.Material => new LoadedAssetReference<Material>(assetBundleReference, assetName),
@@ -47,5 +47,5 @@ internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
         return false;
     }
 
-    public override LoadedInstanceReference CreateInstanceReference(string name, object parent, int layer) => new LoadedInstanceReference<T>(this, name, parent, layer);
+    public override LoadedInstanceReference CreateInstanceReference(string name, Identifier parentIdentifier, int layer) => new LoadedInstanceReference<T>(this, name, parentIdentifier, layer);
 }

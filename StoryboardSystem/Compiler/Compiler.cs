@@ -64,7 +64,7 @@ internal static class Compiler {
             object[] resolvedArguments = new object[arguments.Length];
 
             for (int j = 0; j < arguments.Length; j++) {
-                if (TryResolveArgument(arguments[j], globalScope, logger, out resolvedArguments[j]))
+                if (TryResolveArgument(arguments[j], globalScope, logger, out resolvedArguments[j], false))
                     continue;
                 
                 logger.LogWarning(GetCompileError(instruction.LineIndex, $"Could not resolve argument {j}"));
@@ -124,7 +124,7 @@ internal static class Compiler {
                     var newAssetBundleReference = new LoadedAssetBundleReference(bundlePath);
 
                     assetBundleReferences.Add(newAssetBundleReference);
-                    globals[name] = newAssetBundleReference;
+                    globals[name] = new Identifier(newAssetBundleReference, Array.Empty<object>());
 
                     break;
                 case Opcode.Curve when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, true): {
@@ -155,7 +155,7 @@ internal static class Compiler {
                     var newObjectReference = new LoadedExternalObjectReference(paramName);
                     
                     externalObjectReferences.Add(newObjectReference);
-                    globals[name] = newObjectReference;
+                    globals[name] = new Identifier(newObjectReference, Array.Empty<object>());
 
                     break;
                 }
@@ -163,7 +163,7 @@ internal static class Compiler {
                     var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), null, 0);
 
                     instanceReferences.Add(newInstanceReference);
-                    globals[name] = newInstanceReference;
+                    globals[name] = new Identifier(newInstanceReference, Array.Empty<object>());
 
                     break;
                 }
@@ -171,7 +171,7 @@ internal static class Compiler {
                     var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), identifier, layer);
 
                     instanceReferences.Add(newInstanceReference);
-                    globals[name] = newInstanceReference;
+                    globals[name] = new Identifier(newInstanceReference, Array.Empty<object>());
 
                     break;
                 }
@@ -179,23 +179,7 @@ internal static class Compiler {
                     var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), identifier, LayerMask.NameToLayer(layer));
 
                     instanceReferences.Add(newInstanceReference);
-                    globals[name] = newInstanceReference;
-
-                    break;
-                }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out LoadedExternalObjectReference reference, out int layer): {
-                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), reference, layer);
-
-                    instanceReferences.Add(newInstanceReference);
-                    globals[name] = newInstanceReference;
-
-                    break;
-                }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out LoadedExternalObjectReference reference, out string layer): {
-                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), reference, LayerMask.NameToLayer(layer));
-
-                    instanceReferences.Add(newInstanceReference);
-                    globals[name] = newInstanceReference;
+                    globals[name] = new Identifier(newInstanceReference, Array.Empty<object>());
 
                     break;
                 }
@@ -214,32 +198,22 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out LoadedExternalObjectReference reference, out int layer): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, reference, layer);
-
-                    break;
-                }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out LoadedExternalObjectReference reference, out string layer): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, reference, LayerMask.NameToLayer(layer));
-
-                    break;
-                }
                 case Opcode.Load when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out AssetType type, out LoadedAssetBundleReference assetBundleReference, out string assetName):
                     var newAssetReference = LoadedAssetReference.Create(assetBundleReference, assetName, type);
                     
                     assetReferences.Add(newAssetReference);
-                    globals[name] = newAssetReference;
+                    globals[name] = new Identifier(newAssetReference, Array.Empty<object>());
                     
                     break;
                 case Opcode.Out when TryGetArguments(resolvedArguments, globalScope, logger, out string name, out object value):
                     outParams[name] = value;
 
                     break;
-                case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference<Material> materialReference, out int layer):
-                    var newPostProcessingReference = new LoadedPostProcessingMaterialReference(materialReference, layer);
+                case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference<Material> materialReference, out Identifier targetCameraIdentifier):
+                    var newPostProcessingReference = new LoadedPostProcessingMaterialReference(materialReference, targetCameraIdentifier);
                     
                     postProcessReferences.Add(newPostProcessingReference);
-                    globals[name] = newPostProcessingReference;
+                    globals[name] = new Identifier(newPostProcessingReference, Array.Empty<object>());
                     
                     break;
                 case Opcode.SetA when TryGetArguments(resolvedArguments, globalScope, logger, out Index idx, out object value):
@@ -274,14 +248,14 @@ internal static class Compiler {
                     return false;
             }
 
-            object[] CreateInstanceArray(string name, int count, LoadedAssetReference assetReference, object parent, int layer) {
+            object[] CreateInstanceArray(string name, int count, LoadedAssetReference assetReference, Identifier parentIdentifier, int layer) {
                 object[] newArr = new object[count];
 
                 for (int j = 0; j < count; j++) {
-                    var newInstanceReference = assetReference.CreateInstanceReference($"{name}_{j}", parent, layer);
+                    var newInstanceReference = assetReference.CreateInstanceReference($"{name}_{j}", parentIdentifier, layer);
 
                     instanceReferences.Add(newInstanceReference);
-                    newArr[i] = newInstanceReference;
+                    newArr[i] = new Identifier(newInstanceReference, Array.Empty<object>());
                 }
 
                 return newArr;
@@ -318,7 +292,7 @@ internal static class Compiler {
             object[] resolvedArguments = new object[arguments.Length];
             
             for (int i = 0; i < arguments.Length; i++) {
-                if (TryResolveArgument(arguments[i], currentScope, logger, out resolvedArguments[i]))
+                if (TryResolveArgument(arguments[i], currentScope, logger, out resolvedArguments[i], false))
                     continue;
                 
                 logger.LogWarning(GetCompileError(instruction.LineIndex, $"Could not resolve argument {i}"));
@@ -498,10 +472,10 @@ internal static class Compiler {
         return true;
     }
 
-    private static bool TryResolveArgument(object argument, Scope scope, ILogger logger, out object result, bool resolveFully = false) {
-        result = default;
+    private static bool TryResolveArgument(object argument, Scope scope, ILogger logger, out object result, bool resolveFully) {
+        result = argument;
         
-        switch (argument) {
+        switch (result) {
             case object[] arr: {
                 object[] newArr = new object[arr.Length];
             
@@ -510,12 +484,23 @@ internal static class Compiler {
                         return false;
                 }
 
-                argument = newArr;
+                result = newArr;
 
-                break;
+                return true;
             }
             case Chain chain: {
-                if (!TryResolveArgument(chain[0], scope, logger, out argument, true)) {
+                if (chain.Length == 0 || chain[0] is not Name name0) {
+                    logger.LogWarning("Could not resolve start of chain");
+                    
+                    return false;
+                }
+                
+                result = name0;
+
+                if (!resolveFully && chain.Length == 1)
+                    return true;
+                
+                if (!TryResolveArgument(result, scope, logger, out result, true)) {
                     logger.LogWarning("Could not resolve start of chain");
                     
                     return false;
@@ -547,58 +532,39 @@ internal static class Compiler {
                 }
 
                 for (int i = 0; i < sequence.Length; i++) {
-                    if (argument is Index index0) {
-                        object[] array = index0.Array;
-
-                        if (array.Length == 0) {
-                            logger.LogWarning($"Array length can not be 0");
-                            
-                            return false;
-                        }
-                        
-                        argument = array[MathUtility.Mod(index0.index, array.Length)];
-                    }
-
                     switch (sequence[i]) {
-                        case int index1 when argument is object[] arr: {
-                            argument = new Index(arr, index1);
-                        
+                        case int index when result is object[] arr: {
+                            if (!resolveFully && i == sequence.Length - 1) {
+                                result = new Index(arr, index);
+
+                                return true;
+                            }
+
+                            result = arr[MathUtility.Mod(index, arr.Length)];
+
                             continue;
                         }
                         case string:
                         case int: {
-                            object[] newSequence;
-                            LoadedObjectReference reference0;
-                            int j;
+                            if (result is not Identifier identifier) {
+                                logger.LogWarning($"Chain contains an invalid argument. Type was {result.GetType()}");
 
-                            switch (argument) {
-                                case LoadedObjectReference reference1:
-                                    newSequence = new object[sequence.Length - i];
-                                    reference0 = reference1;
-                                    j = 0;
-
-                                    break;
-                                case Identifier identifier:
-                                    object[] oldSequence = identifier.Sequence;
-                                    
-                                    newSequence = new object[oldSequence.Length + sequence.Length - i];
-                                    oldSequence.CopyTo(newSequence, 0);
-                                    reference0 = identifier.Reference;
-                                    j = oldSequence.Length;
-
-                                    break;
-                                default:
-                                    logger.LogWarning($"Chain contains an invalid argument");
-                                    
-                                    return false;
+                                return false;
                             }
 
-                            for (; i < sequence.Length; i++, j++)
+                            object[] oldSequence = identifier.Sequence;
+                            object[] newSequence = new object[oldSequence.Length + sequence.Length - i];
+                            
+                            oldSequence.CopyTo(newSequence, 0);
+                            
+                            var reference = identifier.Reference;
+
+                            for (int j = oldSequence.Length; i < sequence.Length; i++, j++)
                                 newSequence[j] = sequence[i];
                             
-                            argument = new Identifier(reference0, newSequence);
-                            
-                            continue;
+                            result = new Identifier(reference, newSequence);
+
+                            return true;
                         }
                     }
                     
@@ -607,7 +573,7 @@ internal static class Compiler {
                     return false;
                 }
 
-                break;
+                return true;
             }
             case Expression expression: {
                 object[] args = expression.Arguments;
@@ -618,45 +584,16 @@ internal static class Compiler {
                         return false;
                 }
 
-                if (!Operations.TryDoOperation(expression.Name, resolvedArgs, logger, out argument)) {
-                    logger.LogWarning($"Could not evaluate operation {expression.Name}");
-                    
-                    return false;
-                }
+                if (Operations.TryDoOperation(expression.Name, resolvedArgs, logger, out result))
+                    return true;
                 
-                break;
-            }
-        }
-
-        if (resolveFully) {
-            switch (argument) {
-                case Name name:
-                    if (scope.TryGetValue(name, out argument))
-                        break;
-
-                    logger.LogWarning($"Variable {name} not found");
-                    result = default;
+                logger.LogWarning($"Could not evaluate operation {expression.Name}");
                     
-                    return false;
-                case Index index:
-                    object[] array = index.Array;
-
-                    if (array.Length > 0) {
-                        argument = array[MathUtility.Mod(index.index, array.Length)];
-
-                        break;
-                    }
-
-                    logger.LogWarning($"Array length can not be 0");
-                    result = default;
-                        
-                    return false;
+                return false;
             }
+            default:
+                return TryCastArgument(result, scope, logger, out result);
         }
-
-        result = argument;
-
-        return true;
     }
 
     private static bool TryCastArgument<T>(object argument, Scope scope, ILogger logger, out T value) {
@@ -673,7 +610,7 @@ internal static class Compiler {
 
                 logger.LogWarning($"Variable {name} not found");
                 value = default;
-                    
+                
                 return false;
             case Index index:
                 object[] array = index.Array;
@@ -690,15 +627,20 @@ internal static class Compiler {
                 return false;
         }
 
-        if (argument is not T cast1) {
-            value = default;
+        switch (argument) {
+            case T cast1:
+                value = cast1;
 
-            return false;
+                return true;
+            case Identifier identifier when identifier.Sequence.Length == 0 && identifier.Reference is T cast2:
+                value = cast2;
+
+                return true;
+            default:
+                value = default;
+            
+                return false;
         }
-
-        value = cast1;
-
-        return true;
     }
 
     private static bool TryGetArguments<T>(object[] arguments, Scope scope, ILogger logger, out T arg, bool unlimited = false) {

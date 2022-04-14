@@ -137,7 +137,7 @@ internal static class Parser {
             token = assetType;
         else if (!TryParseArray(str, lineIndex, logger, out token)
                  && !TryParseExpression(str, lineIndex, logger, out token)
-                 && !TryParseNameOrChain(str, lineIndex, logger, out token)) {
+                 && !TryParseChain(str, lineIndex, logger, out token)) {
             token = null;
 
             return false;
@@ -232,15 +232,15 @@ internal static class Parser {
         return false;
     }
 
-    private static bool TryParseNameOrChain(string token, int lineIndex, ILogger logger, out object nameOrChain) {
-        nameOrChain = null;
+    private static bool TryParseChain(string token, int lineIndex, ILogger logger, out object chain) {
+        chain = null;
 
         string[] split = token.Split('.');
 
         if (split.Length == 0)
             return false;
 
-        var chain = new List<object>();
+        var chainList = new List<object>();
 
         foreach (string s in split) {
             if (string.IsNullOrWhiteSpace(s))
@@ -251,7 +251,7 @@ internal static class Parser {
             if (!match.Success)
                 return false;
 
-            chain.Add(new Name(match.Groups[1].Value));
+            chainList.Add(new Name(match.Groups[1].Value));
 
             string indexer = match.Groups[3].Value;
 
@@ -259,15 +259,12 @@ internal static class Parser {
                 continue;
             
             if (TryParseToken(indexer, lineIndex, logger, out object indexerToken))
-                chain.Add(new Indexer(indexerToken));
+                chainList.Add(new Indexer(indexerToken));
             else
                 return false;
         }
         
-        if (chain.Count == 1)
-            nameOrChain = new Name(split[0]);
-        else
-            nameOrChain = new Chain(chain.ToArray());
+        chain = new Chain(chainList.ToArray());
 
         return true;
     }

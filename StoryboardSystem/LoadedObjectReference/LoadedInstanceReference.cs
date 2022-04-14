@@ -13,15 +13,15 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
     public override object LoadedObject => instance;
     
     private string name;
-    private object parent;
+    private Identifier parentIdentifier;
     private int layer;
     private T instance;
     private LoadedAssetReference<T> template;
 
-    public LoadedInstanceReference(LoadedAssetReference<T> template, string name, object parent, int layer) {
+    public LoadedInstanceReference(LoadedAssetReference<T> template, string name, Identifier parentIdentifier, int layer) {
         this.template = template;
         this.name = name;
-        this.parent = parent;
+        this.parentIdentifier = parentIdentifier;
         this.layer = layer;
     }
 
@@ -39,53 +39,34 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
             
             return false;
         }
-
-        object resolvedObject;
-        
-        switch (parent) {
-            case Identifier identifier when Binder.TryResolveIdentifier(identifier, out resolvedObject):
-                break;
-            case LoadedExternalObjectReference reference: {
-                if (reference.LoadedObject == null) {
-                    logger.LogWarning($"Target parent is null");
-
-                    return false;
-                }
-
-                resolvedObject = reference.LoadedObject;
-                
-                break;
-            }
-            case null:
-                resolvedObject = null;
-                
-                break;
-            default:
-                return false;
-        }
-
-        Transform parentTransform;
-
-        if (resolvedObject == null)
-            parentTransform = null;
-        else {
-            switch (resolvedObject) {
-                case Transform newParentTransform:
-                    parentTransform = newParentTransform;
-                    break;
-                case GameObject parentGameObject:
-                    parentTransform = parentGameObject.transform;
-                    break;
-                default:
-                    logger.LogWarning($"Target parent is not a gameObject or transform");
-
-                    return false;
-            }
-        }
         
         instance = Object.Instantiate(template.Asset);
         
         if (instance is GameObject gameObject) {
+            Transform parentTransform;
+
+            if (parentIdentifier == null)
+                parentTransform = null;
+            else if (Binder.TryResolveIdentifier(parentIdentifier, out object parentObject)) {
+                switch (parentObject) {
+                    case Transform newParentTransform:
+                        parentTransform = newParentTransform;
+                        break;
+                    case GameObject parentGameObject:
+                        parentTransform = parentGameObject.transform;
+                        break;
+                    default:
+                        logger.LogWarning($"Target parent {parentObject} is not a gameObject or transform");
+
+                        return false;
+                }
+            }
+            else {
+                logger.LogWarning($"Could not resolve identifier {parentIdentifier}");
+
+                return false;
+            }
+            
             gameObject.name = name;
         
             var transform = gameObject.transform;
