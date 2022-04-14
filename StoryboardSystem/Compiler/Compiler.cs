@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
 using UnityEngine;
 
 namespace StoryboardSystem;
@@ -46,7 +45,6 @@ internal static class Compiler {
         var instanceReferences = new List<LoadedInstanceReference>();
         var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
         var externalObjectReferences = new List<LoadedExternalObjectReference>();
-        var cameraIdentifiers = new List<CameraIdentifier>();
         var timelineBuilders = new List<TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
         var bindings = new Dictionary<Identifier, TimelineBuilder>();
@@ -162,36 +160,67 @@ internal static class Compiler {
                     break;
                 }
                 case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference): {
-                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), 0, 0);
+                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), null, 0);
 
                     instanceReferences.Add(newInstanceReference);
                     globals[name] = newInstanceReference;
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out int sceneRootIndex): {
-                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), sceneRootIndex, 0);
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out Identifier identifier, out int layer): {
+                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), identifier, layer);
 
                     instanceReferences.Add(newInstanceReference);
                     globals[name] = newInstanceReference;
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out int sceneRootIndex, out int layer): {
-                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), sceneRootIndex, layer);
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out Identifier identifier, out string layer): {
+                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), identifier, LayerMask.NameToLayer(layer));
 
                     instanceReferences.Add(newInstanceReference);
                     globals[name] = newInstanceReference;
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out int sceneRootIndex): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, sceneRootIndex, 0);
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out LoadedExternalObjectReference reference, out int layer): {
+                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), reference, layer);
+
+                    instanceReferences.Add(newInstanceReference);
+                    globals[name] = newInstanceReference;
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out int sceneRootIndex, out int layer): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, sceneRootIndex, layer);
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out LoadedExternalObjectReference reference, out string layer): {
+                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), reference, LayerMask.NameToLayer(layer));
+
+                    instanceReferences.Add(newInstanceReference);
+                    globals[name] = newInstanceReference;
+
+                    break;
+                }
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, null, 0);
+
+                    break;
+                }
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out Identifier identifier, out int layer): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, identifier, layer);
+
+                    break;
+                }
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out Identifier identifier, out string layer): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, identifier, LayerMask.NameToLayer(layer));
+
+                    break;
+                }
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out LoadedExternalObjectReference reference, out int layer): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, reference, layer);
+
+                    break;
+                }
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out LoadedExternalObjectReference reference, out string layer): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, reference, LayerMask.NameToLayer(layer));
 
                     break;
                 }
@@ -245,11 +274,11 @@ internal static class Compiler {
                     return false;
             }
 
-            object[] CreateInstanceArray(string name, int count, LoadedAssetReference assetReference, int sceneRootIndex, int layer) {
+            object[] CreateInstanceArray(string name, int count, LoadedAssetReference assetReference, object parent, int layer) {
                 object[] newArr = new object[count];
 
                 for (int j = 0; j < count; j++) {
-                    var newInstanceReference = assetReference.CreateInstanceReference($"{name}_{j}", sceneRootIndex, layer);
+                    var newInstanceReference = assetReference.CreateInstanceReference($"{name}_{j}", parent, layer);
 
                     instanceReferences.Add(newInstanceReference);
                     newArr[i] = newInstanceReference;
@@ -320,31 +349,31 @@ internal static class Compiler {
                     break;
                 }
                 case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out TimelineBuilder timelineBuilder, out object value): {
-                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);;
+                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
                 case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out TimelineBuilder timelineBuilder, out object value, out InterpType interpType): {
-                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);;
+                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
                     orderCounter++;
 
                     break;
                 }
                 case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out Identifier identifier): {
-                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);;
+                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
                 case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out Identifier identifier, out object value): {
-                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);;
+                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
                 case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out Identifier identifier, out object value, out InterpType interpType): {
-                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);;
+                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
                     orderCounter++;
 
                     break;
@@ -463,7 +492,6 @@ internal static class Compiler {
             instanceReferences.ToArray(),
             postProcessReferences.ToArray(),
             externalObjectReferences.ToArray(),
-            cameraIdentifiers.ToArray(),
             timelineBuilders,
             outParams);
 

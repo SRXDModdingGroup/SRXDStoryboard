@@ -33,6 +33,11 @@ public class StoryboardParams : IStoryboardParams {
     }
 
     public Object GetExternalObject(string name) {
+        switch (name) {
+            case "CameraRoot":
+                return MainCamera.Instance.transform;
+        }
+
         return null;
     }
 }

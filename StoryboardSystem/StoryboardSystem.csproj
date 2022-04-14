@@ -100,7 +100,6 @@
         <Compile Include="Property\VectorProperty.cs" />
         <Compile Include="Storyboard\Binder.cs" />
         <Compile Include="Storyboard\Binding.cs" />
-        <Compile Include="Storyboard\CameraIdentifier.cs" />
         <Compile Include="Storyboard\EventController.cs" />
         <Compile Include="Storyboard\Identifier.cs" />
         <Compile Include="Storyboard\CurveController.cs" />

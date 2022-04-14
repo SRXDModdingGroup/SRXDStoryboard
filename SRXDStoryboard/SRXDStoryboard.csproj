@@ -59,6 +59,9 @@
         </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
+        <Reference Include="Unity.RenderPipelines.Universal.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <HintPath>..\Libs\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+        </Reference>
         <Reference Include="Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
           <HintPath>..\Libs\Unity.TextMeshPro.dll</HintPath>
         </Reference>

@@ -8,7 +8,6 @@ internal class StoryboardData {
     public LoadedInstanceReference[] InstanceReferences { get; }
     public LoadedPostProcessingMaterialReference[] PostProcessReferences { get; }
     public LoadedExternalObjectReference[] ExternalObjectReferences { get; }
-    public CameraIdentifier[] CameraIdentifiers { get; }
     public List<TimelineBuilder> TimelineBuilders { get; }
     public Dictionary<string, object> OutParams { get; }
 
@@ -18,7 +17,6 @@ internal class StoryboardData {
         LoadedInstanceReference[] instanceReferences,
         LoadedPostProcessingMaterialReference[] postProcessReferences,
         LoadedExternalObjectReference[] externalObjectReferences,
-        CameraIdentifier[] cameraIdentifiers,
         List<TimelineBuilder> timelineBuilders,
         Dictionary<string, object> outParams) {
         AssetBundleReferences = assetBundleReferences;
@@ -26,7 +24,6 @@ internal class StoryboardData {
         InstanceReferences = instanceReferences;
         PostProcessReferences = postProcessReferences;
         ExternalObjectReferences = externalObjectReferences;
-        CameraIdentifiers = cameraIdentifiers;
         TimelineBuilders = timelineBuilders;
         OutParams = outParams;
     }

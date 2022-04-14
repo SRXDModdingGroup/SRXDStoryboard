@@ -6,16 +6,7 @@ using UnityEngine;
 namespace SRXDStoryboard; 
 
 public class SceneManager : ISceneManager {
-    public IReadOnlyList<Transform> SceneRoots { get; }
-    
-    public IReadOnlyList<Camera> Cameras { get; }
-
     private Dictionary<PostProcessingInfo, PostProcessingInstance> postProcessingInstances = new();
-
-    public SceneManager(Transform mainCameraRoot, Camera mainCamera, Camera backgroundCamera) {
-        SceneRoots = new[] { mainCameraRoot };
-        Cameras = new[] { mainCamera, backgroundCamera };
-    }
 
     public void Update(float time, bool triggerEvents) { }
 

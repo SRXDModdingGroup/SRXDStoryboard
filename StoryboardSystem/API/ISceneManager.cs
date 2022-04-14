@@ -4,10 +4,6 @@ using UnityEngine;
 namespace StoryboardSystem; 
 
 public interface ISceneManager {
-    IReadOnlyList<Transform> SceneRoots { get; }
-    
-    IReadOnlyList<Camera> Cameras { get; }
-
     void Update(float time, bool triggerEvents);
     
     void InitializeObject(Object uObject);

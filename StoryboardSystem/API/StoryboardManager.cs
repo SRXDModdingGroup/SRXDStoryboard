@@ -25,7 +25,7 @@ public class StoryboardManager : MonoBehaviour {
     public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams storyboardParams) {
         if (currentStoryboard != null) {
             currentStoryboard.Stop();
-            currentStoryboard.Close(sceneManager, true);
+            currentStoryboard.Close(logger, true);
         }
         
         currentStoryboard = storyboard;

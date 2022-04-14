@@ -13,15 +13,15 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
     public override object LoadedObject => instance;
     
     private string name;
-    private int sceneRootIndex;
+    private object parent;
     private int layer;
     private T instance;
     private LoadedAssetReference<T> template;
 
-    public LoadedInstanceReference(LoadedAssetReference<T> template, string name, int sceneRootIndex, int layer) {
+    public LoadedInstanceReference(LoadedAssetReference<T> template, string name, object parent, int layer) {
         this.template = template;
         this.name = name;
-        this.sceneRootIndex = sceneRootIndex;
+        this.parent = parent;
         this.layer = layer;
     }
 
@@ -39,6 +39,49 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
             
             return false;
         }
+
+        object resolvedObject;
+        
+        switch (parent) {
+            case Identifier identifier when Binder.TryResolveIdentifier(identifier, out resolvedObject):
+                break;
+            case LoadedExternalObjectReference reference: {
+                if (reference.LoadedObject == null) {
+                    logger.LogWarning($"Target parent is null");
+
+                    return false;
+                }
+
+                resolvedObject = reference.LoadedObject;
+                
+                break;
+            }
+            case null:
+                resolvedObject = null;
+                
+                break;
+            default:
+                return false;
+        }
+
+        Transform parentTransform;
+
+        if (resolvedObject == null)
+            parentTransform = null;
+        else {
+            switch (resolvedObject) {
+                case Transform newParentTransform:
+                    parentTransform = newParentTransform;
+                    break;
+                case GameObject parentGameObject:
+                    parentTransform = parentGameObject.transform;
+                    break;
+                default:
+                    logger.LogWarning($"Target parent is not a gameObject or transform");
+
+                    return false;
+            }
+        }
         
         instance = Object.Instantiate(template.Asset);
         
@@ -47,11 +90,7 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
         
             var transform = gameObject.transform;
 
-            if (sceneRootIndex >= 0 && sceneRootIndex < sceneManager.SceneRoots.Count)
-                transform.SetParent(sceneManager.SceneRoots[sceneRootIndex]);
-            else
-                transform.SetParent(null, false);
-
+            transform.SetParent(parentTransform);
             transform.localPosition = Vector3.zero;
             transform.localRotation = Quaternion.identity;
             transform.localScale = Vector3.one;
@@ -68,7 +107,5 @@ internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Ob
         sceneManager.InitializeObject(instance);
 
         return true;
-
-        
     }
 }
