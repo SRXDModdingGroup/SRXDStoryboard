@@ -23,10 +23,10 @@ internal abstract class Binder {
         foreach (object item in identifier.Sequence) {
             switch (item) {
                 case int index when result is object[] arr: {
-                    if (arr.Length == 0)
+                    if (index < 0 || index >= arr.Length)
                         break;
 
-                    result = arr[MathUtility.Mod(index, arr.Length)];
+                    result = arr[index];
 
                     continue;
                 }
@@ -36,7 +36,7 @@ internal abstract class Binder {
                     
                     break;
                 }
-                case int index when result is LoadedInstanceReference { LoadedObject: GameObject gameObject }: {
+                case int index when result is LoadedObjectReference { LoadedObject: GameObject gameObject }: {
                     if (TryGetChildGameObject(gameObject, index, out result))
                         continue;
 
@@ -54,7 +54,10 @@ internal abstract class Binder {
             return false;
         }
 
-        return true;
+        if (result is LoadedObjectReference reference)
+            result = reference.LoadedObject;
+
+        return result != null;
     }
 
     private static bool TryGetSubObject(object parent, string name, out object subObject) {

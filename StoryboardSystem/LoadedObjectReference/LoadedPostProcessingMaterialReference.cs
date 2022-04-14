@@ -16,14 +16,14 @@ internal class LoadedPostProcessingMaterialReference : LoadedObjectReference {
 
     private bool storyboardActive;
     private LoadedAssetReference<Material> template;
-    private object targetCameraReference;
+    private Identifier targetCameraIdentifier;
     private ISceneManager sceneManager;
     private Camera targetCamera;
     private Material instance;
 
-    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, object targetCameraReference) {
+    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, Identifier targetCameraIdentifier) {
         this.template = template;
-        this.targetCameraReference = targetCameraReference;
+        this.targetCameraIdentifier = targetCameraIdentifier;
     }
 
     public void Unload() {
@@ -50,36 +50,22 @@ internal class LoadedPostProcessingMaterialReference : LoadedObjectReference {
             return false;
         }
 
-        switch (targetCameraReference) {
-            case Identifier identifier when Binder.TryResolveIdentifier(identifier, out object result): {
-                if (result is not Camera camera) {
-                    logger.LogWarning($"{identifier} is not a camera");
+        if (!Binder.TryResolveIdentifier(targetCameraIdentifier, out object result)) {
+            logger.LogWarning($"Could not resolve identifier {targetCameraIdentifier}");
 
-                    return false;
-                }
-
-                targetCamera = camera;
-                
-                break;
-            }
-            case LoadedExternalObjectReference reference: {
-                if (reference.LoadedObject is not Camera camera) {
-                    logger.LogWarning($"{reference.LoadedObject} is not a camera");
-
-                    return false;
-                }
-
-                targetCamera = camera;
-                
-                break;
-            }
-            default:
-                return false;
+            return false;
         }
 
+        if (result is not Camera camera) {
+            logger.LogWarning($"{targetCameraIdentifier} is not a camera");
+
+            return false;
+        }
+
+        targetCamera = camera;
         instance = Object.Instantiate(template.Asset);
         this.sceneManager = sceneManager;
-        sceneManager.AddPostProcessingInstance(instance, targetCamera);
+        sceneManager.AddPostProcessingInstance(instance, camera);
 
         return true;
     }
