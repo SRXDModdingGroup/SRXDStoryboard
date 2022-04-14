@@ -8,33 +8,41 @@ namespace StoryboardSystem;
 
 internal static class Compiler {
     public static bool TryCompileFile(string name, string directory, ILogger logger, out StoryboardData result) {
+        result = null;
+        
         string path = Path.Combine(directory, Path.ChangeExtension(name, ".txt"));
 
         if (!File.Exists(path)) {
             logger.LogMessage($"No file found for {name}");
-            result = null;
             
             return false;
         }
         
-        logger.LogMessage($"Attempting to compile {name}");
-
+        logger.LogMessage($"Attempting to parse {name}");
+        
         var watch = Stopwatch.StartNew();
 
-        if (!Parser.TryParseFile(path, logger, out var instructions))
+        if (!Parser.TryParseFile(path, logger, out var instructions)) {
             logger.LogWarning($"Failed to parse {name}");
-        else if (!TryCompile(instructions, logger, out result))
-            logger.LogWarning($"Failed to compile {name}");
-        else {
-            watch.Stop();
-            logger.LogMessage($"Successfully compiled {name} in {watch.ElapsedMilliseconds}ms");
 
-            return true;
+            return false;
+        }
+        
+        watch.Stop();
+        logger.LogMessage($"Successfully parsed {name} in {watch.ElapsedMilliseconds}ms");
+        logger.LogMessage($"Attempting to compile {name}");
+        watch.Restart();
+
+        if (!TryCompile(instructions, logger, out result)) {
+            logger.LogWarning($"Failed to compile {name}");
+
+            return false;
         }
 
-        result = null;
+        watch.Stop();
+        logger.LogMessage($"Successfully compiled {name} in {watch.ElapsedMilliseconds}ms");
 
-        return false;
+        return true;
     }
 
     private static bool TryCompile(List<Instruction> instructions, ILogger logger, out StoryboardData result) {

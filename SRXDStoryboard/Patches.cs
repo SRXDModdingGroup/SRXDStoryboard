@@ -62,10 +62,6 @@ public static class Patches {
 
         if (!Directory.Exists(customAssetBundlePath))
             Directory.CreateDirectory(customAssetBundlePath);
-
-        var mainCamera = MainCamera.Instance;
-        
-        Plugin.Logger.LogMessage(Layers.Background.Index);
         
         StoryboardManager.Create(
             new AssetBundleManager(customAssetBundlePath),

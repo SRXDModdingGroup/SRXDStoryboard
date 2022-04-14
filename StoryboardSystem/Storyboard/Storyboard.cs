@@ -73,32 +73,19 @@ public class Storyboard {
         }
     }
 
-    internal void Compile(ISceneManager sceneManager, ILogger logger, bool force = false) {
-        if (HasData && !force)
-            return;
-        
-        ClearData(logger);
-        
-        if (Compiler.TryCompileFile(name, directory, logger, out var result))
-            SetData(logger, result);
-    }
-
     internal void Recompile(bool force, IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
-        if (HasData && !force)
-            return;
-        
-        Compile(sceneManager, logger, force);
-
-        if (shouldOpenOnRecompile)
+        if (TryCompile(logger, force) && shouldOpenOnRecompile)
             Open(assetBundleManager, sceneManager, storyboardParams, logger);
     }
 
     internal void Open(IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
-        Close(logger);
+        Close();
         shouldOpenOnRecompile = true;
         
         if (!HasData)
             return;
+        
+        logger.LogMessage($"Attempting to open {name}");
 
         bool success = true;
         var watch = Stopwatch.StartNew();
@@ -119,7 +106,7 @@ public class Storyboard {
             success = reference.TryLoad(sceneManager, logger) && success;
 
         if (!success) {
-            Close(logger);
+            Close();
             
             return;
         }
@@ -138,7 +125,7 @@ public class Storyboard {
         }
 
         if (!success) {
-            Close(logger);
+            Close();
 
             return;
         }
@@ -153,7 +140,7 @@ public class Storyboard {
         logger.LogMessage($"Successfully opened {name} in {watch.ElapsedMilliseconds}ms");
     }
 
-    internal void Close(ILogger logger, bool clearOpenOnRecompile = false) {
+    internal void Close(bool clearOpenOnRecompile = false) {
         opened = false;
         bindings = null;
 
@@ -179,8 +166,8 @@ public class Storyboard {
             reference.Unload();
     }
 
-    private void SetData(ILogger logger, StoryboardData data) {
-        Close(logger);
+    private void SetData(StoryboardData data) {
+        ClearData();
         assetBundleReferences = data.AssetBundleReferences;
         assetReferences = data.AssetReferences;
         instanceReferences = data.InstanceReferences;
@@ -191,8 +178,8 @@ public class Storyboard {
         HasData = true;
     }
 
-    private void ClearData(ILogger logger) {
-        Close(logger);
+    private void ClearData() {
+        Close();
         assetBundleReferences = null;
         assetReferences = null;
         instanceReferences = null;
@@ -201,5 +188,14 @@ public class Storyboard {
         timelineBuilders = null;
         outParams = null;
         HasData = false;
+    }
+
+    internal bool TryCompile(ILogger logger, bool force = false) {
+        if (HasData && !force || !Compiler.TryCompileFile(name, directory, logger, out var data))
+            return false;
+        
+        SetData(data);
+
+        return true;
     }
 }

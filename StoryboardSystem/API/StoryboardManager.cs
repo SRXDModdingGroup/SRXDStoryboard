@@ -25,7 +25,7 @@ public class StoryboardManager : MonoBehaviour {
     public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams storyboardParams) {
         if (currentStoryboard != null) {
             currentStoryboard.Stop();
-            currentStoryboard.Close(logger, true);
+            currentStoryboard.Close(true);
         }
         
         currentStoryboard = storyboard;
@@ -33,7 +33,7 @@ public class StoryboardManager : MonoBehaviour {
         if (storyboard == null)
             return;
         
-        storyboard.Compile(sceneManager, logger);
+        storyboard.TryCompile(logger);
         storyboard.Open(assetBundleManager, sceneManager, storyboardParams, logger);
     }
 
@@ -55,15 +55,12 @@ public class StoryboardManager : MonoBehaviour {
         if (storyboards.TryGetValue(key, out storyboard))
             return true;
 
-        if (!File.Exists(Path.Combine(directory, Path.ChangeExtension(name, ".txt")))) {
-            logger.LogMessage($"File {Path.Combine(directory, Path.ChangeExtension(name, ".txt"))} not found");
-            
+        if (!File.Exists(Path.Combine(directory, Path.ChangeExtension(name, ".txt"))))
             return false;
-        }
 
         storyboard = new Storyboard(name, directory);
         storyboards.Add(key, storyboard);
-        storyboard.Compile(sceneManager, logger);
+        storyboard.TryCompile(logger);
 
         return true;
     }
