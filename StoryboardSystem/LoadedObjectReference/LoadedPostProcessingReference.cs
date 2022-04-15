@@ -26,13 +26,13 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
     }
 
     public override void Unload(ISceneManager sceneManager) {
-        if (instance != null && sceneManager != null)
-            sceneManager.RemovePostProcessingInstance(instance, targetCamera);
+        if (instance != null && this.sceneManager != null)
+            this.sceneManager.RemovePostProcessingInstance(instance, targetCamera);
         
         if (instance != null)
             Object.Destroy(instance);
         
-        sceneManager = null;
+        this.sceneManager = null;
         instance = null;
         targetCamera = null;
     }
