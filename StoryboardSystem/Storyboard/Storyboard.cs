@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 
 namespace StoryboardSystem; 
 
@@ -146,6 +147,56 @@ public class Storyboard {
         
         SetData(data, sceneManager);
 
+        string tempName = Path.GetTempFileName();
+        bool success;
+        
+        logger.LogMessage($"Attempting to save {name}");
+
+        var watch = Stopwatch.StartNew();
+        
+        using (var writer = new BinaryWriter(File.Create(tempName)))
+            success = data.TrySerialize(writer);
+        
+        watch.Stop();
+
+        if (success) {
+            File.Copy(tempName, Path.Combine(directory, Path.ChangeExtension(name, ".bin")), true);
+            logger.LogMessage($"Successfully saved {name} in {watch.ElapsedMilliseconds}ms");
+        }
+        else
+            logger.LogWarning($"Failed to save {name}");
+
         return true;
+    }
+
+    internal bool TryLoad(ISceneManager sceneManager, ILogger logger, bool force = false) {
+        if (HasData && !force)
+            return true;
+        
+        string path = Path.Combine(directory, Path.ChangeExtension(name, ".bin"));
+
+        if (!File.Exists(path))
+            return false;
+
+        StoryboardData data;
+        bool success;
+        
+        logger.LogMessage($"Attempting to load {name}");
+
+        var watch = Stopwatch.StartNew();
+
+        using (var reader = new BinaryReader(File.OpenRead(path)))
+            success = StoryboardData.TryDeserialize(reader, out data);
+        
+        watch.Stop();
+
+        if (success) {
+            logger.LogMessage($"Successfully loaded {name} in {watch.ElapsedMilliseconds}ms");
+            SetData(data, sceneManager);
+        }
+        else
+            logger.LogWarning($"Failed to load {name}");
+
+        return success;
     }
 }

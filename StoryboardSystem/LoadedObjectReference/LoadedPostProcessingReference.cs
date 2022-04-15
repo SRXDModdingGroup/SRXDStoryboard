@@ -21,6 +21,7 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
     public void SetEnabled(bool enabled) => sceneManager.SetPostProcessingInstanceEnabled(instance, targetCamera, enabled);
 
     public override void Serialize(BinaryWriter writer) {
+        writer.Write((int) ObjectReferenceType.PostProcessing);
         writer.Write(assetReferenceIndex);
         targetCameraIdentifier.Serialize(writer);
     }
@@ -80,5 +81,12 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
         sceneManager.AddPostProcessingInstance(instance, camera);
 
         return true;
+    }
+
+    public static LoadedPostProcessingReference Deserialize(BinaryReader reader) {
+        int assetReferenceIndex = reader.ReadInt32();
+        var targetCameraIdentifier = Identifier.Deserialize(reader);
+
+        return new LoadedPostProcessingReference(assetReferenceIndex, targetCameraIdentifier);
     }
 }

@@ -17,7 +17,7 @@ internal class Identifier {
         hash = HashUtility.Combine(referenceIndex, HashUtility.Combine(sequence));
     }
 
-    public bool Serialize(BinaryWriter writer) {
+    public void Serialize(BinaryWriter writer) {
         writer.Write(ReferenceIndex);
         writer.Write(Sequence.Length);
         
@@ -31,14 +31,8 @@ internal class Identifier {
                     writer.Write(true);
                     writer.Write(stringVal);
                     continue;
-                default:
-                    writer.Write(false);
-                    writer.Write(0);
-                    continue;
             }
         }
-
-        return true;
     }
 
     public override bool Equals(object obj) => obj is Identifier other && this == other;
@@ -84,4 +78,19 @@ internal class Identifier {
     }
 
     public static bool operator !=(Identifier a, Identifier b) => !(a == b);
+
+    public static Identifier Deserialize(BinaryReader reader) {
+        int referenceIndex = reader.ReadInt32();
+        int sequenceLength = reader.ReadInt32();
+        object[] sequence = new object[sequenceLength];
+
+        for (int i = 0; i < sequenceLength; i++) {
+            if (reader.ReadBoolean())
+                sequence[i] = reader.ReadString();
+            else
+                sequence[i] = reader.ReadInt32();
+        }
+
+        return new Identifier(referenceIndex, sequence);
+    }
 }

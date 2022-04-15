@@ -23,6 +23,7 @@ internal class LoadedInstanceReference : LoadedObjectReference {
     }
 
     public override void Serialize(BinaryWriter writer) {
+        writer.Write((int) ObjectReferenceType.Instance);
         writer.Write(assetReferenceIndex);
         writer.Write(name);
         parentIdentifier.Serialize(writer);
@@ -103,5 +104,14 @@ internal class LoadedInstanceReference : LoadedObjectReference {
         sceneManager.InitializeObject(instance);
 
         return true;
+    }
+
+    public static LoadedInstanceReference Deserialize(BinaryReader reader) {
+        int assetReferenceIndex = reader.ReadInt32();
+        string name = reader.ReadString();
+        var parentIdentifier = Identifier.Deserialize(reader);
+        int layer = reader.ReadInt32();
+
+        return new LoadedInstanceReference(assetReferenceIndex, name, parentIdentifier, layer);
     }
 }

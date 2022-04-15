@@ -21,6 +21,7 @@ internal class LoadedAssetReference : LoadedObjectReference {
     }
 
     public override void Serialize(BinaryWriter writer) {
+        writer.Write((int) ObjectReferenceType.Asset);
         writer.Write(assetBundleReferenceIndex);
         writer.Write(AssetName);
     }
@@ -48,5 +49,12 @@ internal class LoadedAssetReference : LoadedObjectReference {
         logger.LogWarning($"Failed to load asset {AssetName}");
 
         return false;
+    }
+
+    public static LoadedAssetReference Deserialize(BinaryReader reader) {
+        int assetBundleReferenceIndex = reader.ReadInt32();
+        string assetName = reader.ReadString();
+
+        return new LoadedAssetReference(assetBundleReferenceIndex, assetName);
     }
 }

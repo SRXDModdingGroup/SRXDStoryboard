@@ -11,7 +11,10 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
     
     public LoadedExternalObjectReference(string name) => this.name = name;
 
-    public override void Serialize(BinaryWriter writer) => writer.Write(name);
+    public override void Serialize(BinaryWriter writer) {
+        writer.Write((int) ObjectReferenceType.ExternalObject);
+        writer.Write(name);
+    }
 
     public override void Unload(ISceneManager sceneManager) => externalObject = null;
 
@@ -25,4 +28,6 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
 
         return false;
     }
+
+    public static LoadedExternalObjectReference Deserialize(BinaryReader reader) => new(reader.ReadString());
 }

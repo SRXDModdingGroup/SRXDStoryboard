@@ -32,7 +32,9 @@ public class StoryboardManager : MonoBehaviour {
         if (storyboard == null)
             return;
         
-        storyboard.TryCompile(sceneManager, logger);
+        if (!storyboard.TryLoad(sceneManager, logger))
+            storyboard.TryCompile(sceneManager, logger);
+        
         storyboard.Open(sceneManager, storyboardParams, logger);
     }
 
@@ -59,7 +61,9 @@ public class StoryboardManager : MonoBehaviour {
 
         storyboard = new Storyboard(name, directory);
         storyboards.Add(key, storyboard);
-        storyboard.TryCompile(sceneManager, logger);
+        
+        if (!storyboard.TryLoad(sceneManager, logger))
+            storyboard.TryCompile(sceneManager, logger);
 
         return true;
     }

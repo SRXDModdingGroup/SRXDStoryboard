@@ -13,7 +13,10 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
 
     public LoadedAssetBundleReference(string bundleName) => this.bundleName = bundleName;
 
-    public override void Serialize(BinaryWriter writer) => writer.Write(bundleName);
+    public override void Serialize(BinaryWriter writer) {
+        writer.Write((int) ObjectReferenceType.AssetBundle);
+        writer.Write(bundleName);
+    }
 
     public override void Unload(ISceneManager sceneManager) {
         sceneManager.UnloadAssetBundle(bundleName);
@@ -32,4 +35,6 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
 
         return false;
     }
+
+    public static LoadedAssetBundleReference Deserialize(BinaryReader reader) => new(reader.ReadString());
 }

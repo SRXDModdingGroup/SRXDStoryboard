@@ -41,4 +41,24 @@ internal readonly struct KeyframeBuilder {
 
         return true;
     }
+
+    public static bool TryDeserialize(BinaryReader reader, out KeyframeBuilder keyframeBuilder) {
+        float measures = reader.ReadSingle();
+        float beats = reader.ReadSingle();
+        float ticks = reader.ReadSingle();
+        float seconds = reader.ReadSingle();
+
+        if (!SerializationUtility.TryDeserialize(reader, out object value)) {
+            keyframeBuilder = default;
+            
+            return false;
+        }
+
+        var interpType = (InterpType) reader.ReadInt32();
+        int order = reader.ReadInt32();
+
+        keyframeBuilder = new KeyframeBuilder(new Timestamp(measures, beats, ticks, seconds), value, interpType, order);
+
+        return true;
+    }
 }
