@@ -28,25 +28,19 @@ internal readonly struct KeyframeBuilder {
     }
 
     public bool TrySerialize(BinaryWriter writer) {
-        writer.Write(time.Measures);
-        writer.Write(time.Beats);
-        writer.Write(time.Ticks);
-        writer.Write(time.Seconds);
+        time.Serialize(writer);
 
         if (!SerializationUtility.TrySerialize(value, writer))
             return false;
         
-        writer.Write((int) interpType);
+        writer.Write((byte) interpType);
         writer.Write(order);
 
         return true;
     }
 
     public static bool TryDeserialize(BinaryReader reader, out KeyframeBuilder keyframeBuilder) {
-        float measures = reader.ReadSingle();
-        float beats = reader.ReadSingle();
-        float ticks = reader.ReadSingle();
-        float seconds = reader.ReadSingle();
+        var time = Timestamp.Deserialize(reader);
 
         if (!SerializationUtility.TryDeserialize(reader, out object value)) {
             keyframeBuilder = default;
@@ -54,10 +48,10 @@ internal readonly struct KeyframeBuilder {
             return false;
         }
 
-        var interpType = (InterpType) reader.ReadInt32();
+        var interpType = (InterpType) reader.ReadByte();
         int order = reader.ReadInt32();
 
-        keyframeBuilder = new KeyframeBuilder(new Timestamp(measures, beats, ticks, seconds), value, interpType, order);
+        keyframeBuilder = new KeyframeBuilder(time, value, interpType, order);
 
         return true;
     }

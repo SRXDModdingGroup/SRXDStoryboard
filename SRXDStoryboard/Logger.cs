@@ -11,4 +11,6 @@ public class Logger : ILogger {
     public void LogMessage(string message) => logSource.LogMessage(message);
 
     public void LogWarning(string warning) => logSource.LogWarning(warning);
+    
+    public void LogError(string error) => logSource.LogError(error);
 }

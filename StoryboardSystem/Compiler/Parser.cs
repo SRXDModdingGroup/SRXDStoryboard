@@ -46,7 +46,7 @@ internal static class Parser {
                 if (arguments.Length > 0)
                     Array.Copy(tokens, 1, arguments, 0, arguments.Length);
                 
-                instructions.Add(new Instruction(opcode, arguments, lineIndex));
+                instructions.Add(new Instruction(opcode, arguments, new object[arguments.Length], lineIndex));
             }
         }
 

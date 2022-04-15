@@ -65,7 +65,7 @@ internal static class Compiler {
                 continue;
             
             object[] arguments = instruction.Arguments;
-            object[] resolvedArguments = new object[arguments.Length];
+            object[] resolvedArguments = instruction.ResolvedArguments;
 
             for (int j = 0; j < arguments.Length; j++) {
                 if (TryResolveArgument(arguments[j], globalScope, logger, out resolvedArguments[j], false))
@@ -277,7 +277,7 @@ internal static class Compiler {
             var instruction = instructions[index1];
             var opcode = instruction.Opcode;
             object[] arguments = instruction.Arguments;
-            object[] resolvedArguments = new object[arguments.Length];
+            object[] resolvedArguments = instruction.ResolvedArguments;
             
             for (int i = 0; i < arguments.Length; i++) {
                 if (TryResolveArgument(arguments[i], currentScope, logger, out resolvedArguments[i], false))
@@ -459,6 +459,8 @@ internal static class Compiler {
         switch (result) {
             case object[] arr: {
                 object[] newArr = new object[arr.Length];
+                
+                
             
                 for (int i = 0; i < arr.Length; i++) {
                     if (!TryResolveArgument(arr[i], scope, logger, out newArr[i], true))
@@ -618,7 +620,7 @@ internal static class Compiler {
     }
 
     private static bool TryGetArguments<T>(object[] arguments, Scope scope, ILogger logger, out T arg, bool unlimited = false) {
-        if ((unlimited ? arguments.Length >= 1 : arguments.Length == 1)
+        if ((arguments.Length == 1 || unlimited && arguments.Length > 1)
             && TryCastArgument(arguments[0], scope, logger, out arg))
             return true;
 
@@ -627,7 +629,7 @@ internal static class Compiler {
         return false;
     }
     private static bool TryGetArguments<T0, T1>(object[] arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, bool unlimited = false) {
-        if ((unlimited ? arguments.Length >= 2 : arguments.Length == 2)
+        if ((arguments.Length == 2 || unlimited && arguments.Length > 2)
             && TryCastArgument(arguments[0], scope, logger, out arg0)
             && TryCastArgument(arguments[1], scope, logger, out arg1))
             return true;
@@ -638,7 +640,7 @@ internal static class Compiler {
         return false;
     }
     private static bool TryGetArguments<T0, T1, T2>(object[] arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, out T2 arg2, bool unlimited = false) {
-        if ((unlimited ? arguments.Length >= 3 : arguments.Length == 3)
+        if ((arguments.Length == 3 || unlimited && arguments.Length > 3)
             && TryCastArgument(arguments[0], scope, logger, out arg0)
             && TryCastArgument(arguments[1], scope, logger, out arg1)
             && TryCastArgument(arguments[2], scope, logger, out arg2))
@@ -651,7 +653,7 @@ internal static class Compiler {
         return false;
     }
     private static bool TryGetArguments<T0, T1, T2, T3>(object[] arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, bool unlimited = false) {
-        if ((unlimited ? arguments.Length >= 4 : arguments.Length == 4)
+        if ((arguments.Length == 4 || unlimited && arguments.Length > 4)
             && TryCastArgument(arguments[0], scope, logger, out arg0)
             && TryCastArgument(arguments[1], scope, logger, out arg1)
             && TryCastArgument(arguments[2], scope, logger, out arg2)
@@ -666,7 +668,7 @@ internal static class Compiler {
         return false;
     }
     private static bool TryGetArguments<T0, T1, T2, T3, T4>(object[] arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, out T4 arg4, bool unlimited = false) {
-        if ((unlimited ? arguments.Length >= 5 : arguments.Length == 5)
+        if ((arguments.Length == 5 || unlimited && arguments.Length > 5)
             && TryCastArgument(arguments[0], scope, logger, out arg0)
             && TryCastArgument(arguments[1], scope, logger, out arg1)
             && TryCastArgument(arguments[2], scope, logger, out arg2)

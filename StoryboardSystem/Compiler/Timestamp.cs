@@ -1,4 +1,6 @@
-﻿namespace StoryboardSystem; 
+﻿using System.IO;
+
+namespace StoryboardSystem; 
 
 internal class Timestamp {
     public static Timestamp Zero => new(0, 0, 0f, 0f);
@@ -16,6 +18,68 @@ internal class Timestamp {
         Beats = beats;
         Ticks = ticks;
         Seconds = seconds;
+    }
+
+    public void Serialize(BinaryWriter writer) {
+        if (Measures == 0f)
+            writer.Write(false);
+        else {
+            writer.Write(true);
+            writer.Write(Measures);
+        }
+        
+        if (Beats == 0f)
+            writer.Write(false);
+        else {
+            writer.Write(true);
+            writer.Write(Beats);
+        }
+        
+        if (Ticks == 0f)
+            writer.Write(false);
+        else {
+            writer.Write(true);
+            writer.Write(Ticks);
+        }
+        
+        if (Seconds == 0f)
+            writer.Write(false);
+        else {
+            writer.Write(true);
+            writer.Write(Seconds);
+        }
+    }
+
+    public static Timestamp Deserialize(BinaryReader reader) {
+        float measures;
+
+        if (reader.ReadBoolean())
+            measures = reader.ReadSingle();
+        else
+            measures = 0f;
+        
+        float beats;
+
+        if (reader.ReadBoolean())
+            beats = reader.ReadSingle();
+        else
+            beats = 0f;
+        
+        float ticks;
+
+        if (reader.ReadBoolean())
+            ticks = reader.ReadSingle();
+        else
+            ticks = 0f;
+        
+        float seconds;
+
+        if (reader.ReadBoolean())
+            seconds = reader.ReadSingle();
+        else
+            seconds = 0f;
+
+        return new Timestamp(measures, beats, ticks, seconds);
     }
 
     public static Timestamp operator +(Timestamp a, Timestamp b) => new(a.Measures + b.Measures, a.Beats + b.Beats, a.Ticks + b.Ticks, a.Seconds + b.Seconds);

@@ -146,16 +146,21 @@ public class Storyboard {
             return false;
         
         SetData(data, sceneManager);
-
+        logger.LogMessage($"Attempting to save {name}");
+        
         string tempName = Path.GetTempFileName();
         bool success;
-        
-        logger.LogMessage($"Attempting to save {name}");
-
         var watch = Stopwatch.StartNew();
-        
-        using (var writer = new BinaryWriter(File.Create(tempName)))
+
+        try {
+            using var writer = new BinaryWriter(File.Create(tempName));
+            
             success = data.TrySerialize(writer);
+        }
+        catch (IOException e) {
+            logger.LogError(e.Message);
+            success = false;
+        }
         
         watch.Stop();
 
@@ -177,16 +182,23 @@ public class Storyboard {
 
         if (!File.Exists(path))
             return false;
-
-        StoryboardData data;
-        bool success;
         
         logger.LogMessage($"Attempting to load {name}");
 
+        StoryboardData data;
+        bool success;
         var watch = Stopwatch.StartNew();
 
-        using (var reader = new BinaryReader(File.OpenRead(path)))
+        try {
+            using var reader = new BinaryReader(File.OpenRead(path));
+            
             success = StoryboardData.TryDeserialize(reader, out data);
+        }
+        catch (IOException e) {
+            logger.LogError(e.Message);
+            success = false;
+            data = null;
+        }
         
         watch.Stop();
 
