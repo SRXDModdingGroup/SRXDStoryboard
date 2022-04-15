@@ -1,43 +1,46 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace StoryboardSystem;
 
-internal abstract class LoadedAssetReference : LoadedObjectReference {
-    public abstract void Unload();
-
-    public abstract bool TryLoad(ILogger logger);
-    
-    public abstract LoadedInstanceReference CreateInstanceReference(string name, Identifier parentIdentifier, int layer);
-
-    public static LoadedAssetReference Create(LoadedAssetBundleReference assetBundleReference, string assetName, AssetType type) => type switch {
-        AssetType.Material => new LoadedAssetReference<Material>(assetBundleReference, assetName),
-        AssetType.Mesh => new LoadedAssetReference<Mesh>(assetBundleReference, assetName),
-        AssetType.Prefab => new LoadedAssetReference<GameObject>(assetBundleReference, assetName),
-        AssetType.Sprite => new LoadedAssetReference<Sprite>(assetBundleReference, assetName),
-        AssetType.Texture => new LoadedAssetReference<Texture>(assetBundleReference, assetName),
-        _ => null
-    };
-}
-
-internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
+internal class LoadedAssetReference : LoadedObjectReference {
     public override object LoadedObject => Asset;
-
-    public T Asset { get; private set; }
-
+    
     public string AssetName { get; }
     
-    private LoadedAssetBundleReference assetBundleReference;
+    public Object Asset { get; private set; }
 
-    public LoadedAssetReference(LoadedAssetBundleReference assetBundleReference, string assetName) {
+    private int assetBundleReferenceIndex;
+
+    public LoadedAssetReference(int assetBundleReferenceIndex, string assetName) {
+        this.assetBundleReferenceIndex = assetBundleReferenceIndex;
         AssetName = assetName;
-        this.assetBundleReference = assetBundleReference;
     }
 
-    public override void Unload() => Asset = null;
+    public override void Serialize(BinaryWriter writer) {
+        writer.Write(assetBundleReferenceIndex);
+        writer.Write(AssetName);
+    }
 
-    public override bool TryLoad(ILogger logger) {
-        Asset = assetBundleReference.Bundle.LoadAsset<T>(AssetName);
+    public override void Unload(ISceneManager sceneManager) => Asset = null;
+
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
+        if (assetBundleReferenceIndex < 0 || assetBundleReferenceIndex >= objectReferences.Count) {
+            logger.LogWarning($"Reference index for {AssetName} is not valid");
+
+            return false;
+        }
+
+        if (objectReferences[assetBundleReferenceIndex] is not LoadedAssetBundleReference assetBundleReference) {
+            logger.LogWarning($"{objectReferences[assetBundleReferenceIndex]} is not an asset bundle");
+
+            return false;
+        }
+        
+        Asset = assetBundleReference.Bundle.LoadAsset(AssetName);
 
         if (Asset != null)
             return true;
@@ -46,6 +49,4 @@ internal class LoadedAssetReference<T> : LoadedAssetReference where T : Object {
 
         return false;
     }
-
-    public override LoadedInstanceReference CreateInstanceReference(string name, Identifier parentIdentifier, int layer) => new LoadedInstanceReference<T>(this, name, parentIdentifier, layer);
 }

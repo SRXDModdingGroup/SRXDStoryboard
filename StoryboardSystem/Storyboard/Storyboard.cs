@@ -12,12 +12,8 @@ public class Storyboard {
     private float lastTime;
     private string name;
     private string directory;
-    private LoadedExternalObjectReference[] externalObjectReferences;
-    private LoadedAssetBundleReference[] assetBundleReferences;
-    private LoadedAssetReference[] assetReferences;
-    private LoadedInstanceReference[] instanceReferences;
-    private LoadedPostProcessingReference[] postProcessingReferences;
-    private TimelineBuilder[] timelineBuilders;
+    private List<LoadedObjectReference> objectReferences;
+    private List<TimelineBuilder> timelineBuilders;
     private Dictionary<string, object> outParams;
     private Binding[] bindings;
 
@@ -42,24 +38,10 @@ public class Storyboard {
 
     internal void Play() {
         active = true;
-
-        if (opened) {
-            foreach (var reference in postProcessingReferences)
-                reference.SetStoryboardActive(true);
-        }
-        
         Evaluate(lastTime, false);
     }
 
-    internal void Stop() {
-        active = false;
-
-        if (!opened)
-            return;
-            
-        foreach (var reference in postProcessingReferences)
-            reference.SetStoryboardActive(false);
-    }
+    internal void Stop() => active = false;
 
     internal void Evaluate(float time, bool triggerEvents) {
         lastTime = time;
@@ -73,13 +55,13 @@ public class Storyboard {
         }
     }
 
-    internal void Recompile(bool force, IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
-        if (TryCompile(logger, force) && shouldOpenOnRecompile)
-            Open(assetBundleManager, sceneManager, storyboardParams, logger);
+    internal void Recompile(bool force, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
+        if (TryCompile(sceneManager, logger, force) && shouldOpenOnRecompile)
+            Open(sceneManager, storyboardParams, logger);
     }
 
-    internal void Open(IAssetBundleManager assetBundleManager, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
-        Close();
+    internal void Open(ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger) {
+        Close(sceneManager);
         shouldOpenOnRecompile = true;
         
         if (!HasData)
@@ -89,32 +71,20 @@ public class Storyboard {
 
         bool success = true;
         var watch = Stopwatch.StartNew();
-        
-        foreach (var reference in externalObjectReferences)
-            success = reference.TryLoad(storyboardParams, logger) && success;
-        
-        foreach (var reference in assetBundleReferences)
-            success = reference.TryLoad(assetBundleManager, logger) && success;
-        
-        foreach (var reference in assetReferences)
-            success = reference.TryLoad(logger) && success;
-        
-        foreach (var reference in instanceReferences)
-            success = reference.TryLoad(sceneManager, logger) && success;
 
-        foreach (var reference in postProcessingReferences)
-            success = reference.TryLoad(sceneManager, logger) && success;
+        foreach (var reference in objectReferences)
+            success = reference.TryLoad(objectReferences, sceneManager, storyboardParams, logger) && success;
 
         if (!success) {
-            Close();
+            Close(sceneManager);
             
             return;
         }
 
-        bindings = new Binding[timelineBuilders.Length];
+        bindings = new Binding[timelineBuilders.Count];
 
-        for (int i = 0; i < timelineBuilders.Length; i++) {
-            if (timelineBuilders[i].TryCreateBinding(storyboardParams, logger, out var binding)) {
+        for (int i = 0; i < timelineBuilders.Count; i++) {
+            if (timelineBuilders[i].TryCreateBinding(objectReferences, storyboardParams, logger, out var binding)) {
                 bindings[i] = binding;
                 
                 continue;
@@ -125,7 +95,7 @@ public class Storyboard {
         }
 
         if (!success) {
-            Close();
+            Close(sceneManager);
 
             return;
         }
@@ -140,7 +110,7 @@ public class Storyboard {
         logger.LogMessage($"Successfully opened {name} in {watch.ElapsedMilliseconds}ms");
     }
 
-    internal void Close(bool clearOpenOnRecompile = false) {
+    internal void Close(ISceneManager sceneManager, bool clearOpenOnRecompile = false) {
         opened = false;
         bindings = null;
 
@@ -150,51 +120,31 @@ public class Storyboard {
         if (!HasData)
             return;
 
-        foreach (var reference in postProcessingReferences)
-            reference.Unload();
-
-        foreach (var reference in instanceReferences)
-            reference.Unload();
-
-        foreach (var reference in assetReferences)
-            reference.Unload();
-
-        foreach (var reference in assetBundleReferences)
-            reference.Unload();
-        
-        foreach (var reference in externalObjectReferences)
-            reference.Unload();
+        for (int i = objectReferences.Count - 1; i >= 0; i--)
+            objectReferences[i].Unload(sceneManager);
     }
 
-    private void SetData(StoryboardData data) {
-        ClearData();
-        assetBundleReferences = data.AssetBundleReferences;
-        assetReferences = data.AssetReferences;
-        instanceReferences = data.InstanceReferences;
-        postProcessingReferences = data.PostProcessingReferences;
-        externalObjectReferences = data.ExternalObjectReferences;
+    private void SetData(StoryboardData data, ISceneManager sceneManager) {
+        ClearData(sceneManager);
+        objectReferences = data.ObjectReferences;
         timelineBuilders = data.TimelineBuilders;
         outParams = data.OutParams;
         HasData = true;
     }
 
-    private void ClearData() {
-        Close();
-        assetBundleReferences = null;
-        assetReferences = null;
-        instanceReferences = null;
-        postProcessingReferences = null;
-        externalObjectReferences = null;
+    private void ClearData(ISceneManager sceneManager) {
+        Close(sceneManager);
+        objectReferences = null;
         timelineBuilders = null;
         outParams = null;
         HasData = false;
     }
 
-    internal bool TryCompile(ILogger logger, bool force = false) {
+    internal bool TryCompile(ISceneManager sceneManager, ILogger logger, bool force = false) {
         if (HasData && !force || !Compiler.TryCompileFile(name, directory, logger, out var data))
             return false;
         
-        SetData(data);
+        SetData(data, sceneManager);
 
         return true;
     }

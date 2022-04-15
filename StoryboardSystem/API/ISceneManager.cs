@@ -12,4 +12,8 @@ public interface ISceneManager {
     void RemovePostProcessingInstance(Material material, Camera targetCamera);
 
     void SetPostProcessingInstanceEnabled(Material material, Camera targetCamera, bool enabled);
+    
+    void UnloadAssetBundle(string bundleName);
+    
+    bool TryGetAssetBundle(string bundleName, out AssetBundle bundle);
 }

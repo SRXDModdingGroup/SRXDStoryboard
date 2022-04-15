@@ -134,8 +134,6 @@ internal static class Parser {
             token = opcode;
         else if (Enum.TryParse<InterpType>(str, true, out var interpType))
             token = interpType;
-        else if (Enum.TryParse<AssetType>(str, true, out var assetType))
-            token = assetType;
         else if (!TryParseArray(str, lineIndex, logger, out token)
                  && !TryParseFuncCall(str, lineIndex, logger, out token)
                  && !TryParseChain(str, lineIndex, logger, out token)) {

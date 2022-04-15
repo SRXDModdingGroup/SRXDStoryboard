@@ -8,7 +8,6 @@ public class StoryboardManager : MonoBehaviour {
     public static StoryboardManager Instance { get; private set; }
 
     private ILogger logger;
-    private IAssetBundleManager assetBundleManager;
     private ISceneManager sceneManager;
     private Storyboard currentStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
@@ -25,7 +24,7 @@ public class StoryboardManager : MonoBehaviour {
     public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams storyboardParams) {
         if (currentStoryboard != null) {
             currentStoryboard.Stop();
-            currentStoryboard.Close(true);
+            currentStoryboard.Close(sceneManager, true);
         }
         
         currentStoryboard = storyboard;
@@ -33,12 +32,12 @@ public class StoryboardManager : MonoBehaviour {
         if (storyboard == null)
             return;
         
-        storyboard.TryCompile(logger);
-        storyboard.Open(assetBundleManager, sceneManager, storyboardParams, logger);
+        storyboard.TryCompile(sceneManager, logger);
+        storyboard.Open(sceneManager, storyboardParams, logger);
     }
 
     public void RecompileCurrentStoryboard(IStoryboardParams storyboardParams)
-        => currentStoryboard?.Recompile(true, assetBundleManager, sceneManager, storyboardParams, logger);
+        => currentStoryboard?.Recompile(true, sceneManager, storyboardParams, logger);
 
     public bool TryGetStoryboard(string directory, string name, out Storyboard storyboard)
         => storyboards.TryGetValue(Path.Combine(directory, name), out storyboard);
@@ -60,19 +59,18 @@ public class StoryboardManager : MonoBehaviour {
 
         storyboard = new Storyboard(name, directory);
         storyboards.Add(key, storyboard);
-        storyboard.TryCompile(logger);
+        storyboard.TryCompile(sceneManager, logger);
 
         return true;
     }
 
-    public static void Create(IAssetBundleManager assetBundleManager, ISceneManager sceneManager,  ILogger logger) {
+    public static void Create(ISceneManager sceneManager,  ILogger logger) {
         if (Instance != null)
             return;
         
         var gameObject = new GameObject("Storyboard Manager");
         
         Instance = gameObject.AddComponent<StoryboardManager>();
-        Instance.assetBundleManager = assetBundleManager;
         Instance.sceneManager = sceneManager;
         Instance.logger = logger;
     }

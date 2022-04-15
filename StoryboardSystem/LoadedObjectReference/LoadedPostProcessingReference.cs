@@ -1,32 +1,31 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
 
 namespace StoryboardSystem; 
 
 internal class LoadedPostProcessingReference : LoadedObjectReference {
     public override object LoadedObject => instance;
-    
-    private bool enabled = true;
-    public bool Enabled {
-        get => enabled;
-        set {
-            enabled = value;
-            UpdateEnabled();
-        }
-    }
 
-    private bool storyboardActive;
-    private LoadedAssetReference<Material> template;
+    private int assetReferenceIndex;
     private Identifier targetCameraIdentifier;
     private ISceneManager sceneManager;
     private Camera targetCamera;
     private Material instance;
 
-    public LoadedPostProcessingReference(LoadedAssetReference<Material> template, Identifier targetCameraIdentifier) {
-        this.template = template;
+    public LoadedPostProcessingReference(int assetReferenceIndex, Identifier targetCameraIdentifier) {
+        this.assetReferenceIndex = assetReferenceIndex;
         this.targetCameraIdentifier = targetCameraIdentifier;
     }
+    
+    public void SetEnabled(bool enabled) => sceneManager.SetPostProcessingInstanceEnabled(instance, targetCamera, enabled);
 
-    public void Unload() {
+    public override void Serialize(BinaryWriter writer) {
+        writer.Write(assetReferenceIndex);
+        targetCameraIdentifier.Serialize(writer);
+    }
+
+    public override void Unload(ISceneManager sceneManager) {
         if (instance != null && sceneManager != null)
             sceneManager.RemovePostProcessingInstance(instance, targetCamera);
         
@@ -38,19 +37,32 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
         targetCamera = null;
     }
 
-    public void SetStoryboardActive(bool storyboardActive) {
-        this.storyboardActive = storyboardActive;
-        UpdateEnabled();
-    }
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
+        if (assetReferenceIndex < 0 || assetReferenceIndex >= objectReferences.Count) {
+            logger.LogWarning($"Reference index is not valid");
 
-    public bool TryLoad(ISceneManager sceneManager, ILogger logger) {
-        if (template.Asset == null) {
-            logger.LogWarning($"Failed to create instance of {template.AssetName}");
+            return false;
+        }
+        
+        if (objectReferences[assetReferenceIndex] is not LoadedAssetReference assetReference) {
+            logger.LogWarning($"{objectReferences[assetReferenceIndex]} is not an asset reference");
+
+            return false;
+        }
+        
+        if (assetReference.Asset == null) {
+            logger.LogWarning($"Failed to create instance of {assetReference.AssetName}");
+            
+            return false;
+        }
+        
+        if (assetReference.Asset is not Material material) {
+            logger.LogWarning($"{assetReference.AssetName} is not a material");
             
             return false;
         }
 
-        if (!Binder.TryResolveIdentifier(targetCameraIdentifier, out object result)) {
+        if (!Binder.TryResolveIdentifier(targetCameraIdentifier, objectReferences, logger, out object result)) {
             logger.LogWarning($"Could not resolve identifier {targetCameraIdentifier}");
 
             return false;
@@ -63,12 +75,10 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
         }
 
         targetCamera = camera;
-        instance = Object.Instantiate(template.Asset);
+        instance = Object.Instantiate(material);
         this.sceneManager = sceneManager;
         sceneManager.AddPostProcessingInstance(instance, camera);
 
         return true;
     }
-
-    private void UpdateEnabled() => sceneManager.SetPostProcessingInstanceEnabled(instance, targetCamera, enabled && storyboardActive);
 }

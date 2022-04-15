@@ -1,18 +1,44 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 namespace StoryboardSystem; 
 
 internal class Identifier {
-    public LoadedObjectReference Reference { get; }
+    public int ReferenceIndex { get; }
     
     public object[] Sequence { get; }
 
     private readonly int hash;
 
-    public Identifier(LoadedObjectReference reference, object[] sequence) {
-        Reference = reference;
+    public Identifier(int referenceIndex, object[] sequence) {
+        ReferenceIndex = referenceIndex;
         Sequence = sequence;
-        hash = HashUtility.Combine(reference, HashUtility.Combine(sequence));
+        hash = HashUtility.Combine(referenceIndex, HashUtility.Combine(sequence));
+    }
+
+    public bool Serialize(BinaryWriter writer) {
+        writer.Write(ReferenceIndex);
+        writer.Write(Sequence.Length);
+        
+        foreach (object obj in Sequence) {
+            switch (obj) {
+                case int intVal:
+                    writer.Write(false);
+                    writer.Write(intVal);
+                    continue;
+                case string stringVal:
+                    writer.Write(true);
+                    writer.Write(stringVal);
+                    continue;
+                default:
+                    writer.Write(false);
+                    writer.Write(0);
+                    continue;
+            }
+        }
+
+        return true;
     }
 
     public override bool Equals(object obj) => obj is Identifier other && this == other;
@@ -20,7 +46,7 @@ internal class Identifier {
     public override int GetHashCode() => hash;
 
     public override string ToString() {
-        var builder = new StringBuilder($"Reference_{Reference.GetHashCode()}");
+        var builder = new StringBuilder($"Reference_{ReferenceIndex}");
 
         foreach (object item in Sequence) {
             switch (item) {
@@ -46,7 +72,7 @@ internal class Identifier {
         if (a is null || b is null)
             return a is null && b is null;
         
-        if (a.hash != b.hash || a.Reference != b.Reference || a.Sequence.Length != b.Sequence.Length)
+        if (a.hash != b.hash || a.ReferenceIndex != b.ReferenceIndex || a.Sequence.Length != b.Sequence.Length)
             return false;
 
         for (int i = 0; i < a.Sequence.Length; i++) {

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using SMU;
 using SRXDPostProcessing;
 using StoryboardSystem;
 using UnityEngine;
@@ -6,7 +7,12 @@ using UnityEngine;
 namespace SRXDStoryboard; 
 
 public class SceneManager : ISceneManager {
+    private string customAssetBundlePath;
     private Dictionary<PostProcessingInfo, PostProcessingInstance> postProcessingInstances = new();
+
+    public SceneManager(string customAssetBundlePath) {
+        this.customAssetBundlePath = customAssetBundlePath;
+    }
 
     public void Update(float time, bool triggerEvents) { }
 
@@ -38,4 +44,9 @@ public class SceneManager : ISceneManager {
         if (postProcessingInstances.TryGetValue(new PostProcessingInfo(material, targetCamera), out var instance))
             instance.Enabled = enabled;
     }
+
+    public void UnloadAssetBundle(string bundleName) => AssetBundleUtility.UnloadAssetBundle(customAssetBundlePath, bundleName);
+
+    public bool TryGetAssetBundle(string bundleName, out AssetBundle bundle)
+        => AssetBundleUtility.TryGetAssetBundle(customAssetBundlePath, bundleName, out bundle);
 }

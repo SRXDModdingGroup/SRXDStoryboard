@@ -1,4 +1,7 @@
-﻿namespace StoryboardSystem; 
+﻿using System.Collections.Generic;
+using System.IO;
+
+namespace StoryboardSystem; 
 
 internal class LoadedExternalObjectReference : LoadedObjectReference {
     public override object LoadedObject => externalObject;
@@ -8,9 +11,11 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
     
     public LoadedExternalObjectReference(string name) => this.name = name;
 
-    public void Unload() => externalObject = null;
+    public override void Serialize(BinaryWriter writer) => writer.Write(name);
 
-    public bool TryLoad(IStoryboardParams sParams, ILogger logger) {
+    public override void Unload(ISceneManager sceneManager) => externalObject = null;
+
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
         externalObject = sParams.GetExternalObject(name);
 
         if (externalObject != null)

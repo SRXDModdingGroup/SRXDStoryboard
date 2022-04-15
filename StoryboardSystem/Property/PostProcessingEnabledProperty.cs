@@ -5,7 +5,7 @@ internal class PostProcessingEnabledProperty : ValueProperty<bool> {
 
     public PostProcessingEnabledProperty(LoadedPostProcessingReference reference) => this.reference = reference;
 
-    public override void Set(bool value) => reference.Enabled = value;
+    public override void Set(bool value) => reference.SetEnabled(value);
 
     public override bool TryConvert(object value, out bool result) {
         switch (value) {

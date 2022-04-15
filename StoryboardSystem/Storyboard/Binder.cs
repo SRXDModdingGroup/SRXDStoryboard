@@ -1,24 +1,22 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace StoryboardSystem; 
 
 internal abstract class Binder {
     private static readonly int COLOR_ID = Shader.PropertyToID("_Color");
-    
-    public static bool TryBindProperty(Identifier identifier, out Property property) {
-        if (TryResolveIdentifier(identifier, out object result) && result is Property newProperty) {
-            property = newProperty;
 
-            return true;
+    public static bool TryResolveIdentifier(Identifier identifier, List<LoadedObjectReference> objectReferences, ILogger logger, out object result) {
+        int referenceIndex = identifier.ReferenceIndex;
+        
+        if (referenceIndex < 0 || referenceIndex >= objectReferences.Count) {
+            logger.LogWarning($"Reference index is not valid");
+            result = null;
+
+            return false;
         }
-
-        property = null;
-
-        return false;
-    }
-
-    public static bool TryResolveIdentifier(Identifier identifier, out object result) {
-        result = identifier.Reference;
+        
+        result = objectReferences[referenceIndex];
 
         foreach (object item in identifier.Sequence) {
             switch (item) {
@@ -58,6 +56,18 @@ internal abstract class Binder {
             result = reference.LoadedObject;
 
         return result != null;
+    }
+
+    public static bool TryBindProperty(Identifier identifier, List<LoadedObjectReference> objectReferences, ILogger logger, out Property property) {
+        if (TryResolveIdentifier(identifier, objectReferences, logger, out object result) && result is Property newProperty) {
+            property = newProperty;
+
+            return true;
+        }
+
+        property = null;
+
+        return false;
     }
 
     private static bool TryGetSubObject(object parent, string name, out object subObject) {

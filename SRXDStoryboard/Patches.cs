@@ -64,8 +64,7 @@ public static class Patches {
             Directory.CreateDirectory(customAssetBundlePath);
         
         StoryboardManager.Create(
-            new AssetBundleManager(customAssetBundlePath),
-            new SceneManager(),
+            new SceneManager(customAssetBundlePath),
             new Logger(Plugin.Logger));
     }
 

@@ -1,53 +1,68 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace StoryboardSystem;
 
-internal abstract class LoadedInstanceReference : LoadedObjectReference {
-    public abstract void Unload();
-
-    public abstract bool TryLoad(ISceneManager sceneManager, ILogger logger);
-}
-
-internal class LoadedInstanceReference<T> : LoadedInstanceReference where T : Object {
+internal class LoadedInstanceReference : LoadedObjectReference {
     public override object LoadedObject => instance;
     
+    private int assetReferenceIndex;
     private string name;
     private Identifier parentIdentifier;
     private int layer;
-    private T instance;
-    private LoadedAssetReference<T> template;
+    private Object instance;
 
-    public LoadedInstanceReference(LoadedAssetReference<T> template, string name, Identifier parentIdentifier, int layer) {
-        this.template = template;
+    public LoadedInstanceReference(int assetReferenceIndex, string name, Identifier parentIdentifier, int layer) {
+        this.assetReferenceIndex = assetReferenceIndex;
         this.name = name;
         this.parentIdentifier = parentIdentifier;
         this.layer = layer;
     }
 
-    public override void Unload() {
-        if (instance == null)
-            return;
+    public override void Serialize(BinaryWriter writer) {
+        writer.Write(assetReferenceIndex);
+        writer.Write(name);
+        parentIdentifier.Serialize(writer);
+        writer.Write(layer);
+    }
+
+    public override void Unload(ISceneManager sceneManager) {
+        if (instance != null)
+            Object.Destroy(instance);
         
-        Object.Destroy(instance);
         instance = null;
     }
 
-    public override bool TryLoad(ISceneManager sceneManager, ILogger logger) {
-        if (template.Asset == null) {
-            logger.LogWarning($"Failed to create instance of {template.AssetName}");
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
+        if (assetReferenceIndex < 0 || assetReferenceIndex >= objectReferences.Count) {
+            logger.LogWarning($"Reference index for {name} is not valid");
+
+            return false;
+        }
+
+        if (objectReferences[assetReferenceIndex] is not LoadedAssetReference assetReference) {
+            logger.LogWarning($"{objectReferences[assetReferenceIndex]} is not an asset reference");
+
+            return false;
+        }
+        
+        if (assetReference.Asset == null) {
+            logger.LogWarning($"Failed to create instance of {assetReference.AssetName}");
             
             return false;
         }
         
-        instance = Object.Instantiate(template.Asset);
+        instance = Object.Instantiate(assetReference.Asset);
         
         if (instance is GameObject gameObject) {
             Transform parentTransform;
 
             if (parentIdentifier == null)
                 parentTransform = null;
-            else if (Binder.TryResolveIdentifier(parentIdentifier, out object parentObject)) {
+            else if (Binder.TryResolveIdentifier(parentIdentifier, objectReferences, logger, out object parentObject)) {
                 switch (parentObject) {
                     case Transform newParentTransform:
                         parentTransform = newParentTransform;

@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
 
 namespace StoryboardSystem; 
 
@@ -8,28 +10,26 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
     public AssetBundle Bundle { get; private set; }
     
     private string bundleName;
-    private IAssetBundleManager assetBundleManager;
 
     public LoadedAssetBundleReference(string bundleName) => this.bundleName = bundleName;
 
-    public bool TryLoad(IAssetBundleManager assetBundleManager, ILogger logger) {
-        if (assetBundleManager.TryGetAssetBundle(bundleName, out var bundle)) {
+    public override void Serialize(BinaryWriter writer) => writer.Write(bundleName);
+
+    public override void Unload(ISceneManager sceneManager) {
+        sceneManager.UnloadAssetBundle(bundleName);
+        Bundle = null;
+    }
+
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
+        if (sceneManager.TryGetAssetBundle(bundleName, out var bundle)) {
             Bundle = bundle;
-            this.assetBundleManager = assetBundleManager;
 
             return true;
         }
 
         Bundle = null;
-        this.assetBundleManager = null;
         logger.LogWarning($"Failed to load AssetBundle {bundleName}");
 
         return false;
-    }
-
-    public void Unload() {
-        assetBundleManager?.UnloadAssetBundle(bundleName);
-        Bundle = null;
-        assetBundleManager = null;
     }
 }

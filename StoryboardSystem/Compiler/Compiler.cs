@@ -47,12 +47,8 @@ internal static class Compiler {
 
     private static bool TryCompile(List<Instruction> instructions, ILogger logger, out StoryboardData result) {
         result = null;
-        
-        var assetBundleReferences = new List<LoadedAssetBundleReference>();
-        var assetReferences = new List<LoadedAssetReference>();
-        var instanceReferences = new List<LoadedInstanceReference>();
-        var postProcessReferences = new List<LoadedPostProcessingReference>();
-        var externalObjectReferences = new List<LoadedExternalObjectReference>();
+
+        var objectReferences = new List<LoadedObjectReference>();
         var timelineBuilders = new List<TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
         var bindings = new Dictionary<Identifier, TimelineBuilder>();
@@ -129,10 +125,7 @@ internal static class Compiler {
 
                     break;
                 case Opcode.Bundle when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out string bundlePath):
-                    var newAssetBundleReference = new LoadedAssetBundleReference(bundlePath);
-
-                    assetBundleReferences.Add(newAssetBundleReference);
-                    globals[name] = new Identifier(newAssetBundleReference, Array.Empty<object>());
+                    AddObjectReference(name, new LoadedAssetBundleReference(bundlePath));
 
                     break;
                 case Opcode.Curve when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, true): {
@@ -160,68 +153,50 @@ internal static class Compiler {
                     break;
                 }
                 case Opcode.In when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out string paramName): {
-                    var newObjectReference = new LoadedExternalObjectReference(paramName);
-                    
-                    externalObjectReferences.Add(newObjectReference);
-                    globals[name] = new Identifier(newObjectReference, Array.Empty<object>());
+                    AddObjectReference(name, new LoadedExternalObjectReference(paramName));
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference): {
-                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), null, 0);
-
-                    instanceReferences.Add(newInstanceReference);
-                    globals[name] = new Identifier(newInstanceReference, Array.Empty<object>());
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetReferenceIdentifier): {
+                    AddObjectReference(name, new LoadedInstanceReference(assetReferenceIdentifier.ReferenceIndex, name.ToString(), null, 0));
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out Identifier identifier, out int layer): {
-                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), identifier, layer);
-
-                    instanceReferences.Add(newInstanceReference);
-                    globals[name] = new Identifier(newInstanceReference, Array.Empty<object>());
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetReferenceIdentifier, out Identifier parentIdentifier, out int layer): {
+                    AddObjectReference(name, new LoadedInstanceReference(assetReferenceIdentifier.ReferenceIndex, name.ToString(), parentIdentifier, layer));
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference assetReference, out Identifier identifier, out string layer): {
-                    var newInstanceReference = assetReference.CreateInstanceReference(name.ToString(), identifier, LayerMask.NameToLayer(layer));
-
-                    instanceReferences.Add(newInstanceReference);
-                    globals[name] = new Identifier(newInstanceReference, Array.Empty<object>());
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetReferenceIdentifier, out Identifier parentIdentifier, out string layer): {
+                    AddObjectReference(name, new LoadedInstanceReference(assetReferenceIdentifier.ReferenceIndex, name.ToString(), parentIdentifier, LayerMask.NameToLayer(layer)));
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, null, 0);
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReferenceIdentifier, null, 0);
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out Identifier identifier, out int layer): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, identifier, layer);
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier, out Identifier identifier, out int layer): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReferenceIdentifier, identifier, layer);
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out LoadedAssetReference assetReference, out Identifier identifier, out string layer): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReference, identifier, LayerMask.NameToLayer(layer));
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier, out Identifier identifier, out string layer): {
+                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReferenceIdentifier, identifier, LayerMask.NameToLayer(layer));
 
                     break;
                 }
-                case Opcode.Load when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out AssetType type, out LoadedAssetBundleReference assetBundleReference, out string assetName):
-                    var newAssetReference = LoadedAssetReference.Create(assetBundleReference, assetName, type);
-                    
-                    assetReferences.Add(newAssetReference);
-                    globals[name] = new Identifier(newAssetReference, Array.Empty<object>());
+                case Opcode.Load when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetBundleReferenceIdentifier, out string assetName):
+                    AddObjectReference(name, new LoadedAssetReference(assetBundleReferenceIdentifier.ReferenceIndex, assetName));
                     
                     break;
                 case Opcode.Out when TryGetArguments(resolvedArguments, globalScope, logger, out string name, out object value):
                     outParams[name] = value;
 
                     break;
-                case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference<Material> materialReference, out Identifier targetCameraIdentifier):
-                    var newPostProcessingReference = new LoadedPostProcessingReference(materialReference, targetCameraIdentifier);
-                    
-                    postProcessReferences.Add(newPostProcessingReference);
-                    globals[name] = new Identifier(newPostProcessingReference, Array.Empty<object>());
+                case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier materialReferenceIdentifier, out Identifier targetCameraIdentifier):
+                    AddObjectReference(name, new LoadedPostProcessingReference(materialReferenceIdentifier.ReferenceIndex, targetCameraIdentifier));
                     
                     break;
                 case Opcode.SetA when TryGetArguments(resolvedArguments, globalScope, logger, out Index idx, out object value):
@@ -256,14 +231,19 @@ internal static class Compiler {
                     return false;
             }
 
-            object[] CreateInstanceArray(string name, int count, LoadedAssetReference assetReference, Identifier parentIdentifier, int layer) {
+            void AddObjectReference(Name name, LoadedObjectReference reference) {
+                globals[name] = new Identifier(objectReferences.Count, Array.Empty<object>());
+                objectReferences.Add(reference);
+            }
+
+            object[] CreateInstanceArray(string name, int count, Identifier assetReferenceIdentifier, Identifier parentIdentifier, int layer) {
                 object[] newArr = new object[count];
 
                 for (int j = 0; j < count; j++) {
-                    var newInstanceReference = assetReference.CreateInstanceReference($"{name}_{j}", parentIdentifier, layer);
-
-                    instanceReferences.Add(newInstanceReference);
-                    newArr[i] = new Identifier(newInstanceReference, Array.Empty<object>());
+                    string name1 = $"{name}_{j}";
+                    
+                    newArr[i] = new Identifier(objectReferences.Count, Array.Empty<object>());
+                    objectReferences.Add(new LoadedInstanceReference(assetReferenceIdentifier.ReferenceIndex, name1, parentIdentifier, layer));
                 }
 
                 return newArr;
@@ -466,15 +446,9 @@ internal static class Compiler {
         }
 
         foreach (var pair in bindings)
-            pair.Value.AddBinding(pair.Key);
+            pair.Value.AddIdentifier(pair.Key);
 
-        result = new StoryboardData(externalObjectReferences.ToArray(),
-            assetBundleReferences.ToArray(),
-            assetReferences.ToArray(),
-            instanceReferences.ToArray(),
-            postProcessReferences.ToArray(),
-            timelineBuilders.ToArray(),
-            outParams);
+        result = new StoryboardData(objectReferences, timelineBuilders, outParams);
 
         return true;
     }
@@ -563,13 +537,11 @@ internal static class Compiler {
                             object[] newSequence = new object[oldSequence.Length + sequence.Length - i];
                             
                             oldSequence.CopyTo(newSequence, 0);
-                            
-                            var reference = identifier.Reference;
 
                             for (int j = oldSequence.Length; i < sequence.Length; i++, j++)
                                 newSequence[j] = sequence[i];
                             
-                            result = new Identifier(reference, newSequence);
+                            result = new Identifier(identifier.ReferenceIndex, newSequence);
 
                             return true;
                         }
@@ -634,20 +606,15 @@ internal static class Compiler {
                 return false;
         }
 
-        switch (argument) {
-            case T cast1:
-                value = cast1;
+        if (argument is T cast1) {
+            value = cast1;
 
-                return true;
-            case Identifier identifier when identifier.Sequence.Length == 0 && identifier.Reference is T cast2:
-                value = cast2;
-
-                return true;
-            default:
-                value = default;
-            
-                return false;
+            return true;
         }
+
+        value = default;
+
+        return false;
     }
 
     private static bool TryGetArguments<T>(object[] arguments, Scope scope, ILogger logger, out T arg, bool unlimited = false) {
