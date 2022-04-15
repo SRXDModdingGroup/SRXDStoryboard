@@ -1,9 +1,9 @@
 ﻿namespace StoryboardSystem; 
 
 internal class PostProcessingEnabledProperty : ValueProperty<bool> {
-    private LoadedPostProcessingMaterialReference reference;
+    private LoadedPostProcessingReference reference;
 
-    public PostProcessingEnabledProperty(LoadedPostProcessingMaterialReference reference) => this.reference = reference;
+    public PostProcessingEnabledProperty(LoadedPostProcessingReference reference) => this.reference = reference;
 
     public override void Set(bool value) => reference.Enabled = value;
 

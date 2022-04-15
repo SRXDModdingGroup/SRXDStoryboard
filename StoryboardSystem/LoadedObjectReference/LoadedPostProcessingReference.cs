@@ -2,7 +2,7 @@
 
 namespace StoryboardSystem; 
 
-internal class LoadedPostProcessingMaterialReference : LoadedObjectReference {
+internal class LoadedPostProcessingReference : LoadedObjectReference {
     public override object LoadedObject => instance;
     
     private bool enabled = true;
@@ -21,7 +21,7 @@ internal class LoadedPostProcessingMaterialReference : LoadedObjectReference {
     private Camera targetCamera;
     private Material instance;
 
-    public LoadedPostProcessingMaterialReference(LoadedAssetReference<Material> template, Identifier targetCameraIdentifier) {
+    public LoadedPostProcessingReference(LoadedAssetReference<Material> template, Identifier targetCameraIdentifier) {
         this.template = template;
         this.targetCameraIdentifier = targetCameraIdentifier;
     }

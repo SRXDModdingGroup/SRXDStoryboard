@@ -32,7 +32,7 @@ public class StoryboardParams : IStoryboardParams {
         return time;
     }
 
-    public Object GetExternalObject(string name) {
+    public object GetExternalObject(string name) {
         switch (name) {
             case "CameraRoot":
                 return MainCamera.Instance.transform;

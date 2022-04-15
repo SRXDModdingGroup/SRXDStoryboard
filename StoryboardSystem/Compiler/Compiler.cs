@@ -51,7 +51,7 @@ internal static class Compiler {
         var assetBundleReferences = new List<LoadedAssetBundleReference>();
         var assetReferences = new List<LoadedAssetReference>();
         var instanceReferences = new List<LoadedInstanceReference>();
-        var postProcessReferences = new List<LoadedPostProcessingMaterialReference>();
+        var postProcessReferences = new List<LoadedPostProcessingReference>();
         var externalObjectReferences = new List<LoadedExternalObjectReference>();
         var timelineBuilders = new List<TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
@@ -218,7 +218,7 @@ internal static class Compiler {
 
                     break;
                 case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out LoadedAssetReference<Material> materialReference, out Identifier targetCameraIdentifier):
-                    var newPostProcessingReference = new LoadedPostProcessingMaterialReference(materialReference, targetCameraIdentifier);
+                    var newPostProcessingReference = new LoadedPostProcessingReference(materialReference, targetCameraIdentifier);
                     
                     postProcessReferences.Add(newPostProcessingReference);
                     globals[name] = new Identifier(newPostProcessingReference, Array.Empty<object>());
@@ -468,13 +468,12 @@ internal static class Compiler {
         foreach (var pair in bindings)
             pair.Value.AddBinding(pair.Key);
 
-        result = new StoryboardData(
+        result = new StoryboardData(externalObjectReferences.ToArray(),
             assetBundleReferences.ToArray(),
             assetReferences.ToArray(),
             instanceReferences.ToArray(),
             postProcessReferences.ToArray(),
-            externalObjectReferences.ToArray(),
-            timelineBuilders,
+            timelineBuilders.ToArray(),
             outParams);
 
         return true;

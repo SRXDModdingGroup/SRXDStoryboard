@@ -1,12 +1,10 @@
-﻿using UnityEngine;
-
-namespace StoryboardSystem; 
+﻿namespace StoryboardSystem; 
 
 internal class LoadedExternalObjectReference : LoadedObjectReference {
     public override object LoadedObject => externalObject;
-
+    
     private string name;
-    private Object externalObject;
+    private object externalObject;
     
     public LoadedExternalObjectReference(string name) => this.name = name;
 

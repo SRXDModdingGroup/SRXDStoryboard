@@ -83,7 +83,7 @@
         <Compile Include="LoadedObjectReference\LoadedExternalObjectReference.cs" />
         <Compile Include="LoadedObjectReference\LoadedInstanceReference.cs" />
         <Compile Include="LoadedObjectReference\LoadedObjectReference.cs" />
-        <Compile Include="LoadedObjectReference\LoadedPostProcessingMaterialReference.cs" />
+        <Compile Include="LoadedObjectReference\LoadedPostProcessingReference.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Property\EventProperty.cs" />
         <Compile Include="Property\MaterialProperty\MaterialFloatProperty.cs" />

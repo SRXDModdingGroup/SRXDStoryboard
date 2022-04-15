@@ -97,7 +97,7 @@ internal abstract class Binder {
                     break;
 
                 return true;
-            case LoadedPostProcessingMaterialReference postProcess when name == "enabled":
+            case LoadedPostProcessingReference postProcess when name == "enabled":
                 subObject = new PostProcessingEnabledProperty(postProcess);
 
                 return true;

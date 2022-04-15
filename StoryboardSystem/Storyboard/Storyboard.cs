@@ -12,12 +12,12 @@ public class Storyboard {
     private float lastTime;
     private string name;
     private string directory;
+    private LoadedExternalObjectReference[] externalObjectReferences;
     private LoadedAssetBundleReference[] assetBundleReferences;
     private LoadedAssetReference[] assetReferences;
     private LoadedInstanceReference[] instanceReferences;
-    private LoadedPostProcessingMaterialReference[] postProcessReferences;
-    private LoadedExternalObjectReference[] externalObjectReferences;
-    private List<TimelineBuilder> timelineBuilders;
+    private LoadedPostProcessingReference[] postProcessingReferences;
+    private TimelineBuilder[] timelineBuilders;
     private Dictionary<string, object> outParams;
     private Binding[] bindings;
 
@@ -44,7 +44,7 @@ public class Storyboard {
         active = true;
 
         if (opened) {
-            foreach (var reference in postProcessReferences)
+            foreach (var reference in postProcessingReferences)
                 reference.SetStoryboardActive(true);
         }
         
@@ -57,7 +57,7 @@ public class Storyboard {
         if (!opened)
             return;
             
-        foreach (var reference in postProcessReferences)
+        foreach (var reference in postProcessingReferences)
             reference.SetStoryboardActive(false);
     }
 
@@ -102,7 +102,7 @@ public class Storyboard {
         foreach (var reference in instanceReferences)
             success = reference.TryLoad(sceneManager, logger) && success;
 
-        foreach (var reference in postProcessReferences)
+        foreach (var reference in postProcessingReferences)
             success = reference.TryLoad(sceneManager, logger) && success;
 
         if (!success) {
@@ -111,9 +111,9 @@ public class Storyboard {
             return;
         }
 
-        bindings = new Binding[timelineBuilders.Count];
+        bindings = new Binding[timelineBuilders.Length];
 
-        for (int i = 0; i < timelineBuilders.Count; i++) {
+        for (int i = 0; i < timelineBuilders.Length; i++) {
             if (timelineBuilders[i].TryCreateBinding(storyboardParams, logger, out var binding)) {
                 bindings[i] = binding;
                 
@@ -150,7 +150,7 @@ public class Storyboard {
         if (!HasData)
             return;
 
-        foreach (var reference in postProcessReferences)
+        foreach (var reference in postProcessingReferences)
             reference.Unload();
 
         foreach (var reference in instanceReferences)
@@ -171,7 +171,7 @@ public class Storyboard {
         assetBundleReferences = data.AssetBundleReferences;
         assetReferences = data.AssetReferences;
         instanceReferences = data.InstanceReferences;
-        postProcessReferences = data.PostProcessReferences;
+        postProcessingReferences = data.PostProcessingReferences;
         externalObjectReferences = data.ExternalObjectReferences;
         timelineBuilders = data.TimelineBuilders;
         outParams = data.OutParams;
@@ -183,7 +183,7 @@ public class Storyboard {
         assetBundleReferences = null;
         assetReferences = null;
         instanceReferences = null;
-        postProcessReferences = null;
+        postProcessingReferences = null;
         externalObjectReferences = null;
         timelineBuilders = null;
         outParams = null;
