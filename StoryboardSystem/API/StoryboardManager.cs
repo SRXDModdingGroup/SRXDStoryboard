@@ -6,7 +6,8 @@ namespace StoryboardSystem;
 public class StoryboardManager {
     public static StoryboardManager Instance { get; private set; }
 
-    private ILogger logger;
+    internal ILogger Logger { get; private set; }
+    
     private ISceneManager sceneManager;
     private Storyboard currentStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
@@ -31,14 +32,14 @@ public class StoryboardManager {
         if (storyboard == null)
             return;
         
-        if (!storyboard.TryLoad(sceneManager, logger))
-            storyboard.TryCompile(sceneManager, logger);
+        if (!storyboard.TryLoad(sceneManager, Logger))
+            storyboard.TryCompile(sceneManager, Logger);
         
-        storyboard.Open(sceneManager, storyboardParams, logger);
+        storyboard.Open(sceneManager, storyboardParams, Logger);
     }
 
     public void RecompileCurrentStoryboard(IStoryboardParams storyboardParams)
-        => currentStoryboard?.Recompile(true, sceneManager, storyboardParams, logger);
+        => currentStoryboard?.Recompile(true, sceneManager, storyboardParams, Logger);
 
     public bool TryGetStoryboard(string directory, string name, out Storyboard storyboard)
         => storyboards.TryGetValue(Path.Combine(directory, name), out storyboard);
@@ -61,8 +62,8 @@ public class StoryboardManager {
         storyboard = new Storyboard(name, directory);
         storyboards.Add(key, storyboard);
         
-        if (forceCompile || !storyboard.TryLoad(sceneManager, logger))
-            storyboard.TryCompile(sceneManager, logger);
+        if (forceCompile || !storyboard.TryLoad(sceneManager, Logger))
+            storyboard.TryCompile(sceneManager, Logger);
 
         return true;
     }
@@ -73,7 +74,7 @@ public class StoryboardManager {
 
         Instance = new StoryboardManager {
             sceneManager = sceneManager,
-            logger = logger
+            Logger = logger
         };
     }
 }

@@ -142,7 +142,7 @@ public class Storyboard {
     }
 
     internal bool TryCompile(ISceneManager sceneManager, ILogger logger, bool force = false) {
-        if (HasData && !force || !Compiler.TryCompileFile(name, directory, logger, out var data))
+        if (HasData && !force || !Compiler.TryCompileFile(name, directory, out var data))
             return false;
         
         SetData(data, sceneManager);

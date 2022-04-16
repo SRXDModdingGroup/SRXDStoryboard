@@ -41,7 +41,7 @@ internal static class Functions {
         { FuncName.Max, Max }
     };
 
-    public static bool TryDoFunction(FuncName name, IList<object> args, ILogger logger, out object result) {
+    public static bool TryDoFunction(FuncName name, IList<object> args, out object result) {
         if (BINARY_FUNCTIONS.TryGetValue(name, out var binOp)) {
             if (args.Count == 2)
                 return TryDoBinaryOp(args[0], args[1], binOp, out result);
@@ -67,7 +67,6 @@ internal static class Functions {
         }
 
         result = null;
-        logger.LogWarning($"Function {name} not found");
 
         return false;
     }
