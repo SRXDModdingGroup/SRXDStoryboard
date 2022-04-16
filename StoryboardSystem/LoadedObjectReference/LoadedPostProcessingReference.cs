@@ -7,86 +7,55 @@ namespace StoryboardSystem;
 internal class LoadedPostProcessingReference : LoadedObjectReference {
     public override object LoadedObject => instance;
 
-    private int assetReferenceIndex;
-    private Identifier targetCameraIdentifier;
-    private ISceneManager sceneManager;
-    private Camera targetCamera;
-    private Material instance;
+    private Identifier template;
+    private Identifier camera;
+    private PostProcessingInstance instance;
 
-    public LoadedPostProcessingReference(int assetReferenceIndex, Identifier targetCameraIdentifier) {
-        this.assetReferenceIndex = assetReferenceIndex;
-        this.targetCameraIdentifier = targetCameraIdentifier;
+    public LoadedPostProcessingReference(Identifier template, Identifier camera) {
+        this.template = template;
+        this.camera = camera;
     }
-    
-    public void SetEnabled(bool enabled) => sceneManager.SetPostProcessingInstanceEnabled(instance, targetCamera, enabled);
 
     public override void Serialize(BinaryWriter writer) {
-        writer.Write((int) ObjectReferenceType.PostProcessing);
-        writer.Write(assetReferenceIndex);
-        targetCameraIdentifier.Serialize(writer);
+        writer.Write((byte) ObjectReferenceType.PostProcessing);
+        template.Serialize(writer);
+        camera.Serialize(writer);
     }
 
     public override void Unload(ISceneManager sceneManager) {
-        if (instance != null && this.sceneManager != null)
-            this.sceneManager.RemovePostProcessingInstance(instance, targetCamera);
-        
-        if (instance != null)
-            Object.Destroy(instance);
-        
-        this.sceneManager = null;
+        instance?.Remove();
         instance = null;
-        targetCamera = null;
     }
 
     public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
-        if (assetReferenceIndex < 0 || assetReferenceIndex >= objectReferences.Count) {
-            logger.LogWarning($"Reference index is not valid");
-
+        if (!Binder.TryResolveIdentifier(template, objectReferences, logger, out object obj))
             return false;
-        }
         
-        if (objectReferences[assetReferenceIndex] is not LoadedAssetReference assetReference) {
-            logger.LogWarning($"{objectReferences[assetReferenceIndex]} is not an asset reference");
-
-            return false;
-        }
-        
-        if (assetReference.Asset == null) {
-            logger.LogWarning($"Failed to create instance of {assetReference.AssetName}");
-            
-            return false;
-        }
-        
-        if (assetReference.Asset is not Material material) {
-            logger.LogWarning($"{assetReference.AssetName} is not a material");
-            
-            return false;
-        }
-
-        if (!Binder.TryResolveIdentifier(targetCameraIdentifier, objectReferences, logger, out object result)) {
-            logger.LogWarning($"Could not resolve identifier {targetCameraIdentifier}");
+        if (obj is not Material material) {
+            logger.LogWarning($"{template} is not a material");
 
             return false;
         }
 
-        if (result is not Camera camera) {
-            logger.LogWarning($"{targetCameraIdentifier} is not a camera");
+        if (!Binder.TryResolveIdentifier(camera, objectReferences, logger, out obj))
+            return false;
+
+        if (obj is not Camera uCamera) {
+            logger.LogWarning($"{camera} is not a camera");
 
             return false;
         }
 
-        targetCamera = camera;
-        instance = Object.Instantiate(material);
-        this.sceneManager = sceneManager;
-        sceneManager.AddPostProcessingInstance(instance, camera);
+        instance = new PostProcessingInstance(sceneManager, material, uCamera);
+        instance.Add();
 
         return true;
     }
 
     public static LoadedPostProcessingReference Deserialize(BinaryReader reader) {
-        int assetReferenceIndex = reader.ReadInt32();
-        var targetCameraIdentifier = Identifier.Deserialize(reader);
+        var template = Identifier.Deserialize(reader);
+        var camera = Identifier.Deserialize(reader);
 
-        return new LoadedPostProcessingReference(assetReferenceIndex, targetCameraIdentifier);
+        return new LoadedPostProcessingReference(template, camera);
     }
 }

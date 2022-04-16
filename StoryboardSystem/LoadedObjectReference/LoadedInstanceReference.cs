@@ -8,25 +8,22 @@ namespace StoryboardSystem;
 
 internal class LoadedInstanceReference : LoadedObjectReference {
     public override object LoadedObject => instance;
-    
-    private int assetReferenceIndex;
-    private string name;
-    private Identifier parentIdentifier;
+
+    private Identifier template;
+    private Identifier parent;
     private int layer;
     private Object instance;
 
-    public LoadedInstanceReference(int assetReferenceIndex, string name, Identifier parentIdentifier, int layer) {
-        this.assetReferenceIndex = assetReferenceIndex;
-        this.name = name;
-        this.parentIdentifier = parentIdentifier;
+    public LoadedInstanceReference(Identifier template, Identifier parent, int layer) {
+        this.template = template;
+        this.parent = parent;
         this.layer = layer;
     }
 
     public override void Serialize(BinaryWriter writer) {
-        writer.Write((int) ObjectReferenceType.Instance);
-        writer.Write(assetReferenceIndex);
-        writer.Write(name);
-        parentIdentifier.Serialize(writer);
+        writer.Write((byte) ObjectReferenceType.Instance);
+        template.Serialize(writer);
+        parent.Serialize(writer);
         writer.Write(layer);
     }
 
@@ -38,32 +35,23 @@ internal class LoadedInstanceReference : LoadedObjectReference {
     }
 
     public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
-        if (assetReferenceIndex < 0 || assetReferenceIndex >= objectReferences.Count) {
-            logger.LogWarning($"Reference index for {name} is not valid");
-
+        if (!Binder.TryResolveIdentifier(template, objectReferences, logger, out object obj))
             return false;
-        }
-
-        if (objectReferences[assetReferenceIndex] is not LoadedAssetReference assetReference) {
-            logger.LogWarning($"{objectReferences[assetReferenceIndex]} is not an asset reference");
+        
+        if (obj is not Object uObj) {
+            logger.LogWarning($"{template} is not a Unity object");
 
             return false;
         }
         
-        if (assetReference.Asset == null) {
-            logger.LogWarning($"Failed to create instance of {assetReference.AssetName}");
-            
-            return false;
-        }
-        
-        instance = Object.Instantiate(assetReference.Asset);
+        instance = Object.Instantiate(uObj);
         
         if (instance is GameObject gameObject) {
             Transform parentTransform;
 
-            if (parentIdentifier == null)
+            if (parent == null)
                 parentTransform = null;
-            else if (Binder.TryResolveIdentifier(parentIdentifier, objectReferences, logger, out object parentObject)) {
+            else if (Binder.TryResolveIdentifier(parent, objectReferences, logger, out object parentObject)) {
                 switch (parentObject) {
                     case Transform newParentTransform:
                         parentTransform = newParentTransform;
@@ -72,18 +60,15 @@ internal class LoadedInstanceReference : LoadedObjectReference {
                         parentTransform = parentGameObject.transform;
                         break;
                     default:
-                        logger.LogWarning($"Target parent {parentObject} is not a gameObject or transform");
+                        logger.LogWarning($"{parent} is not a gameObject or transform");
 
                         return false;
                 }
             }
-            else {
-                logger.LogWarning($"Could not resolve identifier {parentIdentifier}");
-
+            else
                 return false;
-            }
-            
-            gameObject.name = name;
+
+            gameObject.name = template.ToString();
         
             var transform = gameObject.transform;
 
@@ -107,11 +92,10 @@ internal class LoadedInstanceReference : LoadedObjectReference {
     }
 
     public static LoadedInstanceReference Deserialize(BinaryReader reader) {
-        int assetReferenceIndex = reader.ReadInt32();
-        string name = reader.ReadString();
-        var parentIdentifier = Identifier.Deserialize(reader);
+        var template = Identifier.Deserialize(reader);
+        var parent = Identifier.Deserialize(reader);
         int layer = reader.ReadInt32();
 
-        return new LoadedInstanceReference(assetReferenceIndex, name, parentIdentifier, layer);
+        return new LoadedInstanceReference(template, parent, layer);
     }
 }

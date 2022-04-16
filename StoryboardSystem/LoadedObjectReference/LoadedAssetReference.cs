@@ -7,54 +7,49 @@ using Object = UnityEngine.Object;
 namespace StoryboardSystem;
 
 internal class LoadedAssetReference : LoadedObjectReference {
-    public override object LoadedObject => Asset;
+    public override object LoadedObject => asset;
     
-    public string AssetName { get; }
-    
-    public Object Asset { get; private set; }
+    private Identifier assetBundleReference;
+    private string assetName;
+    private Object asset;
 
-    private int assetBundleReferenceIndex;
-
-    public LoadedAssetReference(int assetBundleReferenceIndex, string assetName) {
-        this.assetBundleReferenceIndex = assetBundleReferenceIndex;
-        AssetName = assetName;
+    public LoadedAssetReference(Identifier assetBundleReference, string assetName) {
+        this.assetBundleReference = assetBundleReference;
+        this.assetName = assetName;
     }
 
     public override void Serialize(BinaryWriter writer) {
-        writer.Write((int) ObjectReferenceType.Asset);
-        writer.Write(assetBundleReferenceIndex);
-        writer.Write(AssetName);
+        writer.Write((byte) ObjectReferenceType.Asset);
+        assetBundleReference.Serialize(writer);
+        writer.Write(assetName);
     }
 
-    public override void Unload(ISceneManager sceneManager) => Asset = null;
+    public override void Unload(ISceneManager sceneManager) => asset = null;
 
     public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
-        if (assetBundleReferenceIndex < 0 || assetBundleReferenceIndex >= objectReferences.Count) {
-            logger.LogWarning($"Reference index for {AssetName} is not valid");
-
+        if (!Binder.TryResolveIdentifier(assetBundleReference, objectReferences, logger, out object obj))
             return false;
-        }
 
-        if (objectReferences[assetBundleReferenceIndex] is not LoadedAssetBundleReference assetBundleReference) {
-            logger.LogWarning($"{objectReferences[assetBundleReferenceIndex]} is not an asset bundle");
+        if (obj is not AssetBundle assetBundle) {
+            logger.LogWarning($"{assetBundleReference} is not an asset bundle");
 
             return false;
         }
         
-        Asset = assetBundleReference.Bundle.LoadAsset(AssetName);
+        asset = assetBundle.LoadAsset(assetName);
 
-        if (Asset != null)
+        if (asset != null)
             return true;
         
-        logger.LogWarning($"Failed to load asset {AssetName}");
+        logger.LogWarning($"Failed to load asset {assetName}");
 
         return false;
     }
 
     public static LoadedAssetReference Deserialize(BinaryReader reader) {
-        int assetBundleReferenceIndex = reader.ReadInt32();
+        var assetBundleReference = Identifier.Deserialize(reader);
         string assetName = reader.ReadString();
 
-        return new LoadedAssetReference(assetBundleReferenceIndex, assetName);
+        return new LoadedAssetReference(assetBundleReference, assetName);
     }
 }

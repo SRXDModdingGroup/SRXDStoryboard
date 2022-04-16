@@ -14,7 +14,7 @@ internal abstract class LoadedObjectReference {
     public abstract bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger);
 
     public static bool TryDeserialize(BinaryReader reader, out LoadedObjectReference reference) {
-        var type = (ObjectReferenceType) reader.ReadInt32();
+        var type = (ObjectReferenceType) reader.ReadByte();
         
         switch (type) {
             case ObjectReferenceType.ExternalObject:

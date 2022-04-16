@@ -1,11 +1,11 @@
 ﻿namespace StoryboardSystem; 
 
 internal class PostProcessingEnabledProperty : ValueProperty<bool> {
-    private LoadedPostProcessingReference reference;
+    private PostProcessingInstance instance;
 
-    public PostProcessingEnabledProperty(LoadedPostProcessingReference reference) => this.reference = reference;
+    public PostProcessingEnabledProperty(PostProcessingInstance instance) => this.instance = instance;
 
-    public override void Set(bool value) => reference.SetEnabled(value);
+    public override void Set(bool value) => instance.SetEnabled(value);
 
     public override bool TryConvert(object value, out bool result) {
         switch (value) {

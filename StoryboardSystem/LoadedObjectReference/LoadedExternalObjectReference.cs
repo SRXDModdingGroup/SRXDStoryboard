@@ -12,7 +12,7 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
     public LoadedExternalObjectReference(string name) => this.name = name;
 
     public override void Serialize(BinaryWriter writer) {
-        writer.Write((int) ObjectReferenceType.ExternalObject);
+        writer.Write((byte) ObjectReferenceType.ExternalObject);
         writer.Write(name);
     }
 

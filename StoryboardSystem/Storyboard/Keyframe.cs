@@ -15,7 +15,7 @@ internal readonly struct Keyframe<T> : IComparable<Keyframe<T>> {
         Time = time;
         Value = value;
         InterpType = interpType;
-        this.Order = order;
+        Order = order;
     }
 
     public int CompareTo(Keyframe<T> other) {

@@ -102,12 +102,14 @@
         <Compile Include="Storyboard\InterpType.cs" />
         <Compile Include="Storyboard\Keyframe.cs" />
         <Compile Include="Storyboard\KeyframeBuilder.cs" />
+        <Compile Include="Storyboard\PostProcessingInstance.cs" />
         <Compile Include="Storyboard\Storyboard.cs" />
         <Compile Include="Storyboard\StoryboardData.cs" />
         <Compile Include="Storyboard\TimelineController.cs" />
         <Compile Include="Storyboard\TimelineBuilder.cs" />
         <Compile Include="Utility\HashUtility.cs" />
         <Compile Include="Utility\MathUtility.cs" />
+        <Compile Include="Utility\PooledList.cs" />
         <Compile Include="Utility\SerializationUtility.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

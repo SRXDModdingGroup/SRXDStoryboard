@@ -10,13 +10,13 @@ internal abstract class Binder {
         int referenceIndex = identifier.ReferenceIndex;
         
         if (referenceIndex < 0 || referenceIndex >= objectReferences.Count) {
-            logger.LogWarning($"Reference index is not valid");
+            logger.LogWarning($"Could not resolve identifier {identifier}: Reference index is not valid");
             result = null;
 
             return false;
         }
         
-        result = objectReferences[referenceIndex];
+        result = objectReferences[referenceIndex].LoadedObject;
 
         foreach (object item in identifier.Sequence) {
             switch (item) {
@@ -34,12 +34,6 @@ internal abstract class Binder {
                     
                     break;
                 }
-                case int index when result is LoadedObjectReference { LoadedObject: GameObject gameObject }: {
-                    if (TryGetChildGameObject(gameObject, index, out result))
-                        continue;
-
-                    break;
-                }
                 case string name when TryGetSubObject(result, name, out object temp): {
                     result = temp;
 
@@ -47,15 +41,18 @@ internal abstract class Binder {
                 }
             }
             
+            logger.LogWarning($"Could not resolve identifier {identifier}: Sequence contained an invalid value");
             result = null;
 
             return false;
         }
 
-        if (result is LoadedObjectReference reference)
-            result = reference.LoadedObject;
+        if (result != null)
+            return true;
+        
+        logger.LogWarning($"Could not resolve identifier {identifier}");
 
-        return result != null;
+        return false;
     }
 
     public static bool TryBindProperty(Identifier identifier, List<LoadedObjectReference> objectReferences, ILogger logger, out Property property) {
@@ -86,38 +83,46 @@ internal abstract class Binder {
 
                 return subObject != null;
             case Material material:
-                if (name == "color" && material.HasColor(COLOR_ID)) {
-                    subObject = new MaterialColorProperty(material, COLOR_ID);
-
-                    return true;
-                }
-
-                if (name[0] != '_')
-                    name = name.Insert(0, "_");
+                return TryGetMaterialProperty(material, out subObject);
+            case PostProcessingInstance postProcess:
+                if (name != "enabled")
+                    return TryGetMaterialProperty(postProcess.Material, out subObject);
                 
-                int id = Shader.PropertyToID(name);
-
-                if (material.HasFloat(id))
-                    subObject = new MaterialFloatProperty(material, id);
-                else if (material.HasVector(id))
-                    subObject = new MaterialVectorProperty(material, id);
-                else if (material.HasColor(id))
-                    subObject = new MaterialColorProperty(material, id);
-                else
-                    break;
-
-                return true;
-            case LoadedPostProcessingReference postProcess when name == "enabled":
                 subObject = new PostProcessingEnabledProperty(postProcess);
 
                 return true;
-            case LoadedObjectReference reference:
-                return TryGetSubObject(reference.LoadedObject, name, out subObject);
         }
         
         subObject = null;
 
         return false;
+
+        bool TryGetMaterialProperty(Material material, out object property) {
+            if (name == "color" && material.HasColor(COLOR_ID)) {
+                property = new MaterialColorProperty(material, COLOR_ID);
+
+                return true;
+            }
+
+            if (name[0] != '_')
+                name = name.Insert(0, "_");
+                
+            int id = Shader.PropertyToID(name);
+
+            if (material.HasFloat(id))
+                property = new MaterialFloatProperty(material, id);
+            else if (material.HasVector(id))
+                property = new MaterialVectorProperty(material, id);
+            else if (material.HasColor(id))
+                property = new MaterialColorProperty(material, id);
+            else {
+                property = null;
+
+                return false;
+            }
+
+            return true;
+        }
     }
 
     private static bool TryGetChildGameObject(GameObject gameObject, int index, out object childObject) {

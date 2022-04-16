@@ -48,6 +48,7 @@ internal static class Compiler {
     private static bool TryCompile(List<Instruction> instructions, ILogger logger, out StoryboardData result) {
         result = null;
 
+        using var resolvedArguments = PooledList.Get();
         var objectReferences = new List<LoadedObjectReference>();
         var timelineBuilders = new List<TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
@@ -65,11 +66,15 @@ internal static class Compiler {
                 continue;
             
             object[] arguments = instruction.Arguments;
-            object[] resolvedArguments = instruction.ResolvedArguments;
+            
+            resolvedArguments.Clear();
 
             for (int j = 0; j < arguments.Length; j++) {
-                if (TryResolveArgument(arguments[j], globalScope, logger, out resolvedArguments[j], false))
+                if (TryResolveArgument(arguments[j], globalScope, logger, out object resolved, false)) {
+                    resolvedArguments.Add(resolved);
+                    
                     continue;
+                }
                 
                 logger.LogWarning(GetCompileError(instruction.LineIndex, $"Could not resolve argument {j}"));
 
@@ -89,9 +94,9 @@ internal static class Compiler {
                     return false;
                 }
 
-                var argNames = new Name[resolvedArguments.Length - 1];
+                var argNames = new Name[resolvedArguments.Count - 1];
 
-                for (int j = 1, k = 0; j < resolvedArguments.Length; j++, k++) {
+                for (int j = 1, k = 0; j < resolvedArguments.Count; j++, k++) {
                     if (resolvedArguments[j] is not Name argName) {
                         logger.LogWarning(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Proc"));
 
@@ -134,7 +139,7 @@ internal static class Compiler {
                     timelineBuilders.Add(timelineBuilder);
                     globals[name] = timelineBuilder;
                     
-                    for (int j = 1; j < resolvedArguments.Length; j++) {
+                    for (int j = 1; j < resolvedArguments.Count; j++) {
                         if (resolvedArguments[j] is not Identifier identifier) {
                             logger.LogWarning(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Curve"));
 
@@ -157,46 +162,46 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetReferenceIdentifier): {
-                    AddObjectReference(name, new LoadedInstanceReference(assetReferenceIdentifier.ReferenceIndex, name.ToString(), null, 0));
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template): {
+                    AddObjectReference(name, new LoadedInstanceReference(template, null, 0));
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetReferenceIdentifier, out Identifier parentIdentifier, out int layer): {
-                    AddObjectReference(name, new LoadedInstanceReference(assetReferenceIdentifier.ReferenceIndex, name.ToString(), parentIdentifier, layer));
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template, out Identifier parent, out int layer): {
+                    AddObjectReference(name, new LoadedInstanceReference(template, parent, layer));
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetReferenceIdentifier, out Identifier parentIdentifier, out string layer): {
-                    AddObjectReference(name, new LoadedInstanceReference(assetReferenceIdentifier.ReferenceIndex, name.ToString(), parentIdentifier, LayerMask.NameToLayer(layer)));
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template, out Identifier parent, out string layer): {
+                    AddObjectReference(name, new LoadedInstanceReference(template, parent, LayerMask.NameToLayer(layer)));
 
                     break;
                 }
                 case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReferenceIdentifier, null, 0);
+                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, null, 0);
 
                     break;
                 }
                 case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier, out Identifier identifier, out int layer): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReferenceIdentifier, identifier, layer);
+                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, identifier, layer);
 
                     break;
                 }
                 case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier, out Identifier identifier, out string layer): {
-                    globals[name] = CreateInstanceArray(name.ToString(), count, assetReferenceIdentifier, identifier, LayerMask.NameToLayer(layer));
+                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, identifier, LayerMask.NameToLayer(layer));
 
                     break;
                 }
-                case Opcode.Load when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetBundleReferenceIdentifier, out string assetName):
-                    AddObjectReference(name, new LoadedAssetReference(assetBundleReferenceIdentifier.ReferenceIndex, assetName));
+                case Opcode.Load when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetBundle, out string assetName):
+                    AddObjectReference(name, new LoadedAssetReference(assetBundle, assetName));
                     
                     break;
                 case Opcode.Out when TryGetArguments(resolvedArguments, globalScope, logger, out string name, out object value):
                     outParams[name] = value;
 
                     break;
-                case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier materialReferenceIdentifier, out Identifier targetCameraIdentifier):
-                    AddObjectReference(name, new LoadedPostProcessingReference(materialReferenceIdentifier.ReferenceIndex, targetCameraIdentifier));
+                case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template, out Identifier camera):
+                    AddObjectReference(name, new LoadedPostProcessingReference(template, camera));
                     
                     break;
                 case Opcode.SetA when TryGetArguments(resolvedArguments, globalScope, logger, out Index idx, out object value):
@@ -236,14 +241,12 @@ internal static class Compiler {
                 objectReferences.Add(reference);
             }
 
-            object[] CreateInstanceArray(string name, int count, Identifier assetReferenceIdentifier, Identifier parentIdentifier, int layer) {
+            object[] CreateInstanceArray(int count, Identifier template, Identifier parent, int layer) {
                 object[] newArr = new object[count];
 
                 for (int j = 0; j < count; j++) {
-                    string name1 = $"{name}_{j}";
-                    
                     newArr[i] = new Identifier(objectReferences.Count, Array.Empty<object>());
-                    objectReferences.Add(new LoadedInstanceReference(assetReferenceIdentifier.ReferenceIndex, name1, parentIdentifier, layer));
+                    objectReferences.Add(new LoadedInstanceReference(template, parent, layer));
                 }
 
                 return newArr;
@@ -277,11 +280,15 @@ internal static class Compiler {
             var instruction = instructions[index1];
             var opcode = instruction.Opcode;
             object[] arguments = instruction.Arguments;
-            object[] resolvedArguments = instruction.ResolvedArguments;
+            
+            resolvedArguments.Clear();
             
             for (int i = 0; i < arguments.Length; i++) {
-                if (TryResolveArgument(arguments[i], currentScope, logger, out resolvedArguments[i], false))
+                if (TryResolveArgument(arguments[i], currentScope, logger, out object resolved, false)) {
+                    resolvedArguments.Add(resolved);
+                        
                     continue;
+                }
                 
                 logger.LogWarning(GetCompileError(instruction.LineIndex, $"Could not resolve argument {i}"));
 
@@ -401,7 +408,7 @@ internal static class Compiler {
 
                 var argNames = procedure.ArgNames;
 
-                if (resolvedArguments.Length != argNames.Length + shift) {
+                if (resolvedArguments.Count != argNames.Length + shift) {
                     logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for procedure call {name}"));
 
                     return false;
@@ -417,8 +424,8 @@ internal static class Compiler {
 
                 var locals = new Dictionary<Name, object>();
 
-                for (int i = shift, j = 0; i < resolvedArguments.Length; i++, j++) {
-                    if (!TryResolveArgument(resolvedArguments[i], currentScope, logger, out object fullyResolvedArgument, true)) {
+                for (int i = shift, j = 0; i < resolvedArguments.Count; i++, j++) {
+                    if (!TryCastArgument(resolvedArguments[i], currentScope, logger, out object fullyResolvedArgument)) {
                         logger.LogWarning(GetCompileError(instruction.LineIndex, $"Could not resolve argument {i}"));
                         
                         return false;
@@ -460,8 +467,6 @@ internal static class Compiler {
             case object[] arr: {
                 object[] newArr = new object[arr.Length];
                 
-                
-            
                 for (int i = 0; i < arr.Length; i++) {
                     if (!TryResolveArgument(arr[i], scope, logger, out newArr[i], true))
                         return false;
@@ -557,12 +562,14 @@ internal static class Compiler {
                 return true;
             }
             case FuncCall call: {
+                using var resolvedArgs = PooledList.Get();
                 object[] args = call.Arguments;
-                object[] resolvedArgs = new object[args.Length];
 
-                for (int i = 0; i < args.Length; i++) {
-                    if (!TryResolveArgument(args[i], scope, logger, out resolvedArgs[i], true))
+                foreach (object arg in args) {
+                    if (!TryResolveArgument(arg, scope, logger, out object resolved, true))
                         return false;
+                    
+                    resolvedArgs.Add(resolved);
                 }
 
                 if (Functions.TryDoFunction(call.Name, resolvedArgs, logger, out result))
@@ -619,8 +626,8 @@ internal static class Compiler {
         return false;
     }
 
-    private static bool TryGetArguments<T>(object[] arguments, Scope scope, ILogger logger, out T arg, bool unlimited = false) {
-        if ((arguments.Length == 1 || unlimited && arguments.Length > 1)
+    private static bool TryGetArguments<T>(List<object> arguments, Scope scope, ILogger logger, out T arg, bool unlimited = false) {
+        if ((arguments.Count == 1 || unlimited && arguments.Count > 1)
             && TryCastArgument(arguments[0], scope, logger, out arg))
             return true;
 
@@ -628,8 +635,8 @@ internal static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1>(object[] arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, bool unlimited = false) {
-        if ((arguments.Length == 2 || unlimited && arguments.Length > 2)
+    private static bool TryGetArguments<T0, T1>(List<object> arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, bool unlimited = false) {
+        if ((arguments.Count == 2 || unlimited && arguments.Count > 2)
             && TryCastArgument(arguments[0], scope, logger, out arg0)
             && TryCastArgument(arguments[1], scope, logger, out arg1))
             return true;
@@ -639,8 +646,8 @@ internal static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1, T2>(object[] arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, out T2 arg2, bool unlimited = false) {
-        if ((arguments.Length == 3 || unlimited && arguments.Length > 3)
+    private static bool TryGetArguments<T0, T1, T2>(List<object> arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, out T2 arg2, bool unlimited = false) {
+        if ((arguments.Count == 3 || unlimited && arguments.Count > 3)
             && TryCastArgument(arguments[0], scope, logger, out arg0)
             && TryCastArgument(arguments[1], scope, logger, out arg1)
             && TryCastArgument(arguments[2], scope, logger, out arg2))
@@ -652,8 +659,8 @@ internal static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1, T2, T3>(object[] arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, bool unlimited = false) {
-        if ((arguments.Length == 4 || unlimited && arguments.Length > 4)
+    private static bool TryGetArguments<T0, T1, T2, T3>(List<object> arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, bool unlimited = false) {
+        if ((arguments.Count == 4 || unlimited && arguments.Count > 4)
             && TryCastArgument(arguments[0], scope, logger, out arg0)
             && TryCastArgument(arguments[1], scope, logger, out arg1)
             && TryCastArgument(arguments[2], scope, logger, out arg2)
@@ -667,8 +674,8 @@ internal static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1, T2, T3, T4>(object[] arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, out T4 arg4, bool unlimited = false) {
-        if ((arguments.Length == 5 || unlimited && arguments.Length > 5)
+    private static bool TryGetArguments<T0, T1, T2, T3, T4>(List<object> arguments, Scope scope, ILogger logger, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, out T4 arg4, bool unlimited = false) {
+        if ((arguments.Count == 5 || unlimited && arguments.Count > 5)
             && TryCastArgument(arguments[0], scope, logger, out arg0)
             && TryCastArgument(arguments[1], scope, logger, out arg1)
             && TryCastArgument(arguments[2], scope, logger, out arg2)

@@ -41,28 +41,28 @@ internal static class Functions {
         { FuncName.Max, Max }
     };
 
-    public static bool TryDoFunction(FuncName name, object[] args, ILogger logger, out object result) {
+    public static bool TryDoFunction(FuncName name, IList<object> args, ILogger logger, out object result) {
         if (BINARY_FUNCTIONS.TryGetValue(name, out var binOp)) {
-            if (args.Length == 2)
+            if (args.Count == 2)
                 return TryDoBinaryOp(args[0], args[1], binOp, out result);
         }
         else if (TERNARY_FUNCTIONS.TryGetValue(name, out var ternOp)) {
-            if (args.Length == 3)
+            if (args.Count == 3)
                 return TryDoTernaryOp(args[0], args[1], args[2], ternOp, out result);
         }
         else if (UNARY_MATH_FUNCTIONS.TryGetValue(name, out var unMOp)) {
-            if (args.Length == 1)
+            if (args.Count == 1)
                 return TryDoUnaryMathOp(args[0], unMOp, out result);
         }
         else if (BINARY_MATH_FUNCTIONS.TryGetValue(name, out var binMOp)) {
-            if (args.Length == 2)
+            if (args.Count == 2)
                 return TryDoBinaryMathOp(args[0], args[1], binMOp, out result);
         }
         else if (CHAINABLE_MATH_FUNCTIONS.TryGetValue(name, out var chMOp)) {
-            if (args.Length == 2)
+            if (args.Count == 2)
                 return TryDoBinaryMathOp(args[0], args[1], chMOp, out result);
             
-            if (args.Length > 2)
+            if (args.Count > 2)
                 return TryDoChainedMathOp(args, chMOp, out result);
         }
 
@@ -188,10 +188,10 @@ internal static class Functions {
         return false;
     }
 
-    private static bool TryDoChainedMathOp(object[] args, Func<object, object, object> op, out object result) {
+    private static bool TryDoChainedMathOp(IList<object> args, Func<object, object, object> op, out object result) {
         result = args[0];
 
-        for (int i = 1; i < args.Length; i++) {
+        for (int i = 1; i < args.Count; i++) {
             if (!TryDoBinaryMathOp(result, args[i], op, out object temp)) {
                 result = null;
 
