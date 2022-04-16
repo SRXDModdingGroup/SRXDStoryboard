@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using UnityEngine;
 
 namespace StoryboardSystem;
 
@@ -163,32 +162,32 @@ internal static class Compiler {
                     break;
                 }
                 case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template): {
-                    AddObjectReference(name, new LoadedInstanceReference(template, null, 0));
+                    AddObjectReference(name, new LoadedInstanceReference(template, null, 0, string.Empty));
 
                     break;
                 }
                 case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template, out Identifier parent, out int layer): {
-                    AddObjectReference(name, new LoadedInstanceReference(template, parent, layer));
+                    AddObjectReference(name, new LoadedInstanceReference(template, parent, layer, string.Empty));
 
                     break;
                 }
                 case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template, out Identifier parent, out string layer): {
-                    AddObjectReference(name, new LoadedInstanceReference(template, parent, LayerMask.NameToLayer(layer)));
+                    AddObjectReference(name, new LoadedInstanceReference(template, parent, 0, layer));
 
                     break;
                 }
                 case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier): {
-                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, null, 0);
+                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, null, 0, string.Empty);
 
                     break;
                 }
                 case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier, out Identifier identifier, out int layer): {
-                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, identifier, layer);
+                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, identifier, layer, string.Empty);
 
                     break;
                 }
                 case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier, out Identifier identifier, out string layer): {
-                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, identifier, LayerMask.NameToLayer(layer));
+                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, identifier, 0, layer);
 
                     break;
                 }
@@ -241,12 +240,12 @@ internal static class Compiler {
                 objectReferences.Add(reference);
             }
 
-            object[] CreateInstanceArray(int count, Identifier template, Identifier parent, int layer) {
+            object[] CreateInstanceArray(int count, Identifier template, Identifier parent, int layer, string layerS) {
                 object[] newArr = new object[count];
 
                 for (int j = 0; j < count; j++) {
                     newArr[i] = new Identifier(objectReferences.Count, Array.Empty<object>());
-                    objectReferences.Add(new LoadedInstanceReference(template, parent, layer));
+                    objectReferences.Add(new LoadedInstanceReference(template, parent, layer, layerS));
                 }
 
                 return newArr;

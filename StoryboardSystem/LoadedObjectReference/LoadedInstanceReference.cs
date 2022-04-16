@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -12,19 +11,29 @@ internal class LoadedInstanceReference : LoadedObjectReference {
     private Identifier template;
     private Identifier parent;
     private int layer;
+    private string layerS;
     private Object instance;
 
-    public LoadedInstanceReference(Identifier template, Identifier parent, int layer) {
+    public LoadedInstanceReference(Identifier template, Identifier parent, int layer, string layerS) {
         this.template = template;
         this.parent = parent;
         this.layer = layer;
+        this.layerS = layerS;
     }
 
     public override void Serialize(BinaryWriter writer) {
         writer.Write((byte) ObjectReferenceType.Instance);
         template.Serialize(writer);
         parent.Serialize(writer);
-        writer.Write(layer);
+
+        if (string.IsNullOrWhiteSpace(layerS)) {
+            writer.Write(false);
+            writer.Write(layer);
+        }
+        else {
+            writer.Write(true);
+            writer.Write(layerS);
+        }
     }
 
     public override void Unload(ISceneManager sceneManager) {
@@ -76,10 +85,18 @@ internal class LoadedInstanceReference : LoadedObjectReference {
             transform.localPosition = Vector3.zero;
             transform.localRotation = Quaternion.identity;
             transform.localScale = Vector3.one;
+
+            int newLayer;
+
+            if (string.IsNullOrWhiteSpace(layerS))
+                newLayer = layer;
+            else
+                newLayer = LayerMask.NameToLayer(layerS);
+            
             SetLayer(transform);
             
             void SetLayer(Transform subTransform) {
-                subTransform.gameObject.layer = layer;
+                subTransform.gameObject.layer = newLayer;
 
                 for (int i = 0; i < subTransform.childCount; i++)
                     SetLayer(subTransform.GetChild(i));
@@ -94,8 +111,18 @@ internal class LoadedInstanceReference : LoadedObjectReference {
     public static LoadedInstanceReference Deserialize(BinaryReader reader) {
         var template = Identifier.Deserialize(reader);
         var parent = Identifier.Deserialize(reader);
-        int layer = reader.ReadInt32();
+        int layer;
+        string layerS;
 
-        return new LoadedInstanceReference(template, parent, layer);
+        if (reader.ReadBoolean()) {
+            layer = 0;
+            layerS = reader.ReadString();
+        }
+        else {
+            layer = reader.ReadInt32();
+            layerS = string.Empty;
+        }
+
+        return new LoadedInstanceReference(template, parent, layer, layerS);
     }
 }

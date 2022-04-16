@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Text;
 
 namespace StoryboardSystem; 
@@ -63,8 +62,11 @@ internal class Identifier {
     }
 
     public static bool operator ==(Identifier a, Identifier b) {
-        if (a is null || b is null)
-            return a is null && b is null;
+        if (a is null)
+            return b is null;
+
+        if (b is null)
+            return false;
         
         if (a.hash != b.hash || a.ReferenceIndex != b.ReferenceIndex || a.Sequence.Length != b.Sequence.Length)
             return false;

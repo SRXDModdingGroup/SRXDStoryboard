@@ -1,10 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using UnityEngine;
 
 namespace StoryboardSystem; 
 
-public class StoryboardManager : MonoBehaviour {
+public class StoryboardManager {
     public static StoryboardManager Instance { get; private set; }
 
     private ILogger logger;
@@ -50,7 +49,7 @@ public class StoryboardManager : MonoBehaviour {
         return storyboard != null;
     }
 
-    public bool TryGetOrCreateStoryboard(string directory, string name, out Storyboard storyboard) {
+    public bool TryGetOrCreateStoryboard(string directory, string name, out Storyboard storyboard, bool forceCompile = false) {
         string key = Path.Combine(directory, name);
         
         if (storyboards.TryGetValue(key, out storyboard))
@@ -62,7 +61,7 @@ public class StoryboardManager : MonoBehaviour {
         storyboard = new Storyboard(name, directory);
         storyboards.Add(key, storyboard);
         
-        if (!storyboard.TryLoad(sceneManager, logger))
+        if (forceCompile || !storyboard.TryLoad(sceneManager, logger))
             storyboard.TryCompile(sceneManager, logger);
 
         return true;
@@ -71,11 +70,10 @@ public class StoryboardManager : MonoBehaviour {
     public static void Create(ISceneManager sceneManager,  ILogger logger) {
         if (Instance != null)
             return;
-        
-        var gameObject = new GameObject("Storyboard Manager");
-        
-        Instance = gameObject.AddComponent<StoryboardManager>();
-        Instance.sceneManager = sceneManager;
-        Instance.logger = logger;
+
+        Instance = new StoryboardManager {
+            sceneManager = sceneManager,
+            logger = logger
+        };
     }
 }
