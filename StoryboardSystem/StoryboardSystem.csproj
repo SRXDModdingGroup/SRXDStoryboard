@@ -62,6 +62,7 @@
         <Compile Include="Compiler\Conversion.cs" />
         <Compile Include="Compiler\FuncCall.cs" />
         <Compile Include="Compiler\Functions.cs" />
+        <Compile Include="Compiler\IdentifierTree.cs" />
         <Compile Include="Compiler\Index.cs" />
         <Compile Include="Compiler\Indexer.cs" />
         <Compile Include="Compiler\Instruction.cs" />

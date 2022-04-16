@@ -118,20 +118,24 @@ internal static class Compiler {
             }
 
             switch (opcode) {
-                case Opcode.Bind when TryGetArguments(resolvedArguments, globalScope, logger, out TimelineBuilder timelineBuilder, out Identifier identifier):
+                case Opcode.Bind when TryGetArguments(resolvedArguments, globalScope, logger, out TimelineBuilder timelineBuilder, out IdentifierTree tree): {
+                    var identifier = tree.GetIdentifier();
+
                     if (bindings.ContainsKey(identifier)) {
                         logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple curves"));
 
                         return false;
                     }
-                    
+
                     bindings.Add(identifier, timelineBuilder);
 
                     break;
-                case Opcode.Bundle when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out string bundlePath):
+                }
+                case Opcode.Bundle when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out string bundlePath): {
                     AddObjectReference(name, new LoadedAssetBundleReference(bundlePath));
 
                     break;
+                }
                 case Opcode.Curve when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, true): {
                     var timelineBuilder = new TimelineBuilder(name.ToString());
                     
@@ -139,11 +143,13 @@ internal static class Compiler {
                     globals[name] = timelineBuilder;
                     
                     for (int j = 1; j < resolvedArguments.Count; j++) {
-                        if (resolvedArguments[j] is not Identifier identifier) {
+                        if (resolvedArguments[j] is not IdentifierTree tree) {
                             logger.LogWarning(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Curve"));
 
                             return false;
                         }
+
+                        var identifier = tree.GetIdentifier();
 
                         if (bindings.ContainsKey(identifier)) {
                             logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple curves"));
@@ -161,64 +167,70 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template): {
-                    AddObjectReference(name, new LoadedInstanceReference(template, null, 0, string.Empty));
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out IdentifierTree template): {
+                    AddObjectReference(name, new LoadedInstanceReference(template.GetIdentifier(), null, 0, string.Empty));
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template, out Identifier parent, out int layer): {
-                    AddObjectReference(name, new LoadedInstanceReference(template, parent, layer, string.Empty));
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out IdentifierTree template, out IdentifierTree parent, out int layer): {
+                    AddObjectReference(name, new LoadedInstanceReference(template.GetIdentifier(), parent.GetIdentifier(), layer, string.Empty));
 
                     break;
                 }
-                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template, out Identifier parent, out string layer): {
-                    AddObjectReference(name, new LoadedInstanceReference(template, parent, 0, layer));
+                case Opcode.Inst when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out IdentifierTree template, out IdentifierTree parent, out string layer): {
+                    AddObjectReference(name, new LoadedInstanceReference(template.GetIdentifier(), parent.GetIdentifier(), 0, layer));
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier): {
-                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, null, 0, string.Empty);
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out IdentifierTree template): {
+                    globals[name] = CreateInstanceArray(count, template, null, 0, string.Empty);
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier, out Identifier identifier, out int layer): {
-                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, identifier, layer, string.Empty);
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out int layer): {
+                    globals[name] = CreateInstanceArray(count, template, parent, layer, string.Empty);
 
                     break;
                 }
-                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out Identifier assetReferenceIdentifier, out Identifier identifier, out string layer): {
-                    globals[name] = CreateInstanceArray(count, assetReferenceIdentifier, identifier, 0, layer);
+                case Opcode.InstA when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out string layer): {
+                    globals[name] = CreateInstanceArray(count, template, parent, 0, layer);
 
                     break;
                 }
-                case Opcode.Load when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier assetBundle, out string assetName):
-                    AddObjectReference(name, new LoadedAssetReference(assetBundle, assetName));
-                    
+                case Opcode.Load when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out IdentifierTree assetBundle, out string assetName): {
+                    AddObjectReference(name, new LoadedAssetReference(assetBundle.GetIdentifier(), assetName));
+
                     break;
-                case Opcode.Out when TryGetArguments(resolvedArguments, globalScope, logger, out string name, out object value):
+                }
+                case Opcode.Out when TryGetArguments(resolvedArguments, globalScope, logger, out string name, out object value): {
                     outParams[name] = value;
 
                     break;
-                case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out Identifier template, out Identifier camera):
-                    AddObjectReference(name, new LoadedPostProcessingReference(template, camera));
-                    
+                }
+                case Opcode.Post when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out IdentifierTree template, out IdentifierTree camera): {
+                    AddObjectReference(name, new LoadedPostProcessingReference(template.GetIdentifier(), camera.GetIdentifier()));
+
                     break;
-                case Opcode.SetA when TryGetArguments(resolvedArguments, globalScope, logger, out Index idx, out object value):
+                }
+                case Opcode.SetA when TryGetArguments(resolvedArguments, globalScope, logger, out Index idx, out object value): {
                     idx.Array[idx.index] = value;
 
                     break;
-                case Opcode.SetG when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out object value):
+                }
+                case Opcode.SetG when TryGetArguments(resolvedArguments, globalScope, logger, out Name name, out object value): {
                     globals[name] = value;
 
                     break;
+                }
                 case Opcode.Call:
                 case Opcode.Key:
                 case Opcode.Loop:
-                case Opcode.Set:
+                case Opcode.Set: {
                     logger.LogWarning(GetCompileError(instruction.LineIndex, $"Instruction {opcode} must be used within a procedure"));
 
                     return false;
-                default:
+                }
+                default: {
                     // var builder = new StringBuilder();
                     //
                     // for (int j = 0; j < arguments.Length; j++) {
@@ -233,19 +245,20 @@ internal static class Compiler {
                     logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for instruction {opcode}"));
 
                     return false;
+                }
             }
 
             void AddObjectReference(Name name, LoadedObjectReference reference) {
-                globals[name] = new Identifier(objectReferences.Count, Array.Empty<object>());
+                globals[name] = new IdentifierTree(objectReferences.Count);
                 objectReferences.Add(reference);
             }
 
-            object[] CreateInstanceArray(int count, Identifier template, Identifier parent, int layer, string layerS) {
+            object[] CreateInstanceArray(int count, IdentifierTree template, IdentifierTree parent, int layer, string layerS) {
                 object[] newArr = new object[count];
 
                 for (int j = 0; j < count; j++) {
-                    newArr[i] = new Identifier(objectReferences.Count, Array.Empty<object>());
-                    objectReferences.Add(new LoadedInstanceReference(template, parent, layer, layerS));
+                    newArr[i] = new IdentifierTree(objectReferences.Count);
+                    objectReferences.Add(new LoadedInstanceReference(template.GetIdentifier(), parent.GetIdentifier(), layer, layerS));
                 }
 
                 return newArr;
@@ -295,7 +308,9 @@ internal static class Compiler {
             }
             
             switch (opcode) {
-                case Opcode.Bind when TryGetArguments(resolvedArguments, currentScope, logger, out TimelineBuilder timelineBuilder, out Identifier identifier):
+                case Opcode.Bind when TryGetArguments(resolvedArguments, currentScope, logger, out TimelineBuilder timelineBuilder, out IdentifierTree tree):
+                    var identifier = tree.GetIdentifier();
+                    
                     if (bindings.ContainsKey(identifier)) {
                         logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple curves"));
 
@@ -328,20 +343,20 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out Identifier identifier): {
-                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
+                case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out IdentifierTree tree): {
+                    GetImplicitTimelineBuilder(tree).AddKey(currentScope.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out Identifier identifier, out object value): {
-                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
+                case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out IdentifierTree tree, out object value): {
+                    GetImplicitTimelineBuilder(tree).AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out Identifier identifier, out object value, out InterpType interpType): {
-                    GetImplicitTimelineBuilder(identifier).AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
+                case Opcode.Key when TryGetArguments(resolvedArguments, currentScope, logger, out Timestamp time, out IdentifierTree tree, out object value, out InterpType interpType): {
+                    GetImplicitTimelineBuilder(tree).AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
                     orderCounter++;
 
                     break;
@@ -439,7 +454,9 @@ internal static class Compiler {
                 return true;
             }
 
-            TimelineBuilder GetImplicitTimelineBuilder(Identifier identifier) {
+            TimelineBuilder GetImplicitTimelineBuilder(IdentifierTree tree) {
+                var identifier = tree.GetIdentifier();
+                
                 if (bindings.TryGetValue(identifier, out var timelineBuilder))
                     return timelineBuilder;
 
@@ -492,70 +509,45 @@ internal static class Compiler {
                     
                     return false;
                 }
-                
-                object[] sequence = new object[chain.Length - 1];
 
-                for (int i = 1, j = 0; i < chain.Length; i++, j++) {
+                for (int i = 1; i < chain.Length; i++) {
                     object node = chain[i];
 
                     switch (node) {
                         case Indexer indexer: {
-                            if (!TryResolveArgument(indexer.Token, scope, logger, out object obj0, true) || !TryCastArgument(obj0, scope, logger, out int index0))
+                            if (!TryResolveArgument(indexer.Token, scope, logger, out object obj0, true) || !TryCastArgument(obj0, scope, logger, out int index))
                                 return false;
 
-                            sequence[j] = index0;
+                            switch (result) {
+                                case object[] arr:
+                                    result = arr[index];
+                                    break;
+                                case IdentifierTree identifier0:
+                                    result = identifier0.GetChild(index);
+                                    break;
+                                default:
+                                    logger.LogWarning("Chain contains an invalid argument");
+
+                                    return false;
+                            }
                         
                             continue;
                         }
                         case Name name1:
-                            sequence[j] = name1.ToString();
-                        
-                            continue;
-                    }
-                    
-                    logger.LogWarning($"Chain contains an invalid token");
-                
-                    return false;
-                }
-
-                for (int i = 0; i < sequence.Length; i++) {
-                    switch (sequence[i]) {
-                        case int index when result is object[] arr: {
-                            if (!resolveFully && i == sequence.Length - 1) {
-                                result = new Index(arr, index);
-
-                                return true;
-                            }
-
-                            result = arr[MathUtility.Mod(index, arr.Length)];
-
-                            continue;
-                        }
-                        case string:
-                        case int: {
-                            if (result is not Identifier identifier) {
-                                logger.LogWarning($"Chain contains an invalid argument. Type was {result.GetType()}");
+                            if (result is not IdentifierTree identifier1) {
+                                logger.LogWarning("Chain contains an invalid argument");
 
                                 return false;
                             }
-
-                            object[] oldSequence = identifier.Sequence;
-                            object[] newSequence = new object[oldSequence.Length + sequence.Length - i];
                             
-                            oldSequence.CopyTo(newSequence, 0);
+                            result = identifier1.GetChild(name1.ToString());
 
-                            for (int j = oldSequence.Length; i < sequence.Length; i++, j++)
-                                newSequence[j] = sequence[i];
-                            
-                            result = new Identifier(identifier.ReferenceIndex, newSequence);
-
-                            return true;
-                        }
-                    }
-                    
-                    logger.LogWarning($"Chain contains an invalid token");
+                            continue;
+                        default:
+                            logger.LogWarning("Chain contains an invalid token");
                 
-                    return false;
+                            return false;
+                    }
                 }
 
                 return true;
