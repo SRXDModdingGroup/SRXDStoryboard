@@ -71,7 +71,6 @@
         <Compile Include="Compiler\Opcode.cs" />
         <Compile Include="Compiler\Parser.cs" />
         <Compile Include="Compiler\Procedure.cs" />
-        <Compile Include="Compiler\Scope.cs" />
         <Compile Include="Compiler\Timestamp.cs" />
         <Compile Include="LoadedObjectReference\LoadedAssetBundleReference.cs" />
         <Compile Include="LoadedObjectReference\LoadedAssetReference.cs" />

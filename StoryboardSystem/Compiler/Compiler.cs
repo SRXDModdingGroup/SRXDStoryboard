@@ -56,7 +56,7 @@ internal static class Compiler {
         var bindings = new Dictionary<Identifier, TimelineBuilder>();
         var procedures = new Dictionary<Name, Procedure>();
         var globals = new Dictionary<Name, object>();
-        var globalScope = new Scope(null, 0, 0, 0, Timestamp.Zero, Timestamp.Zero, globals, null);
+        var globalScope = new Procedure(0, globals, null, null);
         bool inProcs = false;
 
         for (int i = 0; i < instructions.Count; i++) {
@@ -115,7 +115,7 @@ internal static class Compiler {
                     argNames[k] = argName;
                 }
 
-                procedures.Add(name, new Procedure(i, argNames));
+                procedures.Add(name, new Procedure(i, globals, new Dictionary<Name, object>(), argNames));
                 inProcs = true;
 
                 continue;
@@ -269,38 +269,39 @@ internal static class Compiler {
             }
         }
 
-        if (!procedures.TryGetValue(new Name("Main"), out var procedure)) {
+        if (!procedures.TryGetValue(new Name("Main"), out var currentProcedure)) {
             logger.LogWarning(GetCompileError(0, "Procedure Main could not be found"));
 
             return false;
         }
+        
+        currentProcedure.Init(0, null, 1, Timestamp.Zero, Timestamp.Zero);
 
-        int index1 = procedure.StartIndex;
+        int index = currentProcedure.StartIndex;
         int orderCounter = 0;
-        var currentScope = new Scope(null, index1, 0, 1, Timestamp.Zero, Timestamp.Zero, globals, new Dictionary<Name, object>());
 
-        while (currentScope != null) {
-            index1++;
+        while (currentProcedure != null) {
+            index++;
             
-            if (index1 >= instructions.Count || instructions[index1].Opcode == Opcode.Proc) {
-                if (currentScope.NextIteration())
-                    index1 = currentScope.StartIndex;
+            if (index >= instructions.Count || instructions[index].Opcode == Opcode.Proc) {
+                if (currentProcedure.NextIteration())
+                    index = currentProcedure.StartIndex;
                 else {
-                    index1 = currentScope.ReturnIndex;
-                    currentScope = currentScope.Parent;
+                    index = currentProcedure.ReturnIndex;
+                    currentProcedure = currentProcedure.Parent;
                 }
 
                 continue;
             }
             
-            var instruction = instructions[index1];
+            var instruction = instructions[index];
             var opcode = instruction.Opcode;
             object[] arguments = instruction.Arguments;
             
             resolvedArguments.Clear();
             
             for (int i = 0; i < arguments.Length; i++) {
-                if (TryResolveArgument(arguments[i], currentScope, out object resolved, false)) {
+                if (TryResolveArgument(arguments[i], currentProcedure, out object resolved, false)) {
                     resolvedArguments.Add(resolved);
                         
                     continue;
@@ -314,7 +315,7 @@ internal static class Compiler {
             int length = arguments.Length;
             
             switch (opcode) {
-                case Opcode.Bind when length == 2 && TryGetArguments(resolvedArguments, currentScope, out TimelineBuilder timelineBuilder, out IdentifierTree tree): {
+                case Opcode.Bind when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out TimelineBuilder timelineBuilder, out IdentifierTree tree): {
                     var identifier = tree.GetIdentifier();
 
                     if (bindings.ContainsKey(identifier)) {
@@ -327,65 +328,65 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.Call when length >= 2 && TryGetArguments(resolvedArguments, currentScope, out Timestamp time, out Name name): {
+                case Opcode.Call when length >= 2 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name): {
                     if (!TryCallProcedure(time, name, 2, 1, Timestamp.Zero))
                         return false;
 
                     break;
                 }
-                case Opcode.Key when length == 2 && TryGetArguments(resolvedArguments, currentScope, out Timestamp time, out TimelineBuilder timelineBuilder): {
-                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
+                case Opcode.Key when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder): {
+                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Key when length == 3 && TryGetArguments(resolvedArguments, currentScope, out Timestamp time, out TimelineBuilder timelineBuilder, out object value): {
-                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
+                case Opcode.Key when length == 3 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder, out object value): {
+                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Key when length == 4 && TryGetArguments(resolvedArguments, currentScope, out Timestamp time, out TimelineBuilder timelineBuilder, out object value, out InterpType interpType): {
-                    timelineBuilder.AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
+                case Opcode.Key when length == 4 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder, out object value, out InterpType interpType): {
+                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), value, interpType, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Key when length == 2 && TryGetArguments(resolvedArguments, currentScope, out Timestamp time, out IdentifierTree tree): {
-                    GetImplicitTimelineBuilder(tree).AddKey(currentScope.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
+                case Opcode.Key when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree): {
+                    GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Key when length == 3 && TryGetArguments(resolvedArguments, currentScope, out Timestamp time, out IdentifierTree tree, out object value): {
-                    GetImplicitTimelineBuilder(tree).AddKey(currentScope.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
+                case Opcode.Key when length == 3 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value): {
+                    GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Key when length == 4 && TryGetArguments(resolvedArguments, currentScope, out Timestamp time, out IdentifierTree tree, out object value, out InterpType interpType): {
-                    GetImplicitTimelineBuilder(tree).AddKey(currentScope.GetGlobalTime(time), value, interpType, orderCounter);
+                case Opcode.Key when length == 4 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value, out InterpType interpType): {
+                    GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, interpType, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Loop when length >= 4 && TryGetArguments(resolvedArguments, currentScope, out Timestamp time, out Name name, out int iterations, out Timestamp every): {
+                case Opcode.Loop when length >= 4 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out int iterations, out Timestamp every): {
                     if (!TryCallProcedure(time, name, 4, iterations, every))
                         return false;
 
                     break;
                 }
-                case Opcode.Set when length == 2 && TryGetArguments(resolvedArguments, currentScope, out Name name, out object value): {
-                    currentScope.SetValue(name, value);
+                case Opcode.Set when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Name name, out object value): {
+                    currentProcedure.SetValue(name, value);
 
                     break;
                 }
-                case Opcode.SetA when length == 2 && TryGetArguments(resolvedArguments, currentScope, out Index idx, out object value): {
+                case Opcode.SetA when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Index idx, out object value): {
                     idx.Array[idx.index] = value;
 
                     break;
                 }
-                case Opcode.SetG when length == 2 && TryGetArguments(resolvedArguments, currentScope, out Name name, out object value): {
+                case Opcode.SetG when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Name name, out object value): {
                     globals[name] = value;
 
                     break;
@@ -428,13 +429,13 @@ internal static class Compiler {
                     return false;
                 }
                 
-                if (!procedures.TryGetValue(name, out procedure)) {
+                if (!procedures.TryGetValue(name, out var newProcedure)) {
                     logger.LogWarning(GetCompileError(instruction.LineIndex, $"Procedure {name} could not be found"));
 
                     return false;
                 }
 
-                var argNames = procedure.ArgNames;
+                var argNames = newProcedure.ArgNames;
 
                 if (resolvedArguments.Count != argNames.Length + shift) {
                     logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for procedure call {name}"));
@@ -442,28 +443,28 @@ internal static class Compiler {
                     return false;
                 }
 
-                int newIndex = procedure.StartIndex;
+                int newIndex = newProcedure.StartIndex;
 
-                if (!currentScope.CheckForRecursion(newIndex)) {
+                if (!newProcedure.CheckForRecursion()) {
                     logger.LogWarning(GetCompileError(instruction.LineIndex, "Recursive procedure call detected"));
 
                     return false;
                 }
 
-                var locals = new Dictionary<Name, object>();
+                newProcedure.Init(index, currentProcedure, iterations, currentProcedure.GetGlobalTime(time), every);
 
                 for (int i = shift, j = 0; i < resolvedArguments.Count; i++, j++) {
-                    if (!TryCastArgument(resolvedArguments[i], currentScope, out object fullyResolvedArgument)) {
+                    if (!TryCastArgument(resolvedArguments[i], currentProcedure, out object fullyResolvedArgument)) {
                         logger.LogWarning(GetCompileError(instruction.LineIndex, $"Could not resolve argument {i}"));
                         
                         return false;
                     }
                     
-                    locals.Add(argNames[j], fullyResolvedArgument);
+                    newProcedure.SetValue(argNames[j], fullyResolvedArgument);
                 }
-
-                currentScope = new Scope(currentScope, newIndex, index1, iterations, currentScope.GetGlobalTime(time), every, globals, locals);
-                index1 = newIndex;
+                
+                index = newIndex;
+                currentProcedure = newProcedure;
                 
                 return true;
             }
@@ -490,7 +491,7 @@ internal static class Compiler {
         return true;
     }
 
-    private static bool TryResolveArgument(object argument, Scope scope, out object result, bool resolveFully) {
+    private static bool TryResolveArgument(object argument, Procedure procedure, out object result, bool resolveFully) {
         result = argument;
         
         switch (result) {
@@ -498,7 +499,7 @@ internal static class Compiler {
                 object[] newArr = new object[arr.Length];
                 
                 for (int i = 0; i < arr.Length; i++) {
-                    if (!TryResolveArgument(arr[i], scope, out newArr[i], true))
+                    if (!TryResolveArgument(arr[i], procedure, out newArr[i], true))
                         return false;
                 }
 
@@ -518,7 +519,7 @@ internal static class Compiler {
                 if (!resolveFully && chain.Length == 1)
                     return true;
                 
-                if (!TryResolveArgument(result, scope, out result, true)) {
+                if (!TryResolveArgument(result, procedure, out result, true)) {
                     StoryboardManager.Instance.Logger.LogWarning("Could not resolve start of chain");
                     
                     return false;
@@ -529,7 +530,7 @@ internal static class Compiler {
 
                     switch (node) {
                         case Indexer indexer: {
-                            if (!TryResolveArgument(indexer.Token, scope, out object obj0, true) || !TryCastArgument(obj0, scope, out int index))
+                            if (!TryResolveArgument(indexer.Token, procedure, out object obj0, true) || !TryCastArgument(obj0, procedure, out int index))
                                 return false;
 
                             switch (result) {
@@ -571,7 +572,7 @@ internal static class Compiler {
                 object[] args = call.Arguments;
 
                 foreach (object arg in args) {
-                    if (!TryResolveArgument(arg, scope, out object resolved, true))
+                    if (!TryResolveArgument(arg, procedure, out object resolved, true))
                         return false;
                     
                     resolvedArgs.Add(resolved);
@@ -585,11 +586,11 @@ internal static class Compiler {
                 return false;
             }
             default:
-                return TryCastArgument(result, scope, out result);
+                return TryCastArgument(result, procedure, out result);
         }
     }
 
-    private static bool TryCastArgument<T>(object argument, Scope scope, out T value) {
+    private static bool TryCastArgument<T>(object argument, Procedure procedure, out T value) {
         if (typeof(T) != typeof(object) && argument is T cast0) {
             value = cast0;
 
@@ -598,7 +599,7 @@ internal static class Compiler {
 
         switch (argument) {
             case Name name:
-                if (scope.TryGetValue(name, out argument))
+                if (procedure.TryGetValue(name, out argument))
                     break;
 
                 StoryboardManager.Instance.Logger.LogWarning($"Variable {name} not found");
@@ -631,17 +632,17 @@ internal static class Compiler {
         return false;
     }
 
-    private static bool TryGetArguments<T>(List<object> arguments, Scope scope, out T arg) {
-        if (TryCastArgument(arguments[0], scope, out arg))
+    private static bool TryGetArguments<T>(List<object> arguments, Procedure procedure, out T arg) {
+        if (TryCastArgument(arguments[0], procedure, out arg))
             return true;
 
         arg = default;
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1>(List<object> arguments, Scope scope, out T0 arg0, out T1 arg1) {
-        if (TryCastArgument(arguments[0], scope, out arg0)
-            && TryCastArgument(arguments[1], scope, out arg1))
+    private static bool TryGetArguments<T0, T1>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1) {
+        if (TryCastArgument(arguments[0], procedure, out arg0)
+            && TryCastArgument(arguments[1], procedure, out arg1))
             return true;
 
         arg0 = default;
@@ -649,10 +650,10 @@ internal static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1, T2>(List<object> arguments, Scope scope, out T0 arg0, out T1 arg1, out T2 arg2) {
-        if (TryCastArgument(arguments[0], scope, out arg0)
-            && TryCastArgument(arguments[1], scope, out arg1)
-            && TryCastArgument(arguments[2], scope, out arg2))
+    private static bool TryGetArguments<T0, T1, T2>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1, out T2 arg2) {
+        if (TryCastArgument(arguments[0], procedure, out arg0)
+            && TryCastArgument(arguments[1], procedure, out arg1)
+            && TryCastArgument(arguments[2], procedure, out arg2))
             return true;
 
         arg0 = default;
@@ -661,11 +662,11 @@ internal static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1, T2, T3>(List<object> arguments, Scope scope, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3) {
-        if (TryCastArgument(arguments[0], scope, out arg0)
-            && TryCastArgument(arguments[1], scope, out arg1)
-            && TryCastArgument(arguments[2], scope, out arg2)
-            && TryCastArgument(arguments[3], scope, out arg3))
+    private static bool TryGetArguments<T0, T1, T2, T3>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3) {
+        if (TryCastArgument(arguments[0], procedure, out arg0)
+            && TryCastArgument(arguments[1], procedure, out arg1)
+            && TryCastArgument(arguments[2], procedure, out arg2)
+            && TryCastArgument(arguments[3], procedure, out arg3))
             return true;
 
         arg0 = default;
@@ -675,12 +676,12 @@ internal static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1, T2, T3, T4>(List<object> arguments, Scope scope, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, out T4 arg4) {
-        if (TryCastArgument(arguments[0], scope, out arg0)
-            && TryCastArgument(arguments[1], scope, out arg1)
-            && TryCastArgument(arguments[2], scope, out arg2)
-            && TryCastArgument(arguments[3], scope, out arg3)
-            && TryCastArgument(arguments[4], scope, out arg4))
+    private static bool TryGetArguments<T0, T1, T2, T3, T4>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, out T4 arg4) {
+        if (TryCastArgument(arguments[0], procedure, out arg0)
+            && TryCastArgument(arguments[1], procedure, out arg1)
+            && TryCastArgument(arguments[2], procedure, out arg2)
+            && TryCastArgument(arguments[3], procedure, out arg3)
+            && TryCastArgument(arguments[4], procedure, out arg4))
             return true;
 
         arg0 = default;
