@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace StoryboardSystem; 
 
@@ -11,16 +12,17 @@ internal class IdentifierTree {
     public IdentifierTree(int referenceIndex) {
         key = referenceIndex;
         parent = null;
+        identifier = new Identifier(referenceIndex, Array.Empty<object>());
+        children = new Dictionary<object, IdentifierTree>();
     }
 
     private IdentifierTree(object key, IdentifierTree parent) {
         this.key = key;
         this.parent = parent;
+        children = new Dictionary<object, IdentifierTree>();
     }
 
     public IdentifierTree GetChild(object childKey) {
-        children ??= new Dictionary<object, IdentifierTree>();
-
         if (children.TryGetValue(childKey, out var child))
             return child;
 
@@ -33,25 +35,16 @@ internal class IdentifierTree {
     public Identifier GetIdentifier() {
         if (identifier != null)
             return identifier;
+
+        var parentIdentifier = parent.GetIdentifier();
+        object[] parentSequence = parentIdentifier.Sequence;
+        object[] newSequence = new object[parentSequence.Length + 1];
         
-        using var reverseSequence = PooledList.Get();
-        var node = this;
+        Array.Copy(parentSequence, newSequence, parentSequence.Length);
+        newSequence[newSequence.Length - 1] = key;
 
-        while (node != null) {
-            reverseSequence.Add(node.key);
-            node = node.parent;
-        }
+        identifier = new Identifier(parentIdentifier.ReferenceIndex, newSequence);
 
-        if (reverseSequence[reverseSequence.Count - 1] is not int referenceIndex)
-            return null;
-
-        object[] sequence = new object[reverseSequence.Count - 1];
-
-        for (int i = 0, j = reverseSequence.Count - 2; i < sequence.Length; i++, j--)
-            sequence[i] = reverseSequence[j];
-
-        identifier = new Identifier(referenceIndex, sequence);
-
-        return new Identifier(referenceIndex, sequence);
+        return identifier;
     }
 }
