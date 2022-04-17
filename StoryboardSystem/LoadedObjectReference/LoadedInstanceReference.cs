@@ -24,7 +24,13 @@ internal class LoadedInstanceReference : LoadedObjectReference {
     public override void Serialize(BinaryWriter writer) {
         writer.Write((byte) ObjectReferenceType.Instance);
         template.Serialize(writer);
-        parent.Serialize(writer);
+        
+        if (parent == null)
+            writer.Write(false);
+        else {
+            writer.Write(true);
+            parent.Serialize(writer);
+        }
 
         if (string.IsNullOrWhiteSpace(layerS)) {
             writer.Write(false);
@@ -110,7 +116,13 @@ internal class LoadedInstanceReference : LoadedObjectReference {
 
     public static LoadedInstanceReference Deserialize(BinaryReader reader) {
         var template = Identifier.Deserialize(reader);
-        var parent = Identifier.Deserialize(reader);
+        Identifier parent;
+
+        if (reader.ReadBoolean())
+            parent = Identifier.Deserialize(reader);
+        else
+            parent = null;
+        
         int layer;
         string layerS;
 

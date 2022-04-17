@@ -41,6 +41,8 @@ internal static class SerializationUtility {
 
                 return true;
             default:
+                StoryboardManager.Instance.Logger.LogWarning($"{obj.GetType()} is not a serializable type");
+                
                 return false;
         }
     }

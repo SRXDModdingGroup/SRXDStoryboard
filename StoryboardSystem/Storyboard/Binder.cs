@@ -20,31 +20,22 @@ internal abstract class Binder {
 
         foreach (object item in identifier.Sequence) {
             switch (item) {
-                case int index when result is object[] arr: {
-                    if (index < 0 || index >= arr.Length)
-                        break;
-
+                case int index when result is object[] arr && index >= 0 && index < arr.Length:
                     result = arr[index];
 
                     continue;
-                }
-                case int index when result is GameObject gameObject: {
-                    if (TryGetChildGameObject(gameObject, index, out result))
-                        continue;
-                    
-                    break;
-                }
-                case string name when TryGetSubObject(result, name, out object temp): {
+                case int index when result is GameObject gameObject && TryGetChildGameObject(gameObject, index, out result):
+                    continue;
+                case string name when TryGetSubObject(result, name, out object temp):
                     result = temp;
 
                     continue;
-                }
-            }
-            
-            logger.LogWarning($"Could not resolve identifier {identifier}: Sequence contained an invalid value");
-            result = null;
+                default:
+                    logger.LogWarning($"Could not resolve identifier {identifier}: Sequence contained an invalid value");
+                    result = null;
 
-            return false;
+                    return false;
+            }
         }
 
         if (result != null)
@@ -70,18 +61,7 @@ internal abstract class Binder {
     private static bool TryGetSubObject(object parent, string name, out object subObject) {
         switch (parent) {
             case GameObject gameObject:
-                var transform = gameObject.transform;
-
-                subObject = name switch {
-                    "pos" => new PositionProperty(transform),
-                    "rot" => new RotationProperty(transform),
-                    "scale" => new ScaleProperty(transform),
-                    "mat" => gameObject.GetComponent<Renderer>()?.material,
-                    "mats" => gameObject.GetComponent<Renderer>()?.materials,
-                    _ => transform.Find(name)?.gameObject
-                };
-
-                return subObject != null;
+                return TryGetGameObjectProperty(gameObject, out subObject);
             case Material material:
                 return TryGetMaterialProperty(material, out subObject);
             case PostProcessingInstance postProcess:
@@ -91,11 +71,32 @@ internal abstract class Binder {
                 subObject = new PostProcessingEnabledProperty(postProcess);
 
                 return true;
-        }
-        
-        subObject = null;
+            case Camera camera when name == "fov":
+                subObject = new CameraFovProperty(camera);
+                
+                return true;
+            case Component component:
+                return TryGetGameObjectProperty(component.gameObject, out subObject);
+            default:
+                subObject = null;
 
-        return false;
+                return false;
+        }
+
+        bool TryGetGameObjectProperty(GameObject gameObject, out object property) {
+            var transform = gameObject.transform;
+
+            property = name switch {
+                "pos" => new PositionProperty(transform),
+                "rot" => new RotationProperty(transform),
+                "scale" => new ScaleProperty(transform),
+                "mat" => gameObject.GetComponent<Renderer>()?.material,
+                "mats" => gameObject.GetComponent<Renderer>()?.materials,
+                _ => transform.Find(name)?.gameObject
+            };
+
+            return property != null;
+        }
 
         bool TryGetMaterialProperty(Material material, out object property) {
             if (name == "color" && material.HasColor(COLOR_ID)) {

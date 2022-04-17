@@ -12,9 +12,9 @@ public class StoryboardManager {
     private Storyboard currentStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
 
-    public void Play() => currentStoryboard?.Play();
+    public void Play() => currentStoryboard?.Play(sceneManager);
 
-    public void Stop() => currentStoryboard?.Stop();
+    public void Stop() => currentStoryboard?.Stop(sceneManager);
 
     public void SetTime(float time, bool triggerEvents) {
         currentStoryboard?.Evaluate(time, triggerEvents);
@@ -23,7 +23,7 @@ public class StoryboardManager {
 
     public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams storyboardParams) {
         if (currentStoryboard != null) {
-            currentStoryboard.Stop();
+            currentStoryboard.Stop(sceneManager);
             currentStoryboard.Close(sceneManager, true);
         }
         

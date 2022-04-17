@@ -1,6 +1,8 @@
 ﻿namespace StoryboardSystem; 
 
-internal class Name {
+internal class Name : Token {
+    public override TokenType Type => TokenType.Name;
+
     private readonly string name;
 
     public Name(string name) => this.name = name;

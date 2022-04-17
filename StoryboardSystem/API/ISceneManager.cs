@@ -4,6 +4,10 @@ namespace StoryboardSystem;
 
 public interface ISceneManager {
     void Update(float time, bool triggerEvents);
+
+    void Start(Storyboard storyboard);
+
+    void Stop(Storyboard storyboard);
     
     void InitializeObject(Object uObject);
     

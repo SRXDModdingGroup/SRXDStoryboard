@@ -37,12 +37,16 @@ public class Storyboard {
         return false;
     }
 
-    internal void Play() {
+    internal void Play(ISceneManager sceneManager) {
         active = true;
+        sceneManager.Start(this);
         Evaluate(lastTime, false);
     }
 
-    internal void Stop() => active = false;
+    internal void Stop(ISceneManager sceneManager) {
+        active = false;
+        sceneManager.Stop(this);
+    }
 
     internal void Evaluate(float time, bool triggerEvents) {
         lastTime = time;
@@ -102,9 +106,9 @@ public class Storyboard {
         }
         
         if (active)
-            Play();
+            Play(sceneManager);
         else
-            Stop();
+            Stop(sceneManager);
 
         opened = true;
         watch.Stop();

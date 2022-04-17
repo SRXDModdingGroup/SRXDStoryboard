@@ -34,18 +34,18 @@ internal static class Parser {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            if (!TryTokenize(line, lineIndex, logger, out object[] tokens))
+            if (!TryTokenize(line, lineIndex, logger, out var tokens))
                 success = false;
-            else if (tokens[0] is not Opcode opcode) {
+            else if (tokens[0] is not Constant { Value: Opcode opcode }) {
                 logger.LogWarning(GetParseError(lineIndex, "First argument must be an opcode"));
                 success = false;
             }
             else {
-                object[] arguments = new object[tokens.Length - 1];
-                
-                if (arguments.Length > 0)
-                    Array.Copy(tokens, 1, arguments, 0, arguments.Length);
-                
+                var arguments = new Token[tokens.Count - 1];
+
+                for (int i = 0, j = 1; i < arguments.Length; i++, j++)
+                    arguments[i] = tokens[j];
+
                 instructions.Add(new Instruction(opcode, arguments, lineIndex));
             }
         }
@@ -53,12 +53,11 @@ internal static class Parser {
         return success;
     }
 
-    private static bool TryTokenize(string value, int lineIndex, ILogger logger, out object[] tokens) {
-        var tokenList = new List<object>();
+    private static bool TryTokenize(string value, int lineIndex, ILogger logger, out List<Token> tokens) {
+        tokens = new List<Token>();
+        
         int length = value.Length;
         int startIndex = 0;
-
-        tokens = null;
 
         for (int i = 0; i <= length; i++) {
             if (i == length || char.IsWhiteSpace(value[i])) {
@@ -69,13 +68,13 @@ internal static class Parser {
                 if (string.IsNullOrWhiteSpace(subString))
                     continue;
 
-                if (!TryParseToken(subString, lineIndex, logger, out object token)) {
+                if (!TryParseToken(subString, lineIndex, logger, out var token)) {
                     logger.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {subString}"));
 
                     return false;
                 }
                 
-                tokenList.Add(token);
+                tokens.Add(token);
 
                 continue;
             }
@@ -112,40 +111,37 @@ internal static class Parser {
             }
         }
 
-        tokens = tokenList.ToArray();
-
         return true;
     }
 
-    private static bool TryParseToken(string str, int lineIndex, ILogger logger, out object token) {
+    private static bool TryParseToken(string str, int lineIndex, ILogger logger, out Token token) {
+        token = default;
+        
         if (str[0] == '\"' && str[str.Length - 1] == '\"') {
             string subString = str.Substring(1, str.Length - 2);
 
             if (subString.Contains("\"")) {
-                token = null;
-
                 return false;
             }
             
-            token = subString;
+            token = new Constant(subString);
         }
-        else if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
+        else if (TryParseTimestamp(str, out token)) { }
+        else if (TryParsePrimitive(str, out token)) { }
         else if (Enum.TryParse<Opcode>(str, true, out var opcode))
-            token = opcode;
+            token = new Constant(opcode);
         else if (Enum.TryParse<InterpType>(str, true, out var interpType))
-            token = interpType;
+            token = new Constant(interpType);
         else if (!TryParseArray(str, lineIndex, logger, out token)
                  && !TryParseFuncCall(str, lineIndex, logger, out token)
                  && !TryParseChain(str, lineIndex, logger, out token)) {
-            token = null;
-
             return false;
         }
 
         return true;
     }
 
-    private static bool TryParseTimestamp(string value, out object timestamp) {
+    private static bool TryParseTimestamp(string value, out Token timestamp) {
         float measures = 0f;
         float beats = 0f;
         float ticks = 0f;
@@ -184,18 +180,18 @@ internal static class Parser {
             return false;
         }
 
-        timestamp = new Timestamp(measures, beats, ticks, seconds);
+        timestamp = new Constant(new Timestamp(measures, beats, ticks, seconds));
 
         return true;
     }
 
-    private static bool TryParsePrimitive(string value, out object primitive) {
+    private static bool TryParsePrimitive(string value, out Token primitive) {
         if (bool.TryParse(value, out bool boolVal))
-            primitive = boolVal;
+            primitive = new Constant(boolVal);
         else if (int.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out int intVal))
-            primitive = intVal;
+            primitive = new Constant(intVal);
         else if (float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out float floatVal))
-            primitive = floatVal;
+            primitive = new Constant(floatVal);
         else {
             primitive = null;
 
@@ -205,23 +201,43 @@ internal static class Parser {
         return true;
     }
 
-    private static bool TryParseArray(string value, int lineIndex, ILogger logger, out object array) {
-        if (value[0] == '{' && value[value.Length - 1] == '}' && TryTokenize(value.Substring(1, value.Length - 2), lineIndex, logger, out object[] tokens)) {
-            array = tokens;
+    private static bool TryParseArray(string value, int lineIndex, ILogger logger, out Token array) {
+        if (value[0] != '{' || value[value.Length - 1] != '}' || !TryTokenize(value.Substring(1, value.Length - 2), lineIndex, logger, out var tokens)) {
+            array = null;
 
-            return true;
+            return false;
         }
 
-        array = null;
+        bool isConstant = true;
 
-        return false;
+        foreach (var token in tokens) {
+            if (token is Constant)
+                continue;
+
+            isConstant = false;
+
+            break;
+        }
+
+        if (isConstant) {
+            object[] objArr = new object[tokens.Count];
+
+            for (int i = 0; i < objArr.Length; i++)
+                objArr[i] = ((Constant) tokens[i]).Value;
+
+            array = new Constant(objArr);
+        }
+        else
+            array = new ArrayT(tokens.ToArray());
+
+        return true;
     }
 
-    private static bool TryParseFuncCall(string value, int lineIndex, ILogger logger, out object funcCall) {
+    private static bool TryParseFuncCall(string value, int lineIndex, ILogger logger, out Token funcCall) {
         var match = MATCH_FUNC_CALL.Match(value);
 
-        if (match.Success && Enum.TryParse<FuncName>(match.Groups[1].Value, true, out var name) && TryTokenize(match.Groups[2].Value, lineIndex, logger, out object[] tokens)) {
-            funcCall = new FuncCall(name, tokens);
+        if (match.Success && Enum.TryParse<FuncName>(match.Groups[1].Value, true, out var name) && TryTokenize(match.Groups[2].Value, lineIndex, logger, out var tokens)) {
+            funcCall = new FuncCall(name, tokens.ToArray());
 
             return true;
         }
@@ -231,7 +247,7 @@ internal static class Parser {
         return false;
     }
 
-    private static bool TryParseChain(string token, int lineIndex, ILogger logger, out object chain) {
+    private static bool TryParseChain(string token, int lineIndex, ILogger logger, out Token chain) {
         chain = null;
 
         string[] split = token.Split('.');
@@ -239,7 +255,7 @@ internal static class Parser {
         if (split.Length == 0)
             return false;
 
-        var chainList = new List<object>();
+        var chainList = new List<Token>();
 
         foreach (string s in split) {
             if (string.IsNullOrWhiteSpace(s))
@@ -257,7 +273,7 @@ internal static class Parser {
             if (string.IsNullOrWhiteSpace(indexer))
                 continue;
             
-            if (TryParseToken(indexer, lineIndex, logger, out object indexerToken))
+            if (TryParseToken(indexer, lineIndex, logger, out var indexerToken))
                 chainList.Add(new Indexer(indexerToken));
             else
                 return false;

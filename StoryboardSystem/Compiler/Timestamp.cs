@@ -2,7 +2,7 @@
 
 namespace StoryboardSystem; 
 
-internal class Timestamp {
+internal readonly struct Timestamp {
     public static Timestamp Zero => new(0, 0, 0f, 0f);
     
     public float Measures { get; }

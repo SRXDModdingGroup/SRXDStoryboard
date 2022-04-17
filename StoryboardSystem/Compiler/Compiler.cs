@@ -66,12 +66,12 @@ internal static class Compiler {
             if (inProcs && opcode != Opcode.Proc)
                 continue;
             
-            object[] arguments = instruction.Arguments;
+            var arguments = instruction.Arguments;
             
             resolvedArguments.Clear();
 
             for (int j = 0; j < arguments.Length; j++) {
-                if (TryResolveArgument(arguments[j], globalScope, out object resolved, false)) {
+                if (TryResolveArgument(arguments[j], globalScope, out object resolved)) {
                     resolvedArguments.Add(resolved);
                     
                     continue;
@@ -84,45 +84,8 @@ internal static class Compiler {
 
             int length = arguments.Length;
 
-            if (opcode == Opcode.Proc) {
-                if (length < 1 || !TryGetArguments(resolvedArguments, globalScope, out Name name)) {
-                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for instruction Proc"));
-
-                    return false;
-                }
-
-                if (procedures.ContainsKey(name)) {
-                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Procedure {name} already exists"));
-
-                    return false;
-                }
-
-                var argNames = new Name[resolvedArguments.Count - 1];
-
-                for (int j = 1, k = 0; j < resolvedArguments.Count; j++, k++) {
-                    if (resolvedArguments[j] is not Name argName) {
-                        logger.LogWarning(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Proc"));
-
-                        return false;
-                    }
-
-                    if (Array.Exists(argNames, n => n == argName)) {
-                        logger.LogWarning(GetCompileError(instruction.LineIndex, $"Argument name {argName} already exists"));
-
-                        return false;
-                    }
-
-                    argNames[k] = argName;
-                }
-
-                procedures.Add(name, new Procedure(i, globals, new Dictionary<Name, object>(), argNames));
-                inProcs = true;
-
-                continue;
-            }
-
-            switch (opcode) {
-                case Opcode.Bind when length == 2 && TryGetArguments(resolvedArguments, globalScope, out TimelineBuilder timelineBuilder, out IdentifierTree tree): {
+            switch (opcode, length) {
+                case (Opcode.Bind, 2) when TryGetArguments(resolvedArguments, globalScope, out TimelineBuilder timelineBuilder, out IdentifierTree tree): {
                     var identifier = tree.GetIdentifier();
 
                     if (bindings.ContainsKey(identifier)) {
@@ -135,12 +98,12 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.Bundle when length == 2 && TryGetArguments(resolvedArguments, globalScope, out Name name, out string bundlePath): {
+                case (Opcode.Bundle, 2) when TryGetArguments(resolvedArguments, globalScope, out Name name, out string bundlePath): {
                     AddObjectReference(name, new LoadedAssetBundleReference(bundlePath));
 
                     break;
                 }
-                case Opcode.Curve when length >= 1 && TryGetArguments(resolvedArguments, globalScope, out Name name): {
+                case (Opcode.Curve, >= 1) when TryGetArguments(resolvedArguments, globalScope, out Name name): {
                     var timelineBuilder = new TimelineBuilder(name.ToString());
                     
                     timelineBuilders.Add(timelineBuilder);
@@ -166,70 +129,100 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.In when length == 2 && TryGetArguments(resolvedArguments, globalScope, out Name name, out string paramName): {
+                case (Opcode.In, 2) when TryGetArguments(resolvedArguments, globalScope, out Name name, out string paramName): {
                     AddObjectReference(name, new LoadedExternalObjectReference(paramName));
 
                     break;
                 }
-                case Opcode.Inst when length == 2 && TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template): {
+                case (Opcode.Inst, 2) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template): {
                     AddObjectReference(name, new LoadedInstanceReference(template.GetIdentifier(), null, 0, string.Empty));
 
                     break;
                 }
-                case Opcode.Inst when length == 4 && TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template, out IdentifierTree parent, out int layer): {
+                case (Opcode.Inst, 4) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template, out IdentifierTree parent, out int layer): {
                     AddObjectReference(name, new LoadedInstanceReference(template.GetIdentifier(), parent.GetIdentifier(), layer, string.Empty));
 
                     break;
                 }
-                case Opcode.Inst when length == 4 && TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template, out IdentifierTree parent, out string layer): {
+                case (Opcode.Inst, 4) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template, out IdentifierTree parent, out string layer): {
                     AddObjectReference(name, new LoadedInstanceReference(template.GetIdentifier(), parent.GetIdentifier(), 0, layer));
 
                     break;
                 }
-                case Opcode.InstA when length == 3 && TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template): {
+                case (Opcode.InstA, 3) when TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template): {
                     globals[name] = CreateInstanceArray(count, template, null, 0, string.Empty);
 
                     break;
                 }
-                case Opcode.InstA when length == 5 && TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out int layer): {
+                case (Opcode.InstA, 5) when TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out int layer): {
                     globals[name] = CreateInstanceArray(count, template, parent, layer, string.Empty);
 
                     break;
                 }
-                case Opcode.InstA when length == 5 && TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out string layer): {
+                case (Opcode.InstA, 5) when TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out string layer): {
                     globals[name] = CreateInstanceArray(count, template, parent, 0, layer);
 
                     break;
                 }
-                case Opcode.Load when length == 3 && TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree assetBundle, out string assetName): {
+                case (Opcode.Load, 3) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree assetBundle, out string assetName): {
                     AddObjectReference(name, new LoadedAssetReference(assetBundle.GetIdentifier(), assetName));
 
                     break;
                 }
-                case Opcode.Out when length == 2 && TryGetArguments(resolvedArguments, globalScope, out string name, out object value): {
+                case (Opcode.Out, 2) when TryGetArguments(resolvedArguments, globalScope, out string name, out object value): {
                     outParams[name] = value;
 
                     break;
                 }
-                case Opcode.Post when length == 3 && TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template, out IdentifierTree camera): {
+                case (Opcode.Post, 3) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template, out IdentifierTree camera): {
                     AddObjectReference(name, new LoadedPostProcessingReference(template.GetIdentifier(), camera.GetIdentifier()));
 
                     break;
                 }
-                case Opcode.SetA when length == 2 && TryGetArguments(resolvedArguments, globalScope, out Index idx, out object value): {
+                case (Opcode.Proc, >= 1) when TryGetArguments(resolvedArguments, globalScope, out Name name): {
+                    if (procedures.ContainsKey(name)) {
+                        logger.LogWarning(GetCompileError(instruction.LineIndex, $"Procedure {name} already exists"));
+
+                        return false;
+                    }
+
+                    var argNames = new Name[resolvedArguments.Count - 1];
+
+                    for (int j = 1, k = 0; j < resolvedArguments.Count; j++, k++) {
+                        if (resolvedArguments[j] is not Name argName) {
+                            logger.LogWarning(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Proc"));
+
+                            return false;
+                        }
+
+                        if (Array.Exists(argNames, n => n == argName)) {
+                            logger.LogWarning(GetCompileError(instruction.LineIndex, $"Argument name {argName} already exists"));
+
+                            return false;
+                        }
+
+                        argNames[k] = argName;
+                    }
+
+                    procedures.Add(name, new Procedure(i, globals, new Dictionary<Name, object>(), argNames));
+                    inProcs = true;
+
+                    continue;
+                }
+                case (Opcode.SetA, 2) when TryGetArguments(resolvedArguments, globalScope, out Index idx, out object value): {
                     idx.Array[idx.index] = value;
 
                     break;
                 }
-                case Opcode.SetG when length == 2 && TryGetArguments(resolvedArguments, globalScope, out Name name, out object value): {
+                case (Opcode.SetG, 2) when TryGetArguments(resolvedArguments, globalScope, out Name name, out object value): {
                     globals[name] = value;
 
                     break;
                 }
-                case Opcode.Call:
-                case Opcode.Key:
-                case Opcode.Loop:
-                case Opcode.Set: {
+                case (Opcode.Call, _):
+                case (Opcode.Key, _):
+                case (Opcode.Loop, _):
+                case (Opcode.Set, _): {
                     logger.LogWarning(GetCompileError(instruction.LineIndex, $"Instruction {opcode} must be used within a procedure"));
 
                     return false;
@@ -296,12 +289,12 @@ internal static class Compiler {
             
             var instruction = instructions[index];
             var opcode = instruction.Opcode;
-            object[] arguments = instruction.Arguments;
+            var arguments = instruction.Arguments;
             
             resolvedArguments.Clear();
             
             for (int i = 0; i < arguments.Length; i++) {
-                if (TryResolveArgument(arguments[i], currentProcedure, out object resolved, false)) {
+                if (TryResolveArgument(arguments[i], currentProcedure, out object resolved)) {
                     resolvedArguments.Add(resolved);
                         
                     continue;
@@ -314,8 +307,8 @@ internal static class Compiler {
 
             int length = arguments.Length;
             
-            switch (opcode) {
-                case Opcode.Bind when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out TimelineBuilder timelineBuilder, out IdentifierTree tree): {
+            switch (opcode, length) {
+                case (Opcode.Bind, 2) when TryGetArguments(resolvedArguments, currentProcedure, out TimelineBuilder timelineBuilder, out IdentifierTree tree): {
                     var identifier = tree.GetIdentifier();
 
                     if (bindings.ContainsKey(identifier)) {
@@ -328,82 +321,81 @@ internal static class Compiler {
 
                     break;
                 }
-                case Opcode.Call when length >= 2 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name): {
+                case (Opcode.Call, >= 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name): {
                     if (!TryCallProcedure(time, name, 2, 1, Timestamp.Zero))
                         return false;
 
                     break;
                 }
-                case Opcode.Key when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder): {
-                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
-                    orderCounter++;
-
-                    break;
-                }
-                case Opcode.Key when length == 3 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder, out object value): {
-                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
-                    orderCounter++;
-
-                    break;
-                }
-                case Opcode.Key when length == 4 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder, out object value, out InterpType interpType): {
-                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), value, interpType, orderCounter);
-                    orderCounter++;
-
-                    break;
-                }
-                case Opcode.Key when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree): {
+                case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree): {
                     GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Key when length == 3 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value): {
+                case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder): {
+                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
+                    orderCounter++;
+
+                    break;
+                }
+                case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value): {
                     GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Key when length == 4 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value, out InterpType interpType): {
+                case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder, out object value): {
+                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
+                    orderCounter++;
+
+                    break;
+                }
+                case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value, out InterpType interpType): {
                     GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, interpType, orderCounter);
                     orderCounter++;
 
                     break;
                 }
-                case Opcode.Loop when length >= 4 && TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out int iterations, out Timestamp every): {
+                case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder, out object value, out InterpType interpType): {
+                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), value, interpType, orderCounter);
+                    orderCounter++;
+
+                    break;
+                }
+                case (Opcode.Loop, >= 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out int iterations, out Timestamp every): {
                     if (!TryCallProcedure(time, name, 4, iterations, every))
                         return false;
 
                     break;
                 }
-                case Opcode.Set when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Name name, out object value): {
+                case (Opcode.Set, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Name name, out object value): {
                     currentProcedure.SetValue(name, value);
 
                     break;
                 }
-                case Opcode.SetA when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Index idx, out object value): {
+                case (Opcode.SetA, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Index idx, out object value): {
                     idx.Array[idx.index] = value;
 
                     break;
                 }
-                case Opcode.SetG when length == 2 && TryGetArguments(resolvedArguments, currentProcedure, out Name name, out object value): {
+                case (Opcode.SetG, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Name name, out object value): {
                     globals[name] = value;
 
                     break;
                 }
-                case Opcode.Bundle:
-                case Opcode.Curve:
-                case Opcode.In:
-                case Opcode.Inst:
-                case Opcode.InstA:
-                case Opcode.Load:
-                case Opcode.Out:
-                case Opcode.Post: {
+                case (Opcode.Bundle, _):
+                case (Opcode.Curve, _):
+                case (Opcode.In, _):
+                case (Opcode.Inst, _):
+                case (Opcode.InstA, _):
+                case (Opcode.Load, _):
+                case (Opcode.Out, _):
+                case (Opcode.Post, _): {
                     logger.LogWarning(GetCompileError(instruction.LineIndex, $"Instruction {opcode} can not be used within a procedure"));
 
                     return false;
                 }
-                case Opcode.Proc:
                 default: {
                     // var builder = new StringBuilder();
                     //
@@ -454,7 +446,7 @@ internal static class Compiler {
                 newProcedure.Init(index, currentProcedure, iterations, currentProcedure.GetGlobalTime(time), every);
 
                 for (int i = shift, j = 0; i < resolvedArguments.Count; i++, j++) {
-                    if (!TryCastArgument(resolvedArguments[i], currentProcedure, out object fullyResolvedArgument)) {
+                    if (!TryResolveObject(resolvedArguments[i], currentProcedure, out object fullyResolvedArgument)) {
                         logger.LogWarning(GetCompileError(instruction.LineIndex, $"Could not resolve argument {i}"));
                         
                         return false;
@@ -491,51 +483,74 @@ internal static class Compiler {
         return true;
     }
 
-    private static bool TryResolveArgument(object argument, Procedure procedure, out object result, bool resolveFully) {
-        result = argument;
-        
-        switch (result) {
-            case object[] arr: {
-                object[] newArr = new object[arr.Length];
+    private static bool TryResolveArgument(Token argument, Procedure procedure, out object result) {
+        switch (argument.Type) {
+            case TokenType.Array: {
+                var arrayT = (ArrayT) argument;
                 
-                for (int i = 0; i < arr.Length; i++) {
-                    if (!TryResolveArgument(arr[i], procedure, out newArr[i], true))
-                        return false;
+                object[] newArr = new object[arrayT.Length];
+                
+                for (int i = 0; i < arrayT.Length; i++) {
+                    if (TryResolveArgument(arrayT[i], procedure, out object obj) && TryResolveObject(obj, procedure, out newArr[i]))
+                        continue;
+                    
+                    result = null;
+                        
+                    return false;
                 }
 
                 result = newArr;
 
                 return true;
             }
-            case Chain chain: {
+            case TokenType.Chain: {
+                var chain = (Chain) argument;
+                
                 if (chain.Length == 0 || chain[0] is not Name name0) {
+                    result = null;
                     StoryboardManager.Instance.Logger.LogWarning("Could not resolve start of chain");
                     
                     return false;
                 }
                 
-                result = name0;
-
-                if (!resolveFully && chain.Length == 1)
+                if (chain.Length == 1) {
+                    result = name0;
+                    
                     return true;
+                }
                 
-                if (!TryResolveArgument(result, procedure, out result, true)) {
+                if (!TryResolveObject(name0, procedure, out result)) {
                     StoryboardManager.Instance.Logger.LogWarning("Could not resolve start of chain");
                     
                     return false;
                 }
 
                 for (int i = 1; i < chain.Length; i++) {
-                    object node = chain[i];
+                    var node = chain[i];
 
                     switch (node) {
+                        case Name name1: {
+                            if (result is not IdentifierTree identifier1) {
+                                StoryboardManager.Instance.Logger.LogWarning("Chain contains an invalid argument");
+
+                                return false;
+                            }
+
+                            result = identifier1.GetChild(name1.ToString());
+
+                            continue;
+                        }
                         case Indexer indexer: {
-                            if (!TryResolveArgument(indexer.Token, procedure, out object obj0, true) || !TryCastArgument(obj0, procedure, out int index))
+                            if (!TryResolveArgument(indexer.Token, procedure, out object obj) || !TryCastObject(obj, procedure, out int index))
                                 return false;
 
                             switch (result) {
                                 case object[] arr:
-                                    result = arr[index];
+                                    if (i == chain.Length - 1)
+                                        result = new Index(arr, index);
+                                    else
+                                        result = arr[index];
+                                    
                                     break;
                                 case IdentifierTree identifier0:
                                     result = identifier0.GetChild(index);
@@ -548,32 +563,32 @@ internal static class Compiler {
                         
                             continue;
                         }
-                        case Name name1:
-                            if (result is not IdentifierTree identifier1) {
-                                StoryboardManager.Instance.Logger.LogWarning("Chain contains an invalid argument");
-
-                                return false;
-                            }
-                            
-                            result = identifier1.GetChild(name1.ToString());
-
-                            continue;
-                        default:
+                        default: {
                             StoryboardManager.Instance.Logger.LogWarning("Chain contains an invalid token");
-                
+
                             return false;
+                        }
                     }
                 }
 
                 return true;
             }
-            case FuncCall call: {
-                using var resolvedArgs = PooledList.Get();
-                object[] args = call.Arguments;
+            case TokenType.Constant: {
+                result = ((Constant) argument).Value;
 
-                foreach (object arg in args) {
-                    if (!TryResolveArgument(arg, procedure, out object resolved, true))
+                return true;
+            }
+            case TokenType.FuncCall: {
+                var call = (FuncCall) argument;
+                using var resolvedArgs = PooledList.Get();
+                var args = call.Arguments;
+
+                foreach (var arg in args) {
+                    if (!TryResolveArgument(arg, procedure, out object obj) || !TryResolveObject(obj, procedure, out object resolved)) {
+                        result = null;
+                        
                         return false;
+                    }
                     
                     resolvedArgs.Add(resolved);
                 }
@@ -585,22 +600,21 @@ internal static class Compiler {
                     
                 return false;
             }
+            case TokenType.Indexer:
+            case TokenType.Name:
             default:
-                return TryCastArgument(result, procedure, out result);
+                result = null;
+                StoryboardManager.Instance.Logger.LogWarning($"Not a valid token");
+
+                return false;
         }
     }
 
-    private static bool TryCastArgument<T>(object argument, Procedure procedure, out T value) {
-        if (typeof(T) != typeof(object) && argument is T cast0) {
-            value = cast0;
-
-            return true;
-        }
-
-        switch (argument) {
+    private static bool TryResolveObject(object obj, Procedure procedure, out object value) {
+        switch (obj) {
             case Name name:
-                if (procedure.TryGetValue(name, out argument))
-                    break;
+                if (procedure.TryGetValue(name, out value))
+                    return true;
 
                 StoryboardManager.Instance.Logger.LogWarning($"Variable {name} not found");
                 value = default;
@@ -610,30 +624,36 @@ internal static class Compiler {
                 object[] array = index.Array;
 
                 if (array.Length > 0) {
-                    argument = array[MathUtility.Mod(index.index, array.Length)];
+                    value = array[MathUtility.Mod(index.index, array.Length)];
 
-                    break;
+                    return true;
                 }
 
                 StoryboardManager.Instance.Logger.LogWarning($"Array length can not be 0");
                 value = default;
                         
                 return false;
-        }
+            default:
+                value = obj;
 
-        if (argument is T cast1) {
+                return true;
+        }
+    }
+
+    private static bool TryCastObject<T>(object obj, Procedure procedure, out T value) {
+        if (TryResolveObject(obj, procedure, out obj) && obj is T cast1) {
             value = cast1;
 
             return true;
         }
 
         value = default;
-
+            
         return false;
     }
 
     private static bool TryGetArguments<T>(List<object> arguments, Procedure procedure, out T arg) {
-        if (TryCastArgument(arguments[0], procedure, out arg))
+        if (TryCastObject(arguments[0], procedure, out arg))
             return true;
 
         arg = default;
@@ -641,8 +661,8 @@ internal static class Compiler {
         return false;
     }
     private static bool TryGetArguments<T0, T1>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1) {
-        if (TryCastArgument(arguments[0], procedure, out arg0)
-            && TryCastArgument(arguments[1], procedure, out arg1))
+        if (TryCastObject(arguments[0], procedure, out arg0)
+            && TryCastObject(arguments[1], procedure, out arg1))
             return true;
 
         arg0 = default;
@@ -651,9 +671,9 @@ internal static class Compiler {
         return false;
     }
     private static bool TryGetArguments<T0, T1, T2>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1, out T2 arg2) {
-        if (TryCastArgument(arguments[0], procedure, out arg0)
-            && TryCastArgument(arguments[1], procedure, out arg1)
-            && TryCastArgument(arguments[2], procedure, out arg2))
+        if (TryCastObject(arguments[0], procedure, out arg0)
+            && TryCastObject(arguments[1], procedure, out arg1)
+            && TryCastObject(arguments[2], procedure, out arg2))
             return true;
 
         arg0 = default;
@@ -663,10 +683,10 @@ internal static class Compiler {
         return false;
     }
     private static bool TryGetArguments<T0, T1, T2, T3>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3) {
-        if (TryCastArgument(arguments[0], procedure, out arg0)
-            && TryCastArgument(arguments[1], procedure, out arg1)
-            && TryCastArgument(arguments[2], procedure, out arg2)
-            && TryCastArgument(arguments[3], procedure, out arg3))
+        if (TryCastObject(arguments[0], procedure, out arg0)
+            && TryCastObject(arguments[1], procedure, out arg1)
+            && TryCastObject(arguments[2], procedure, out arg2)
+            && TryCastObject(arguments[3], procedure, out arg3))
             return true;
 
         arg0 = default;
@@ -677,11 +697,11 @@ internal static class Compiler {
         return false;
     }
     private static bool TryGetArguments<T0, T1, T2, T3, T4>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, out T4 arg4) {
-        if (TryCastArgument(arguments[0], procedure, out arg0)
-            && TryCastArgument(arguments[1], procedure, out arg1)
-            && TryCastArgument(arguments[2], procedure, out arg2)
-            && TryCastArgument(arguments[3], procedure, out arg3)
-            && TryCastArgument(arguments[4], procedure, out arg4))
+        if (TryCastObject(arguments[0], procedure, out arg0)
+            && TryCastObject(arguments[1], procedure, out arg1)
+            && TryCastObject(arguments[2], procedure, out arg2)
+            && TryCastObject(arguments[3], procedure, out arg3)
+            && TryCastObject(arguments[4], procedure, out arg4))
             return true;
 
         arg0 = default;
@@ -692,6 +712,128 @@ internal static class Compiler {
 
         return false;
     }
+    
+    private static bool TryGetArguments(List<object> arguments, Procedure procedure, out Name arg) {
+        if (arguments[0] is Name name) {
+            arg = name;
+            
+            return true;
+        }
+
+        arg = default;
+
+        return false;
+    }
+    private static bool TryGetArguments<T0>(List<object> arguments, Procedure procedure, out Name arg0, out T0 arg1) {
+        if (arguments[0] is Name name
+            && TryCastObject(arguments[1], procedure, out arg1)) {
+            arg0 = name;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+
+        return false;
+    }
+    private static bool TryGetArguments<T0, T1>(List<object> arguments, Procedure procedure, out Name arg0, out T0 arg1, out T1 arg2) {
+        if (arguments[0] is Name name
+            && TryCastObject(arguments[1], procedure, out arg1)
+            && TryCastObject(arguments[2], procedure, out arg2)) {
+            arg0 = name;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+        arg2 = default;
+
+        return false;
+    }
+    private static bool TryGetArguments<T0, T1, T2>(List<object> arguments, Procedure procedure, out Name arg0, out T0 arg1, out T1 arg2, out T2 arg3) {
+        if (arguments[0] is Name name
+            && TryCastObject(arguments[1], procedure, out arg1)
+            && TryCastObject(arguments[2], procedure, out arg2)
+            && TryCastObject(arguments[3], procedure, out arg3)) {
+            arg0 = name;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+        arg2 = default;
+        arg3 = default;
+
+        return false;
+    }
+    private static bool TryGetArguments<T0, T1, T2, T3>(List<object> arguments, Procedure procedure, out Name arg0, out T0 arg1, out T1 arg2, out T2 arg3, out T3 arg4) {
+        if (arguments[0] is Name name
+            && TryCastObject(arguments[1], procedure, out arg1)
+            && TryCastObject(arguments[2], procedure, out arg2)
+            && TryCastObject(arguments[3], procedure, out arg3)
+            && TryCastObject(arguments[4], procedure, out arg4)) {
+            arg0 = name;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+        arg2 = default;
+        arg3 = default;
+        arg4 = default;
+
+        return false;
+    }
+    
+    private static bool TryGetArguments<T0>(List<object> arguments, Procedure procedure, out T0 arg0, out Name arg1) {
+        if (TryCastObject(arguments[0], procedure, out arg0)
+            && arguments[1] is Name name) {
+            arg1 = name;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+
+        return false;
+    }
+    private static bool TryGetArguments<T0, T1, T2>(List<object> arguments, Procedure procedure, out T0 arg0, out Name arg1, out T1 arg2, out T2 arg3) {
+        if (TryCastObject(arguments[0], procedure, out arg0)
+            && arguments[1] is Name name
+            && TryCastObject(arguments[2], procedure, out arg2)
+            && TryCastObject(arguments[3], procedure, out arg3)) {
+            arg1 = name;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+        arg2 = default;
+        arg3 = default;
+
+        return false;
+    }
+    
+    private static bool TryGetArguments<T0>(List<object> arguments, Procedure procedure, out Index arg0, out T0 arg1) {
+        if (arguments[0] is Index index
+            && TryCastObject(arguments[1], procedure, out arg1)) {
+            arg0 = index;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+
+        return false;
+    }
+
 
     private static string GetCompileError(int lineIndex, string message) => $"Failed to compile instruction on line {lineIndex}: {message}";
 }

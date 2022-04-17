@@ -46,7 +46,7 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
             return false;
         }
 
-        instance = new PostProcessingInstance(sceneManager, material, uCamera);
+        instance = new PostProcessingInstance(sceneManager, Object.Instantiate(material), uCamera);
         instance.Add();
 
         return true;
