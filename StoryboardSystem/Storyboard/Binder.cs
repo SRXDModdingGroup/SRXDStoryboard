@@ -6,11 +6,11 @@ namespace StoryboardSystem;
 internal abstract class Binder {
     private static readonly int COLOR_ID = Shader.PropertyToID("_Color");
 
-    public static bool TryResolveIdentifier(Identifier identifier, List<LoadedObjectReference> objectReferences, ILogger logger, out object result) {
+    public static bool TryResolveIdentifier(Identifier identifier, List<LoadedObjectReference> objectReferences, out object result) {
         int referenceIndex = identifier.ReferenceIndex;
         
         if (referenceIndex < 0 || referenceIndex >= objectReferences.Count) {
-            logger.LogWarning($"Could not resolve identifier {identifier}: Reference index is not valid");
+            StoryboardManager.Instance.Logger.LogWarning($"Could not resolve identifier {identifier}: Reference index is not valid");
             result = null;
 
             return false;
@@ -31,7 +31,7 @@ internal abstract class Binder {
 
                     continue;
                 default:
-                    logger.LogWarning($"Could not resolve identifier {identifier}: Sequence contained an invalid value");
+                    StoryboardManager.Instance.Logger.LogWarning($"Could not resolve identifier {identifier}: Sequence contained an invalid value");
                     result = null;
 
                     return false;
@@ -41,13 +41,13 @@ internal abstract class Binder {
         if (result != null)
             return true;
         
-        logger.LogWarning($"Could not resolve identifier {identifier}");
+        StoryboardManager.Instance.Logger.LogWarning($"Could not resolve identifier {identifier}");
 
         return false;
     }
 
-    public static bool TryBindProperty(Identifier identifier, List<LoadedObjectReference> objectReferences, ILogger logger, out Property property) {
-        if (TryResolveIdentifier(identifier, objectReferences, logger, out object result) && result is Property newProperty) {
+    public static bool TryGetProperty(Identifier identifier, List<LoadedObjectReference> objectReferences, out Property property) {
+        if (TryResolveIdentifier(identifier, objectReferences, out object result) && result is Property newProperty) {
             property = newProperty;
 
             return true;

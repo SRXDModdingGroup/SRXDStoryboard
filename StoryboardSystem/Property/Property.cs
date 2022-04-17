@@ -5,7 +5,7 @@ using UnityEngine;
 namespace StoryboardSystem; 
 
 internal abstract class Property {
-    public abstract bool TryCreateBinding(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, ILogger logger, out Binding binding);
+    public abstract bool TryCreateBinding(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, out Binding binding);
 }
 
 internal abstract class Property<T> : Property {
@@ -15,7 +15,7 @@ internal abstract class Property<T> : Property {
 
     public abstract bool TryConvert(object value, out T result);
     
-    public override bool TryCreateBinding(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, ILogger logger, out Binding binding) {
+    public override bool TryCreateBinding(Property[] properties, List<KeyframeBuilder> keyframeBuilders, IStoryboardParams sParams, out Binding binding) {
         var propertiesT = new Property<T>[properties.Length];
         var type = GetType();
 

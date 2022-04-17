@@ -22,12 +22,12 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
         bundle = null;
     }
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams) {
         if (sceneManager.TryGetAssetBundle(bundleName, out bundle))
             return true;
 
         bundle = null;
-        logger.LogWarning($"Failed to load AssetBundle {bundleName}");
+        StoryboardManager.Instance.Logger.LogWarning($"Failed to load AssetBundle {bundleName}");
 
         return false;
     }

@@ -11,7 +11,7 @@ internal static class Parser {
     private static readonly Regex MATCH_FUNC_CALL = new (@"^(\w+)\((.*)\)$");
     private static readonly Regex MATCH_CHAIN_ELEMENT = new (@"^(\w+)(\[(.+)\])?$");
     
-    public static bool TryParseFile(string path, ILogger logger, out List<Instruction> instructions) {
+    public static bool TryParseFile(string path, out List<Instruction> instructions) {
         using var reader = new StreamReader(path);
         bool success = true;
         int lineIndex = 0;
@@ -34,10 +34,10 @@ internal static class Parser {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            if (!TryTokenize(line, lineIndex, logger, out var tokens))
+            if (!TryTokenize(line, lineIndex, out var tokens))
                 success = false;
             else if (tokens[0] is not Constant { Value: Opcode opcode }) {
-                logger.LogWarning(GetParseError(lineIndex, "First argument must be an opcode"));
+                StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "First argument must be an opcode"));
                 success = false;
             }
             else {
@@ -53,7 +53,7 @@ internal static class Parser {
         return success;
     }
 
-    private static bool TryTokenize(string value, int lineIndex, ILogger logger, out List<Token> tokens) {
+    private static bool TryTokenize(string value, int lineIndex, out List<Token> tokens) {
         tokens = new List<Token>();
         
         int length = value.Length;
@@ -68,8 +68,8 @@ internal static class Parser {
                 if (string.IsNullOrWhiteSpace(subString))
                     continue;
 
-                if (!TryParseToken(subString, lineIndex, logger, out var token)) {
-                    logger.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {subString}"));
+                if (!TryParseToken(subString, lineIndex, out var token)) {
+                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {subString}"));
 
                     return false;
                 }
@@ -81,31 +81,31 @@ internal static class Parser {
             
             switch (value[i]) {
                 case '\"' when !TrySkipTo(value, ref i, '\"'):
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing quote"));
+                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find closing quote"));
 
                     return false;
                 case '{' when !TrySkipTo(value, ref i, '{', '}'):
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing brace"));
+                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find closing brace"));
 
                     return false;
                 case '(' when !TrySkipTo(value, ref i, '(', ')'):
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing parenthesis"));
+                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find closing parenthesis"));
 
                     return false;
                 case '[' when !TrySkipTo(value, ref i, '[', ']'):
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing bracket"));
+                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find closing bracket"));
 
                     return false;
                 case '}':
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening brace"));
+                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find opening brace"));
 
                     return false;
                 case ')':
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening parenthesis"));
+                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find opening parenthesis"));
 
                     return false;
                 case ']':
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening bracket"));
+                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find opening bracket"));
 
                     return false;
             }
@@ -114,7 +114,7 @@ internal static class Parser {
         return true;
     }
 
-    private static bool TryParseToken(string str, int lineIndex, ILogger logger, out Token token) {
+    private static bool TryParseToken(string str, int lineIndex, out Token token) {
         token = default;
         
         if (str[0] == '\"' && str[str.Length - 1] == '\"') {
@@ -132,9 +132,9 @@ internal static class Parser {
             token = new Constant(opcode);
         else if (Enum.TryParse<InterpType>(str, true, out var interpType))
             token = new Constant(interpType);
-        else if (!TryParseArray(str, lineIndex, logger, out token)
-                 && !TryParseFuncCall(str, lineIndex, logger, out token)
-                 && !TryParseChain(str, lineIndex, logger, out token)) {
+        else if (!TryParseArray(str, lineIndex, out token)
+                 && !TryParseFuncCall(str, lineIndex, out token)
+                 && !TryParseChain(str, lineIndex, out token)) {
             return false;
         }
 
@@ -222,8 +222,8 @@ internal static class Parser {
         return true;
     }
 
-    private static bool TryParseArray(string value, int lineIndex, ILogger logger, out Token array) {
-        if (value[0] != '{' || value[value.Length - 1] != '}' || !TryTokenize(value.Substring(1, value.Length - 2), lineIndex, logger, out var tokens)) {
+    private static bool TryParseArray(string value, int lineIndex, out Token array) {
+        if (value[0] != '{' || value[value.Length - 1] != '}' || !TryTokenize(value.Substring(1, value.Length - 2), lineIndex, out var tokens)) {
             array = null;
 
             return false;
@@ -254,10 +254,10 @@ internal static class Parser {
         return true;
     }
 
-    private static bool TryParseFuncCall(string value, int lineIndex, ILogger logger, out Token funcCall) {
+    private static bool TryParseFuncCall(string value, int lineIndex, out Token funcCall) {
         var match = MATCH_FUNC_CALL.Match(value);
 
-        if (match.Success && Enum.TryParse<FuncName>(match.Groups[1].Value, true, out var name) && TryTokenize(match.Groups[2].Value, lineIndex, logger, out var tokens)) {
+        if (match.Success && Enum.TryParse<FuncName>(match.Groups[1].Value, true, out var name) && TryTokenize(match.Groups[2].Value, lineIndex, out var tokens)) {
             funcCall = new FuncCall(name, tokens.ToArray());
 
             return true;
@@ -268,7 +268,7 @@ internal static class Parser {
         return false;
     }
 
-    private static bool TryParseChain(string token, int lineIndex, ILogger logger, out Token chain) {
+    private static bool TryParseChain(string token, int lineIndex, out Token chain) {
         chain = null;
 
         string[] split = token.Split('.');
@@ -294,7 +294,7 @@ internal static class Parser {
             if (string.IsNullOrWhiteSpace(indexer))
                 continue;
             
-            if (TryParseToken(indexer, lineIndex, logger, out var indexerToken))
+            if (TryParseToken(indexer, lineIndex, out var indexerToken))
                 chainList.Add(new Indexer(indexerToken));
             else
                 return false;

@@ -10,7 +10,7 @@ internal abstract class LoadedObjectReference {
 
     public abstract void Unload(ISceneManager sceneManager);
 
-    public abstract bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams storyboardParams, ILogger logger);
+    public abstract bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams storyboardParams);
 
     public static bool TryDeserialize(BinaryReader reader, out LoadedObjectReference reference) {
         var type = (ObjectReferenceType) reader.ReadByte();

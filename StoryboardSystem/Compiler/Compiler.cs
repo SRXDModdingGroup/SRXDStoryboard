@@ -22,7 +22,7 @@ internal static class Compiler {
         
         var watch = Stopwatch.StartNew();
 
-        if (!Parser.TryParseFile(path, logger, out var instructions)) {
+        if (!Parser.TryParseFile(path, out var instructions)) {
             logger.LogWarning($"Failed to parse {name}");
 
             return false;
@@ -54,9 +54,8 @@ internal static class Compiler {
         var timelineBuilders = new List<TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
         var bindings = new Dictionary<Identifier, TimelineBuilder>();
-        var procedures = new Dictionary<Name, Procedure>();
         var globals = new Dictionary<Name, object>();
-        var globalScope = new Procedure(0, globals, null, null);
+        var globalScope = new Procedure("Global", 0, globals, null, null);
         bool inProcs = false;
 
         for (int i = 0; i < instructions.Count; i++) {
@@ -180,12 +179,6 @@ internal static class Compiler {
                     break;
                 }
                 case (Opcode.Proc, >= 1) when TryGetArguments(resolvedArguments, globalScope, out Name name): {
-                    if (procedures.ContainsKey(name)) {
-                        logger.LogWarning(GetCompileError(instruction.LineIndex, $"Procedure {name} already exists"));
-
-                        return false;
-                    }
-
                     var argNames = new Name[resolvedArguments.Count - 1];
 
                     for (int j = 1, k = 0; j < resolvedArguments.Count; j++, k++) {
@@ -204,7 +197,7 @@ internal static class Compiler {
                         argNames[k] = argName;
                     }
 
-                    procedures.Add(name, new Procedure(i, globals, new Dictionary<Name, object>(), argNames));
+                    globals[name] = new Procedure(name.ToString(), i, globals, new Dictionary<Name, object>(), argNames);
                     inProcs = true;
 
                     continue;
@@ -262,7 +255,7 @@ internal static class Compiler {
             }
         }
 
-        if (!procedures.TryGetValue(new Name("Main"), out var currentProcedure)) {
+        if (!globals.TryGetValue(new Name("Main"), out object obj) || obj is not Procedure currentProcedure) {
             logger.LogWarning(GetCompileError(0, "Procedure Main could not be found"));
 
             return false;
@@ -321,8 +314,8 @@ internal static class Compiler {
 
                     break;
                 }
-                case (Opcode.Call, >= 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name): {
-                    if (!TryCallProcedure(time, name, 2, 1, Timestamp.Zero))
+                case (Opcode.Call, >= 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Procedure procedure): {
+                    if (!TryCallProcedure(time, procedure, 2, 1, Timestamp.Zero))
                         return false;
 
                     break;
@@ -363,8 +356,8 @@ internal static class Compiler {
 
                     break;
                 }
-                case (Opcode.Loop, >= 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out int iterations, out Timestamp every): {
-                    if (!TryCallProcedure(time, name, 4, iterations, every))
+                case (Opcode.Loop, >= 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Procedure procedure, out int iterations, out Timestamp every): {
+                    if (!TryCallProcedure(time, procedure, 4, iterations, every))
                         return false;
 
                     break;
@@ -414,15 +407,9 @@ internal static class Compiler {
                 }
             }
 
-            bool TryCallProcedure(Timestamp time, Name name, int shift, int iterations, Timestamp every) {
+            bool TryCallProcedure(Timestamp time, Procedure newProcedure, int shift, int iterations, Timestamp every) {
                 if (iterations <= 0) {
                     logger.LogWarning(GetCompileError(instruction.LineIndex, "Iterations must be greater than 0"));
-
-                    return false;
-                }
-                
-                if (!procedures.TryGetValue(name, out var newProcedure)) {
-                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Procedure {name} could not be found"));
 
                     return false;
                 }
@@ -430,7 +417,7 @@ internal static class Compiler {
                 var argNames = newProcedure.ArgNames;
 
                 if (resolvedArguments.Count != argNames.Length + shift) {
-                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for procedure call {name}"));
+                    logger.LogWarning(GetCompileError(instruction.LineIndex, $"Invalid arguments for procedure call {newProcedure.Name}"));
 
                     return false;
                 }
@@ -696,22 +683,6 @@ internal static class Compiler {
 
         return false;
     }
-    private static bool TryGetArguments<T0, T1, T2, T3, T4>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1, out T2 arg2, out T3 arg3, out T4 arg4) {
-        if (TryCastObject(arguments[0], procedure, out arg0)
-            && TryCastObject(arguments[1], procedure, out arg1)
-            && TryCastObject(arguments[2], procedure, out arg2)
-            && TryCastObject(arguments[3], procedure, out arg3)
-            && TryCastObject(arguments[4], procedure, out arg4))
-            return true;
-
-        arg0 = default;
-        arg1 = default;
-        arg2 = default;
-        arg3 = default;
-        arg4 = default;
-
-        return false;
-    }
     
     private static bool TryGetArguments(List<object> arguments, Procedure procedure, out Name arg) {
         if (arguments[0] is Name name) {
@@ -788,38 +759,7 @@ internal static class Compiler {
 
         return false;
     }
-    
-    private static bool TryGetArguments<T0>(List<object> arguments, Procedure procedure, out T0 arg0, out Name arg1) {
-        if (TryCastObject(arguments[0], procedure, out arg0)
-            && arguments[1] is Name name) {
-            arg1 = name;
-            
-            return true;
-        }
 
-        arg0 = default;
-        arg1 = default;
-
-        return false;
-    }
-    private static bool TryGetArguments<T0, T1, T2>(List<object> arguments, Procedure procedure, out T0 arg0, out Name arg1, out T1 arg2, out T2 arg3) {
-        if (TryCastObject(arguments[0], procedure, out arg0)
-            && arguments[1] is Name name
-            && TryCastObject(arguments[2], procedure, out arg2)
-            && TryCastObject(arguments[3], procedure, out arg3)) {
-            arg1 = name;
-            
-            return true;
-        }
-
-        arg0 = default;
-        arg1 = default;
-        arg2 = default;
-        arg3 = default;
-
-        return false;
-    }
-    
     private static bool TryGetArguments<T0>(List<object> arguments, Procedure procedure, out Index arg0, out T0 arg1) {
         if (arguments[0] is Index index
             && TryCastObject(arguments[1], procedure, out arg1)) {

@@ -18,13 +18,13 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
 
     public override void Unload(ISceneManager sceneManager) => externalObject = null;
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams) {
         externalObject = sParams.GetExternalObject(name);
 
         if (externalObject != null)
             return true;
         
-        logger.LogWarning($"Failed to get reference to external object {name}");
+        StoryboardManager.Instance.Logger.LogWarning($"Failed to get reference to external object {name}");
 
         return false;
     }

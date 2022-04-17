@@ -27,21 +27,21 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
         instance = null;
     }
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
-        if (!Binder.TryResolveIdentifier(template, objectReferences, logger, out object obj))
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams) {
+        if (!Binder.TryResolveIdentifier(template, objectReferences, out object obj))
             return false;
         
         if (obj is not Material material) {
-            logger.LogWarning($"{template} is not a material");
+            StoryboardManager.Instance.Logger.LogWarning($"{template} is not a material");
 
             return false;
         }
 
-        if (!Binder.TryResolveIdentifier(camera, objectReferences, logger, out obj))
+        if (!Binder.TryResolveIdentifier(camera, objectReferences, out obj))
             return false;
 
         if (obj is not Camera uCamera) {
-            logger.LogWarning($"{camera} is not a camera");
+            StoryboardManager.Instance.Logger.LogWarning($"{camera} is not a camera");
 
             return false;
         }

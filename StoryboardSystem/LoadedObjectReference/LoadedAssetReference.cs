@@ -25,12 +25,12 @@ internal class LoadedAssetReference : LoadedObjectReference {
 
     public override void Unload(ISceneManager sceneManager) => asset = null;
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
-        if (!Binder.TryResolveIdentifier(assetBundleReference, objectReferences, logger, out object obj))
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams) {
+        if (!Binder.TryResolveIdentifier(assetBundleReference, objectReferences, out object obj))
             return false;
 
         if (obj is not AssetBundle assetBundle) {
-            logger.LogWarning($"{assetBundleReference} is not an asset bundle");
+            StoryboardManager.Instance.Logger.LogWarning($"{assetBundleReference} is not an asset bundle");
 
             return false;
         }
@@ -40,7 +40,7 @@ internal class LoadedAssetReference : LoadedObjectReference {
         if (asset != null)
             return true;
         
-        logger.LogWarning($"Failed to load asset {assetName}");
+        StoryboardManager.Instance.Logger.LogWarning($"Failed to load asset {assetName}");
 
         return false;
     }

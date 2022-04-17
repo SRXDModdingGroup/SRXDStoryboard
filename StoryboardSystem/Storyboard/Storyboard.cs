@@ -78,7 +78,7 @@ public class Storyboard {
         var watch = Stopwatch.StartNew();
 
         foreach (var reference in objectReferences)
-            success = reference.TryLoad(objectReferences, sceneManager, storyboardParams, logger) && success;
+            success = reference.TryLoad(objectReferences, sceneManager, storyboardParams) && success;
 
         if (!success) {
             Close(sceneManager);
@@ -89,7 +89,7 @@ public class Storyboard {
         bindings = new Binding[timelineBuilders.Count];
 
         for (int i = 0; i < timelineBuilders.Count; i++) {
-            if (timelineBuilders[i].TryCreateBinding(objectReferences, storyboardParams, logger, out var binding)) {
+            if (timelineBuilders[i].TryCreateBinding(objectReferences, storyboardParams, out var binding)) {
                 bindings[i] = binding;
                 
                 continue;

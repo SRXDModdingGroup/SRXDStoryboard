@@ -49,12 +49,12 @@ internal class LoadedInstanceReference : LoadedObjectReference {
         instance = null;
     }
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams, ILogger logger) {
-        if (!Binder.TryResolveIdentifier(template, objectReferences, logger, out object obj))
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams) {
+        if (!Binder.TryResolveIdentifier(template, objectReferences, out object obj))
             return false;
         
         if (obj is not Object uObj) {
-            logger.LogWarning($"{template} is not a Unity object");
+            StoryboardManager.Instance.Logger.LogWarning($"{template} is not a Unity object");
 
             return false;
         }
@@ -66,7 +66,7 @@ internal class LoadedInstanceReference : LoadedObjectReference {
 
             if (parent == null)
                 parentTransform = null;
-            else if (Binder.TryResolveIdentifier(parent, objectReferences, logger, out object parentObject)) {
+            else if (Binder.TryResolveIdentifier(parent, objectReferences, out object parentObject)) {
                 switch (parentObject) {
                     case Transform newParentTransform:
                         parentTransform = newParentTransform;
@@ -78,7 +78,7 @@ internal class LoadedInstanceReference : LoadedObjectReference {
                         parentTransform = component.transform;
                         break;
                     default:
-                        logger.LogWarning($"{parent} is not a gameObject, transform, or component");
+                        StoryboardManager.Instance.Logger.LogWarning($"{parent} is not a gameObject, transform, or component");
 
                         return false;
                 }

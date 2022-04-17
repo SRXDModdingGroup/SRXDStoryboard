@@ -45,10 +45,10 @@ internal class TimelineBuilder {
         return true;
     }
 
-    public bool TryCreateBinding(List<LoadedObjectReference> objectReferences, IStoryboardParams sParams, ILogger logger, out Binding binding) {
+    public bool TryCreateBinding(List<LoadedObjectReference> objectReferences, IStoryboardParams sParams, out Binding binding) {
         if (identifiers.Count == 0 || keyframeBuilders.Count == 0) {
             binding = null;
-            logger.LogWarning($"Error creating binding for timeline {Name}: No identifiers or keyframes found");
+            StoryboardManager.Instance.Logger.LogWarning($"Error creating binding for timeline {Name}: No identifiers or keyframes found");
 
             return false;
         }
@@ -56,16 +56,16 @@ internal class TimelineBuilder {
         var properties = new Property[identifiers.Count];
 
         for (int i = 0; i < identifiers.Count; i++) {
-            if (Binder.TryBindProperty(identifiers[i], objectReferences, logger, out properties[i]))
+            if (Binder.TryGetProperty(identifiers[i], objectReferences, out properties[i]))
                 continue;
             
             binding = null;
-            logger.LogWarning($"Error creating binding for timeline {Name}: Could not bind property for {identifiers[i]}");
+            StoryboardManager.Instance.Logger.LogWarning($"Error creating binding for timeline {Name}: Could not bind property for {identifiers[i]}");
 
             return false;
         }
 
-        return properties[0].TryCreateBinding(properties, keyframeBuilders, sParams, logger, out binding);
+        return properties[0].TryCreateBinding(properties, keyframeBuilders, sParams, out binding);
     }
 
     public static bool TryDeserialize(BinaryReader reader, out TimelineBuilder timelineBuilder) {
