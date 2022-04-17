@@ -74,8 +74,11 @@ internal class LoadedInstanceReference : LoadedObjectReference {
                     case GameObject parentGameObject:
                         parentTransform = parentGameObject.transform;
                         break;
+                    case Component component:
+                        parentTransform = component.transform;
+                        break;
                     default:
-                        logger.LogWarning($"{parent} is not a gameObject or transform");
+                        logger.LogWarning($"{parent} is not a gameObject, transform, or component");
 
                         return false;
                 }

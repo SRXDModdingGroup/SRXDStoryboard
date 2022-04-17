@@ -150,17 +150,17 @@ internal static class Compiler {
                     break;
                 }
                 case (Opcode.InstA, 3) when TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template): {
-                    globals[name] = CreateInstanceArray(count, template, null, 0, string.Empty);
+                    globals[name] = CreateInstanceArray(name.ToString(), count, template, null, 0, string.Empty);
 
                     break;
                 }
                 case (Opcode.InstA, 5) when TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out int layer): {
-                    globals[name] = CreateInstanceArray(count, template, parent, layer, string.Empty);
+                    globals[name] = CreateInstanceArray(name.ToString(), count, template, parent, layer, string.Empty);
 
                     break;
                 }
                 case (Opcode.InstA, 5) when TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out string layer): {
-                    globals[name] = CreateInstanceArray(count, template, parent, 0, layer);
+                    globals[name] = CreateInstanceArray(name.ToString(), count, template, parent, 0, layer);
 
                     break;
                 }
@@ -246,15 +246,15 @@ internal static class Compiler {
             }
 
             void AddObjectReference(Name name, LoadedObjectReference reference) {
-                globals[name] = new IdentifierTree(objectReferences.Count);
+                globals[name] = new IdentifierTree(name.ToString(), objectReferences.Count);
                 objectReferences.Add(reference);
             }
 
-            object[] CreateInstanceArray(int count, IdentifierTree template, IdentifierTree parent, int layer, string layerS) {
+            object[] CreateInstanceArray(string name, int count, IdentifierTree template, IdentifierTree parent, int layer, string layerS) {
                 object[] newArr = new object[count];
 
                 for (int j = 0; j < count; j++) {
-                    newArr[i] = new IdentifierTree(objectReferences.Count);
+                    newArr[i] = new IdentifierTree($"{name}_{j}", objectReferences.Count);
                     objectReferences.Add(new LoadedInstanceReference(template.GetIdentifier(), parent.GetIdentifier(), layer, layerS));
                 }
 

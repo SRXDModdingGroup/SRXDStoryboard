@@ -9,14 +9,17 @@ internal class Identifier {
     public object[] Sequence { get; }
 
     private readonly int hash;
+    private readonly string name;
 
-    public Identifier(int referenceIndex, object[] sequence) {
+    public Identifier(string name, int referenceIndex, object[] sequence) {
+        this.name = name;
         ReferenceIndex = referenceIndex;
         Sequence = sequence;
         hash = HashUtility.Combine(referenceIndex, HashUtility.Combine(sequence));
     }
 
     public void Serialize(BinaryWriter writer) {
+        writer.Write(name);
         writer.Write(ReferenceIndex);
         writer.Write(Sequence.Length);
         
@@ -38,28 +41,7 @@ internal class Identifier {
 
     public override int GetHashCode() => hash;
 
-    public override string ToString() {
-        var builder = new StringBuilder($"Reference_{ReferenceIndex}");
-
-        foreach (object item in Sequence) {
-            switch (item) {
-                case string str:
-                    builder.Append($".{str}");
-                    break;
-                case int intVal:
-                    builder.Append($"[{intVal}]");
-                    break;
-                case null:
-                    builder.Append(".NULL");
-                    break;
-                default:
-                    builder.Append($".{item}");
-                    break;
-            }
-        }
-
-        return builder.ToString();
-    }
+    public override string ToString() => name;
 
     public static bool operator ==(Identifier a, Identifier b) {
         if (a is null)
@@ -82,6 +64,7 @@ internal class Identifier {
     public static bool operator !=(Identifier a, Identifier b) => !(a == b);
 
     public static Identifier Deserialize(BinaryReader reader) {
+        string name = reader.ReadString();
         int referenceIndex = reader.ReadInt32();
         int sequenceLength = reader.ReadInt32();
         object[] sequence = new object[sequenceLength];
@@ -93,6 +76,6 @@ internal class Identifier {
                 sequence[i] = reader.ReadInt32();
         }
 
-        return new Identifier(referenceIndex, sequence);
+        return new Identifier(name, referenceIndex, sequence);
     }
 }

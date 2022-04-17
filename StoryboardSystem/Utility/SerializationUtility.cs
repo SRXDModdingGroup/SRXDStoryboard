@@ -14,6 +14,9 @@ internal static class SerializationUtility {
     
     public static bool TrySerialize(object obj, BinaryWriter writer) {
         switch (obj) {
+            case null:
+                writer.Write((byte) SerializableType.Null);
+                return true;
             case bool val:
                 writer.Write((byte) SerializableType.Bool);
                 writer.Write(val);

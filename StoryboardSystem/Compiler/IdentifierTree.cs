@@ -9,10 +9,10 @@ internal class IdentifierTree {
     private Dictionary<object, IdentifierTree> children;
     private Identifier identifier;
 
-    public IdentifierTree(int referenceIndex) {
+    public IdentifierTree(string name, int referenceIndex) {
         key = referenceIndex;
         parent = null;
-        identifier = new Identifier(referenceIndex, Array.Empty<object>());
+        identifier = new Identifier(name, referenceIndex, Array.Empty<object>());
         children = new Dictionary<object, IdentifierTree>();
     }
 
@@ -43,7 +43,14 @@ internal class IdentifierTree {
         Array.Copy(parentSequence, newSequence, parentSequence.Length);
         newSequence[newSequence.Length - 1] = key;
 
-        identifier = new Identifier(parentIdentifier.ReferenceIndex, newSequence);
+        string name = key switch {
+            string str => $"{parentIdentifier}.{str}",
+            int intVal => $"{parentIdentifier}[{intVal}]",
+            null => $"{parentIdentifier}.NULL",
+            var obj => $"{parentIdentifier}.{obj}"
+        };
+
+        identifier = new Identifier(name, parentIdentifier.ReferenceIndex, newSequence);
 
         return identifier;
     }

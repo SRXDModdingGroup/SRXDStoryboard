@@ -158,12 +158,33 @@ internal static class Parser {
             }
 
             string s = builder.ToString();
+            string[] split = s.Split('/');
+            float floatVal;
+
+            switch (split.Length) {
+                case 1 when float.TryParse(split[0], NumberStyles.Any, CultureInfo.InvariantCulture, out floatVal):
+                    break;
+                case 2 when float.TryParse(split[0], NumberStyles.Any, CultureInfo.InvariantCulture, out float num)
+                            && float.TryParse(split[1], NumberStyles.Any, CultureInfo.InvariantCulture, out float den):
+                    floatVal = num / den;
+                    break;
+                default:
+                    timestamp = default;
+                    return false;
+            }
 
             switch (c) {
-                case 'm' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out measures):
-                case 'b' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out beats):
-                case 't' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out ticks):
-                case 's' when float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out seconds):
+                case 'm':
+                    measures += floatVal;
+                    break;
+                case 'b':
+                    beats += floatVal;
+                    break;
+                case 't':
+                    ticks += floatVal;
+                    break;
+                case 's':
+                    seconds += floatVal;
                     break;
                 default:
                     timestamp = null;
