@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SRXDStoryboard", "SRXDStory
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoryboardSystem", "StoryboardSystem\StoryboardSystem.csproj", "{0A9D20F0-34EA-442A-8201-D3A10272BFCD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Testing", "Testing\Testing.csproj", "{9B8A1B4C-96BD-46D7-AF5F-29D91301C625}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{0A9D20F0-34EA-442A-8201-D3A10272BFCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A9D20F0-34EA-442A-8201-D3A10272BFCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A9D20F0-34EA-442A-8201-D3A10272BFCD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B8A1B4C-96BD-46D7-AF5F-29D91301C625}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B8A1B4C-96BD-46D7-AF5F-29D91301C625}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B8A1B4C-96BD-46D7-AF5F-29D91301C625}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B8A1B4C-96BD-46D7-AF5F-29D91301C625}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

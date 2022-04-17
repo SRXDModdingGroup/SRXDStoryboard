@@ -13,16 +13,13 @@ internal class PositionProperty : TransformProperty<Vector3> {
         switch (dimensions) {
             case 2:
                 result = new Vector3(value.x, value.y, 0f);
-
                 return true;
             case 3:
                 result = new Vector3(value.x, value.y, value.z);
-
                 return true;
+            default:
+                result = Vector3.zero;
+                return false;
         }
-        
-        result = Vector3.zero;
-
-        return false;
     }
 }
