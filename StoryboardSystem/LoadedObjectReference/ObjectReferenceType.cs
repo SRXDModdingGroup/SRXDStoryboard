@@ -5,5 +5,6 @@ internal enum ObjectReferenceType {
     AssetBundle,
     Asset,
     Instance,
-    PostProcessing
+    PostProcessing,
+    Timeline
 }

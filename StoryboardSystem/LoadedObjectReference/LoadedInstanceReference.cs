@@ -21,27 +21,6 @@ internal class LoadedInstanceReference : LoadedObjectReference {
         this.layerS = layerS;
     }
 
-    public override void Serialize(BinaryWriter writer) {
-        writer.Write((byte) ObjectReferenceType.Instance);
-        template.Serialize(writer);
-        
-        if (parent == null)
-            writer.Write(false);
-        else {
-            writer.Write(true);
-            parent.Serialize(writer);
-        }
-
-        if (string.IsNullOrWhiteSpace(layerS)) {
-            writer.Write(false);
-            writer.Write(layer);
-        }
-        else {
-            writer.Write(true);
-            writer.Write(layerS);
-        }
-    }
-
     public override void Unload(ISceneManager sceneManager) {
         if (instance != null)
             Object.Destroy(instance);
@@ -113,6 +92,29 @@ internal class LoadedInstanceReference : LoadedObjectReference {
         }
 
         sceneManager.InitializeObject(instance);
+
+        return true;
+    }
+
+    public override bool TrySerialize(BinaryWriter writer) {
+        writer.Write((byte) ObjectReferenceType.Instance);
+        template.Serialize(writer);
+        
+        if (parent == null)
+            writer.Write(false);
+        else {
+            writer.Write(true);
+            parent.Serialize(writer);
+        }
+
+        if (string.IsNullOrWhiteSpace(layerS)) {
+            writer.Write(false);
+            writer.Write(layer);
+        }
+        else {
+            writer.Write(true);
+            writer.Write(layerS);
+        }
 
         return true;
     }

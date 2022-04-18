@@ -12,11 +12,6 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
 
     public LoadedAssetBundleReference(string bundleName) => this.bundleName = bundleName;
 
-    public override void Serialize(BinaryWriter writer) {
-        writer.Write((byte) ObjectReferenceType.AssetBundle);
-        writer.Write(bundleName);
-    }
-
     public override void Unload(ISceneManager sceneManager) {
         sceneManager.UnloadAssetBundle(bundleName);
         bundle = null;
@@ -30,6 +25,13 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
         StoryboardManager.Instance.Logger.LogWarning($"Failed to load AssetBundle {bundleName}");
 
         return false;
+    }
+
+    public override bool TrySerialize(BinaryWriter writer) {
+        writer.Write((byte) ObjectReferenceType.AssetBundle);
+        writer.Write(bundleName);
+        
+        return true;
     }
 
     public static LoadedAssetBundleReference Deserialize(BinaryReader reader) => new(reader.ReadString());

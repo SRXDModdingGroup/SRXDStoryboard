@@ -16,12 +16,6 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
         this.camera = camera;
     }
 
-    public override void Serialize(BinaryWriter writer) {
-        writer.Write((byte) ObjectReferenceType.PostProcessing);
-        template.Serialize(writer);
-        camera.Serialize(writer);
-    }
-
     public override void Unload(ISceneManager sceneManager) {
         instance?.Remove();
         instance = null;
@@ -48,6 +42,14 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
 
         instance = new PostProcessingInstance(sceneManager, Object.Instantiate(material), uCamera);
         instance.Add();
+
+        return true;
+    }
+
+    public override bool TrySerialize(BinaryWriter writer) {
+        writer.Write((byte) ObjectReferenceType.PostProcessing);
+        template.Serialize(writer);
+        camera.Serialize(writer);
 
         return true;
     }

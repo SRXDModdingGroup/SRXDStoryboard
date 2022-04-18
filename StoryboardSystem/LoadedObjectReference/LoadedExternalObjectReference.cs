@@ -11,11 +11,6 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
     
     public LoadedExternalObjectReference(string name) => this.name = name;
 
-    public override void Serialize(BinaryWriter writer) {
-        writer.Write((byte) ObjectReferenceType.ExternalObject);
-        writer.Write(name);
-    }
-
     public override void Unload(ISceneManager sceneManager) => externalObject = null;
 
     public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams) {
@@ -27,6 +22,13 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
         StoryboardManager.Instance.Logger.LogWarning($"Failed to get reference to external object {name}");
 
         return false;
+    }
+
+    public override bool TrySerialize(BinaryWriter writer) {
+        writer.Write((byte) ObjectReferenceType.ExternalObject);
+        writer.Write(name);
+
+        return true;
     }
 
     public static LoadedExternalObjectReference Deserialize(BinaryReader reader) => new(reader.ReadString());

@@ -5,12 +5,12 @@ namespace StoryboardSystem;
 
 internal abstract class LoadedObjectReference {
     public abstract object LoadedObject { get; }
-    
-    public abstract void Serialize(BinaryWriter writer);
 
     public abstract void Unload(ISceneManager sceneManager);
 
     public abstract bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams storyboardParams);
+    
+    public abstract bool TrySerialize(BinaryWriter writer);
 
     public static bool TryDeserialize(BinaryReader reader, out LoadedObjectReference reference) {
         var type = (ObjectReferenceType) reader.ReadByte();
@@ -30,6 +30,8 @@ internal abstract class LoadedObjectReference {
                 return true;
             case ObjectReferenceType.PostProcessing:
                 reference = LoadedPostProcessingReference.Deserialize(reader);
+                return true;
+            case ObjectReferenceType.Timeline when LoadedTimelineReference.TryDeserialize(reader, out reference):
                 return true;
             default:
                 reference = null;

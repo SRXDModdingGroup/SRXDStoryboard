@@ -82,6 +82,7 @@
         <Compile Include="LoadedObjectReference\LoadedInstanceReference.cs" />
         <Compile Include="LoadedObjectReference\LoadedObjectReference.cs" />
         <Compile Include="LoadedObjectReference\LoadedPostProcessingReference.cs" />
+        <Compile Include="LoadedObjectReference\LoadedTimelineReference.cs" />
         <Compile Include="LoadedObjectReference\ObjectReferenceType.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Property\CameraFovProperty.cs" />

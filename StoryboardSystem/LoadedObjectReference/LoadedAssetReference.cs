@@ -17,12 +17,6 @@ internal class LoadedAssetReference : LoadedObjectReference {
         this.assetName = assetName;
     }
 
-    public override void Serialize(BinaryWriter writer) {
-        writer.Write((byte) ObjectReferenceType.Asset);
-        assetBundleReference.Serialize(writer);
-        writer.Write(assetName);
-    }
-
     public override void Unload(ISceneManager sceneManager) => asset = null;
 
     public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams) {
@@ -43,6 +37,14 @@ internal class LoadedAssetReference : LoadedObjectReference {
         StoryboardManager.Instance.Logger.LogWarning($"Failed to load asset {assetName}");
 
         return false;
+    }
+
+    public override bool TrySerialize(BinaryWriter writer) {
+        writer.Write((byte) ObjectReferenceType.Asset);
+        assetBundleReference.Serialize(writer);
+        writer.Write(assetName);
+
+        return true;
     }
 
     public static LoadedAssetReference Deserialize(BinaryReader reader) {
