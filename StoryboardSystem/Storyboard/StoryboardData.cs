@@ -44,9 +44,11 @@ internal class StoryboardData {
         foreach (var pair in OutParams) {
             writer.Write(pair.Key);
 
-            if (!SerializationUtility.TrySerialize(pair.Value, writer))
+            if (!writer.TryWrite(pair.Value))
                 return false;
         }
+        
+        StoryboardManager.Instance.Logger.LogMessage(writer.BaseStream.Length.ToString());
 
         return true;
     }
@@ -85,7 +87,7 @@ internal class StoryboardData {
         for (int i = 0; i < outParamsCount; i++) {
             string key = reader.ReadString();
 
-            if (!SerializationUtility.TryDeserialize(reader, out object value)) {
+            if (!reader.TryRead(out object value)) {
                 data = null;
 
                 return false;

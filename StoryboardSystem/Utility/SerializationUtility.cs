@@ -5,26 +5,58 @@ namespace StoryboardSystem;
 internal static class SerializationUtility {
     private enum SerializableType {
         Null,
-        Bool,
+        False,
+        True,
+        IntAsByte,
+        IntAsSByte,
+        IntAsUShort,
+        IntAsShort,
         Int,
         Float,
         String,
+        Array0,
+        Array1,
+        Array2,
+        Array3,
+        Array4,
         Array
     }
-    
-    public static bool TrySerialize(object obj, BinaryWriter writer) {
+
+    public static bool TryWrite(this BinaryWriter writer, object obj) {
         switch (obj) {
             case null:
                 writer.Write((byte) SerializableType.Null);
                 return true;
             case bool val:
-                writer.Write((byte) SerializableType.Bool);
-                writer.Write(val);
+                if (val)
+                    writer.Write((byte) SerializableType.True);
+                else
+                    writer.Write((byte) SerializableType.False);
+                
                 return true;
             case int val:
-                writer.Write((byte) SerializableType.Int);
-                writer.Write(val);
-                return true;
+                switch (val) {
+                    case >= byte.MinValue and <= byte.MaxValue:
+                        writer.Write((byte) SerializableType.IntAsByte);
+                        writer.Write((byte) val);
+                        return true;
+                    case >= sbyte.MinValue and <= sbyte.MaxValue:
+                        writer.Write((byte) SerializableType.IntAsSByte);
+                        writer.Write((sbyte) val);
+                        return true;
+                    case >= ushort.MinValue and <= ushort.MaxValue:
+                        writer.Write((byte) SerializableType.IntAsUShort);
+                        writer.Write((ushort) val);
+                        return true;
+                    case >= short.MinValue and <= short.MaxValue:
+                        writer.Write((byte) SerializableType.IntAsShort);
+                        writer.Write((short) val);
+                        return true;
+                    default:
+                        writer.Write((byte) SerializableType.Int);
+                        writer.Write(val);
+                        return true;
+                }
             case float val:
                 writer.Write((byte) SerializableType.Float);
                 writer.Write(val);
@@ -34,11 +66,17 @@ internal static class SerializationUtility {
                 writer.Write(val);
                 return true;
             case object[] arr:
-                writer.Write((byte) SerializableType.Array);
-                writer.Write(arr.Length);
+                int length = arr.Length;
+
+                if (length > 4) {
+                    writer.Write((byte) SerializableType.Array);
+                    writer.Write((ushort) arr.Length);
+                }
+                else
+                    writer.Write((byte) (SerializableType.Array0 + length));
 
                 foreach (object val in arr) {
-                    if (!TrySerialize(val, writer))
+                    if (!writer.TryWrite(val))
                         return false;
                 }
 
@@ -50,15 +88,30 @@ internal static class SerializationUtility {
         }
     }
 
-    public static bool TryDeserialize(BinaryReader reader, out object obj) {
-        byte value = reader.ReadByte();
+    public static bool TryRead(this BinaryReader reader, out object obj) {
+        var value = (SerializableType) reader.ReadByte();
         
-        switch ((SerializableType) value) {
+        switch (value) {
             case SerializableType.Null:
                 obj = null;
                 return true;
-            case SerializableType.Bool:
-                obj = reader.ReadBoolean();
+            case SerializableType.False:
+                obj = false;
+                return true;
+            case SerializableType.True:
+                obj = true;
+                return true;
+            case SerializableType.IntAsByte:
+                obj = (int) reader.ReadByte();
+                return true;
+            case SerializableType.IntAsSByte:
+                obj = (int) reader.ReadSByte();
+                return true;
+            case SerializableType.IntAsUShort:
+                obj = (int) reader.ReadUInt16();
+                return true;
+            case SerializableType.IntAsShort:
+                obj = (int) reader.ReadInt16();
                 return true;
             case SerializableType.Int:
                 obj = reader.ReadInt32();
@@ -69,12 +122,23 @@ internal static class SerializationUtility {
             case SerializableType.String:
                 obj = reader.ReadString();
                 return true;
+            case SerializableType.Array0:
+            case SerializableType.Array1:
+            case SerializableType.Array2:
+            case SerializableType.Array3:
+            case SerializableType.Array4:
             case SerializableType.Array:
-                int length = reader.ReadInt32();
+                int length;
+
+                if (value == SerializableType.Array)
+                    length = reader.ReadUInt16();
+                else
+                    length = value - SerializableType.Array0;
+                
                 object[] arr = new object[length];
 
                 for (int i = 0; i < length; i++) {
-                    if (TryDeserialize(reader, out arr[i]))
+                    if (reader.TryRead(out arr[i]))
                         continue;
                     
                     obj = null;

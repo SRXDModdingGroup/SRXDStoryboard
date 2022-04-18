@@ -114,6 +114,7 @@
         <Compile Include="Storyboard\StoryboardData.cs" />
         <Compile Include="Storyboard\TimelineController.cs" />
         <Compile Include="Storyboard\TimelineBuilder.cs" />
+        <Compile Include="Utility\Fixed.cs" />
         <Compile Include="Utility\HashUtility.cs" />
         <Compile Include="Utility\MathUtility.cs" />
         <Compile Include="Utility\PooledList.cs" />

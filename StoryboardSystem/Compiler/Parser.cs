@@ -201,7 +201,7 @@ internal static class Parser {
             return false;
         }
 
-        timestamp = new Constant(new Timestamp(measures, beats, ticks, seconds));
+        timestamp = new Constant(new Timestamp((Fixed) measures, (Fixed) beats, (Fixed) ticks, (Fixed) seconds));
 
         return true;
     }

@@ -35,8 +35,8 @@ internal abstract class LoadedObjectReference {
             case ObjectReferenceType.PostProcessing:
                 reference = LoadedPostProcessingReference.Deserialize(reader);
                 return true;
-            case ObjectReferenceType.Timeline when LoadedTimelineReference.TryDeserialize(reader, out reference):
-                return true;
+            case ObjectReferenceType.Timeline:
+                return LoadedTimelineReference.TryDeserialize(reader, out reference);
             default:
                 reference = null;
                 StoryboardManager.Instance.Logger.LogWarning($"{value} is not a valid object reference tag");

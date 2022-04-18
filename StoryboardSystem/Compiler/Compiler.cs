@@ -250,7 +250,6 @@ internal static class Compiler {
         currentProcedure.Init(0, null, 1, Timestamp.Zero, Timestamp.Zero);
 
         int index = currentProcedure.StartIndex;
-        int orderCounter = 0;
 
         while (currentProcedure != null) {
             index++;
@@ -308,38 +307,32 @@ internal static class Compiler {
                     break;
                 }
                 case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree): {
-                    GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
-                    orderCounter++;
+                    GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed);
 
                     break;
                 }
                 case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name) && timelineBuilders.TryGetValue(name, out var builder): {
-                    builder.AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
-                    orderCounter++;
+                    builder.AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed);
 
                     break;
                 }
                 case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value): {
-                    GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
-                    orderCounter++;
+                    GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed);
 
                     break;
                 }
                 case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out object value) && timelineBuilders.TryGetValue(name, out var builder): {
-                    builder.AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
-                    orderCounter++;
+                    builder.AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed);
 
                     break;
                 }
                 case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value, out InterpType interpType): {
-                    GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, interpType, orderCounter);
-                    orderCounter++;
+                    GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, interpType);
 
                     break;
                 }
                 case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out object value, out InterpType interpType) && timelineBuilders.TryGetValue(name, out var builder): {
-                    builder.AddKey(currentProcedure.GetGlobalTime(time), value, interpType, orderCounter);
-                    orderCounter++;
+                    builder.AddKey(currentProcedure.GetGlobalTime(time), value, interpType);
 
                     break;
                 }

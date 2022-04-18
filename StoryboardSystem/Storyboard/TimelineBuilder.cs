@@ -22,7 +22,8 @@ internal class TimelineBuilder {
         this.keyframeBuilders = keyframeBuilders;
     }
 
-    public void AddKey(Timestamp time, object value, InterpType interpType, int order) => keyframeBuilders.Add(new KeyframeBuilder(time, value, interpType, order));
+    public void AddKey(Timestamp time, object value, InterpType interpType)
+        => keyframeBuilders.Add(new KeyframeBuilder(time, value, interpType));
 
     public bool TryCreateController(Property property, IStoryboardParams sParams, out Controller controller)
         => property.TryCreateTimeline(this, sParams, out controller);
@@ -31,12 +32,15 @@ internal class TimelineBuilder {
         var keyframes = new Keyframe<T>[keyframeBuilders.Count];
 
         for (int i = 0; i < keyframeBuilders.Count; i++) {
-            if (keyframeBuilders[i].TryCreateKeyframe(property, sParams, out keyframes[i]))
-                continue;
+            var builder = keyframeBuilders[i];
             
-            controller = null;
+            if (!property.TryConvert(builder.Value, out var converted)) {
+                controller = null;
 
-            return false;
+                return false;
+            }
+            
+            keyframes[i] = new Keyframe<T>(sParams.Convert((float) builder.Time.Measures, (float) builder.Time.Beats, (float) builder.Time.Ticks, (float) builder.Time.Seconds), converted, builder.InterpType, i);
         }
 
         if (keyframes.Length > 1) {
@@ -100,30 +104,45 @@ internal class TimelineBuilder {
         writer.Write(Name);
         writer.Write(keyframeBuilders.Count);
 
+        var previous = Timestamp.Zero;
+        using var buffer = new BinaryWriter(new MemoryStream(16));
+
         foreach (var keyframeBuilder in keyframeBuilders) {
-            if (!keyframeBuilder.TrySerialize(writer))
+            (keyframeBuilder.Time - previous).Serialize(writer, buffer);
+
+            if (!writer.TryWrite(keyframeBuilder.Value))
                 return false;
+
+            writer.Write((byte) keyframeBuilder.InterpType);
+            previous = keyframeBuilder.Time;
         }
 
         return true;
     }
 
-    public static bool TryDeserialize(BinaryReader reader, out TimelineBuilder timelineBuilder) {
+    public static bool TryDeserialize(BinaryReader reader, out TimelineBuilder builder) {
         string name = reader.ReadString();
         int keyframeBuildersCount = reader.ReadInt32();
         var keyframeBuilders = new List<KeyframeBuilder>(keyframeBuildersCount);
+        var previous = Timestamp.Zero;
 
         for (int i = 0; i < keyframeBuildersCount; i++) {
-            if (!KeyframeBuilder.TryDeserialize(reader, out var keyframeBuilder)) {
-                timelineBuilder = null;
+            var time = Timestamp.Deserialize(reader);
 
+            if (!reader.TryRead(out object value)) {
+                builder = null;
+                
                 return false;
             }
-            
+
+            var interpType = (InterpType) reader.ReadByte();
+            var keyframeBuilder = new KeyframeBuilder(time + previous, value, interpType);
+
             keyframeBuilders.Add(keyframeBuilder);
+            previous = keyframeBuilder.Time;
         }
 
-        timelineBuilder = new TimelineBuilder(name, keyframeBuilders);
+        builder = new TimelineBuilder(name, keyframeBuilders);
 
         return true;
     }
