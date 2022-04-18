@@ -54,7 +54,7 @@ internal static class Compiler {
         var timelineBuilders = new Dictionary<Name, TimelineBuilder>();
         var implicitTimelineBuilders = new Dictionary<Identifier, TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
-        var bindings = new Dictionary<Identifier, HashSet<Identifier>>();
+        var bindings = new Dictionary<Identifier, Identifier>();
         var globals = new Dictionary<Name, object>();
         var globalScope = new Procedure("Global", 0, globals, null, null);
         bool inProcs = false;
@@ -89,12 +89,13 @@ internal static class Compiler {
                     var controller = controllerTree.GetIdentifier();
                     var property = propertyTree.GetIdentifier();
 
-                    if (!bindings.TryGetValue(controller, out var properties)) {
-                        properties = new HashSet<Identifier>();
-                        bindings.Add(controller, properties);
+                    if (bindings.ContainsKey(property)) {
+                        StoryboardManager.Instance.Logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple controllers"));
+
+                        return false;
                     }
 
-                    properties.Add(property);
+                    bindings.Add(property, controller);
 
                     break;
                 }
@@ -105,9 +106,11 @@ internal static class Compiler {
                 }
                 case (Opcode.Curve, 1) when TryGetArguments(resolvedArguments, out Name name): {
                     var timelineBuilder = new TimelineBuilder(name.ToString());
+                    var controller = new IdentifierTree(name.ToString(), objectReferences.Count);
                     
                     timelineBuilders.Add(name, timelineBuilder);
-                    AddObjectReference(name, new LoadedTimelineReference(timelineBuilder));
+                    globals[name] = controller;
+                    objectReferences.Add(new LoadedTimelineReference(controller.GetIdentifier(), timelineBuilder));
 
                     break;
                 }
@@ -288,12 +291,13 @@ internal static class Compiler {
                     var controller = controllerTree.GetIdentifier();
                     var property = propertyTree.GetIdentifier();
 
-                    if (!bindings.TryGetValue(controller, out var properties)) {
-                        properties = new HashSet<Identifier>();
-                        bindings.Add(controller, properties);
+                    if (bindings.ContainsKey(property)) {
+                        StoryboardManager.Instance.Logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple controllers"));
+
+                        return false;
                     }
 
-                    properties.Add(property);
+                    bindings.Add(property, controller);
 
                     break;
                 }
@@ -438,16 +442,31 @@ internal static class Compiler {
                     return builder;
 
                 string name = property.ToString();
+                var controller = new Identifier(name, objectReferences.Count, Array.Empty<object>());
 
                 builder = new TimelineBuilder(name);
                 implicitTimelineBuilders.Add(property, builder);
-                objectReferences.Add(new LoadedTimelineReference(builder));
+                bindings.Add(property, controller);
+                objectReferences.Add(new LoadedTimelineReference(controller, builder));
 
                 return builder;
             }
         }
 
-        result = new StoryboardData(objectReferences, bindings, outParams);
+        var bindingsCToP = new Dictionary<Identifier, List<Identifier>>();
+
+        foreach (var pair in bindings) {
+            var controller = pair.Value;
+
+            if (!bindingsCToP.TryGetValue(controller, out var properties)) {
+                properties = new List<Identifier>();
+                bindingsCToP.Add(controller, properties);
+            }
+            
+            properties.Add(pair.Key);
+        }
+
+        result = new StoryboardData(objectReferences, bindingsCToP, outParams);
 
         return true;
     }

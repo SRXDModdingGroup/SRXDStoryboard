@@ -51,7 +51,9 @@ internal static class SerializationUtility {
     }
 
     public static bool TryDeserialize(BinaryReader reader, out object obj) {
-        switch ((SerializableType) reader.ReadByte()) {
+        byte value = reader.ReadByte();
+        
+        switch ((SerializableType) value) {
             case SerializableType.Null:
                 obj = null;
                 return true;
@@ -85,6 +87,7 @@ internal static class SerializationUtility {
                 return true;
             default:
                 obj = null;
+                StoryboardManager.Instance.Logger.LogWarning($"{value} is not a valid type tag");
 
                 return false;
         }

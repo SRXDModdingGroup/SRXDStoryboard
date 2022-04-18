@@ -8,14 +8,18 @@ internal abstract class LoadedObjectReference {
 
     public abstract void Unload(ISceneManager sceneManager);
 
-    public abstract bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams storyboardParams);
+    public abstract bool TryLoad(
+        List<LoadedObjectReference> objectReferences,
+        Dictionary<Identifier, List<Identifier>> bindings,
+        ISceneManager sceneManager,
+        IStoryboardParams storyboardParams);
     
     public abstract bool TrySerialize(BinaryWriter writer);
 
     public static bool TryDeserialize(BinaryReader reader, out LoadedObjectReference reference) {
-        var type = (ObjectReferenceType) reader.ReadByte();
+        byte value = reader.ReadByte();
         
-        switch (type) {
+        switch ((ObjectReferenceType) value) {
             case ObjectReferenceType.ExternalObject:
                 reference = LoadedExternalObjectReference.Deserialize(reader);
                 return true;
@@ -35,6 +39,8 @@ internal abstract class LoadedObjectReference {
                 return true;
             default:
                 reference = null;
+                StoryboardManager.Instance.Logger.LogWarning($"{value} is not a valid object reference tag");
+                
                 return false;
         }
     }

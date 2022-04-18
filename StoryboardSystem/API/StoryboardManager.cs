@@ -3,7 +3,7 @@ using System.IO;
 
 namespace StoryboardSystem; 
 
-public class StoryboardManager {
+public sealed class StoryboardManager {
     public static StoryboardManager Instance { get; private set; }
 
     internal ILogger Logger { get; private set; }

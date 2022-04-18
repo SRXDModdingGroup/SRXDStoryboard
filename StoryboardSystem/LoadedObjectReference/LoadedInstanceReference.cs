@@ -28,7 +28,7 @@ internal class LoadedInstanceReference : LoadedObjectReference {
         instance = null;
     }
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, ISceneManager sceneManager, IStoryboardParams sParams) {
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, ISceneManager sceneManager, IStoryboardParams sParams) {
         if (!Binder.TryResolveIdentifier(template, objectReferences, out object obj))
             return false;
         

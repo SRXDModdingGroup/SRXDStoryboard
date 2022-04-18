@@ -45,15 +45,38 @@ internal abstract class Binder {
 
         return false;
     }
+    
+    public static bool TryCreateBinding(KeyValuePair<Identifier, List<Identifier>> identifiers, List<LoadedObjectReference> objectReferences, out Binding binding) {
+        binding = null;
+        
+        var properties = new List<Property>();
+        
+        if (!TryResolveIdentifier(identifiers.Key, objectReferences, out object obj))
+            return false;
 
-    public static bool TryGetProperty(Identifier identifier, List<LoadedObjectReference> objectReferences, out Property property) {
-        if (TryResolveIdentifier(identifier, objectReferences, out object result) && result is Property newProperty) {
-            property = newProperty;
-
-            return true;
+        if (obj is not Controller controller) {
+            StoryboardManager.Instance.Logger.LogWarning($"{identifiers.Key} is not a controller");
+            
+            return false;
         }
 
-        property = null;
+        foreach (var identifier in identifiers.Value) {
+            if (!TryResolveIdentifier(identifier, objectReferences, out obj))
+                return false;
+
+            if (obj is not Property property) {
+                StoryboardManager.Instance.Logger.LogWarning($"{identifier} is not a property");
+                
+                return false;
+            }
+
+            properties.Add(property);
+        }
+
+        if (controller.TryCreateBinding(properties, out binding))
+            return true;
+        
+        StoryboardManager.Instance.Logger.LogWarning($"Could not create binding for {identifiers.Key}");
 
         return false;
     }

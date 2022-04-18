@@ -6,13 +6,13 @@ namespace StoryboardSystem;
 internal class StoryboardData {
     public List<LoadedObjectReference> ObjectReferences { get; }
     
-    public Dictionary<Identifier, HashSet<Identifier>> BindingIdentifiers;
+    public Dictionary<Identifier, List<Identifier>> BindingIdentifiers;
     
     public Dictionary<string, object> OutParams { get; }
 
     public StoryboardData(
         List<LoadedObjectReference> objectReferences,
-        Dictionary<Identifier, HashSet<Identifier>> bindingIdentifiers,
+        Dictionary<Identifier, List<Identifier>> bindingIdentifiers,
         Dictionary<string, object> outParams) {
         ObjectReferences = objectReferences;
         BindingIdentifiers = bindingIdentifiers;
@@ -66,12 +66,12 @@ internal class StoryboardData {
         }
 
         int bindingIdentifiersCount = reader.ReadInt32();
-        var bindingIdentifiers = new Dictionary<Identifier, HashSet<Identifier>>();
+        var bindingIdentifiers = new Dictionary<Identifier, List<Identifier>>();
 
         for (int i = 0; i < bindingIdentifiersCount; i++) {
             var controller = Identifier.Deserialize(reader);
             int propertiesCount = reader.ReadInt32();
-            var properties = new HashSet<Identifier>();
+            var properties = new List<Identifier>();
 
             for (int j = 0; j < propertiesCount; j++)
                 properties.Add(Identifier.Deserialize(reader));

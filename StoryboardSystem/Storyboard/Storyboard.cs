@@ -5,8 +5,7 @@ using System.IO;
 namespace StoryboardSystem; 
 
 public class Storyboard {
-    public bool HasData { get; private set; }
-
+    private bool hasData;
     private bool active;
     private bool opened;
     private bool shouldOpenOnRecompile;
@@ -14,7 +13,7 @@ public class Storyboard {
     private string name;
     private string directory;
     private List<LoadedObjectReference> objectReferences;
-    private Dictionary<Identifier, HashSet<Identifier>> bindingIdentifiers;
+    private Dictionary<Identifier, List<Identifier>> bindingIdentifiers;
     private Dictionary<string, object> outParams;
     private Binding[] bindings;
 
@@ -69,7 +68,7 @@ public class Storyboard {
         Close(sceneManager);
         shouldOpenOnRecompile = true;
         
-        if (!HasData)
+        if (!hasData)
             return;
         
         logger.LogMessage($"Attempting to open {name}");
@@ -78,7 +77,7 @@ public class Storyboard {
         var watch = Stopwatch.StartNew();
 
         foreach (var reference in objectReferences)
-            success = reference.TryLoad(objectReferences, sceneManager, storyboardParams) && success;
+            success = reference.TryLoad(objectReferences, bindingIdentifiers, sceneManager, storyboardParams) && success;
 
         if (!success) {
             Close(sceneManager);
@@ -88,15 +87,11 @@ public class Storyboard {
 
         bindings = new Binding[bindingIdentifiers.Count];
 
-        for (int i = 0; i < bindingIdentifiers.Count; i++) {
-            if (timelineBuilders[i].TryCreateBinding(objectReferences, storyboardParams, out var binding)) {
-                bindings[i] = binding;
-                
-                continue;
-            }
-            
-            logger.LogWarning($"Failed to open {name}: Could not create timeline for {timelineBuilders[i].Name}");
-            success = false;
+        int i = 0;
+        
+        foreach (var pair in bindingIdentifiers) {
+            success = Binder.TryCreateBinding(pair, objectReferences, out bindings[i]) && success;
+            i++;
         }
 
         if (!success) {
@@ -122,7 +117,7 @@ public class Storyboard {
         if (clearOpenOnRecompile)
             shouldOpenOnRecompile = false;
 
-        if (!HasData)
+        if (!hasData)
             return;
 
         for (int i = objectReferences.Count - 1; i >= 0; i--)
@@ -134,7 +129,7 @@ public class Storyboard {
         objectReferences = data.ObjectReferences;
         bindingIdentifiers = data.BindingIdentifiers;
         outParams = data.OutParams;
-        HasData = true;
+        hasData = true;
     }
 
     private void ClearData(ISceneManager sceneManager) {
@@ -142,11 +137,11 @@ public class Storyboard {
         objectReferences = null;
         bindingIdentifiers = null;
         outParams = null;
-        HasData = false;
+        hasData = false;
     }
 
     internal bool TryCompile(ISceneManager sceneManager, ILogger logger, bool force = false) {
-        if (HasData && !force || !Compiler.TryCompileFile(name, directory, out var data))
+        if (hasData && !force || !Compiler.TryCompileFile(name, directory, out var data))
             return false;
         
         SetData(data, sceneManager);
@@ -179,7 +174,7 @@ public class Storyboard {
     }
 
     internal bool TryLoad(ISceneManager sceneManager, ILogger logger, bool force = false) {
-        if (HasData && !force)
+        if (hasData && !force)
             return true;
         
         string path = Path.Combine(directory, Path.ChangeExtension(name, ".bin"));
