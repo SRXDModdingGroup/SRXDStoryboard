@@ -7,7 +7,7 @@ internal class PositionProperty : TransformProperty<Vector3> {
     
     public override void Set(Vector3 value) => Transform.localPosition = value;
 
-    protected override Vector3 Interp(Vector3 a, Vector3 b, float t) => Vector3.Lerp(a, b, t);
+    public override Vector3 Interpolate(Vector3 a, Vector3 b, float t) => Vector3.Lerp(a, b, t);
     
     protected override bool TryConvert(Vector4 value, int dimensions, out Vector3 result) {
         switch (dimensions) {

@@ -2,7 +2,9 @@
 
 namespace StoryboardSystem;
 
-internal abstract class TimelineController<T> : IController<T> {
+internal abstract class TimelineController : Controller { }
+
+internal abstract class TimelineController<T> : TimelineController {
     protected Keyframe<T>[] Keyframes { get; }
 
     protected TimelineController(Keyframe<T>[] keyframes) => Keyframes = keyframes;

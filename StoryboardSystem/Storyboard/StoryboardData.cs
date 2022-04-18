@@ -5,29 +5,38 @@ namespace StoryboardSystem;
 
 internal class StoryboardData {
     public List<LoadedObjectReference> ObjectReferences { get; }
-    public List<TimelineBuilder> TimelineBuilders { get; }
+    
+    public Dictionary<Identifier, HashSet<Identifier>> BindingIdentifiers;
+    
     public Dictionary<string, object> OutParams { get; }
 
     public StoryboardData(
         List<LoadedObjectReference> objectReferences,
-        List<TimelineBuilder> timelineBuilders,
+        Dictionary<Identifier, HashSet<Identifier>> bindingIdentifiers,
         Dictionary<string, object> outParams) {
         ObjectReferences = objectReferences;
-        TimelineBuilders = timelineBuilders;
+        BindingIdentifiers = bindingIdentifiers;
         OutParams = outParams;
     }
 
     public bool TrySerialize(BinaryWriter writer) {
         writer.Write(ObjectReferences.Count);
 
-        foreach (var reference in ObjectReferences)
-            reference.Serialize(writer);
-
-        writer.Write(TimelineBuilders.Count);
-        
-        foreach (var timelineBuilder in TimelineBuilders) {
-            if (!timelineBuilder.TrySerialize(writer))
+        foreach (var reference in ObjectReferences) {
+            if (!reference.TrySerialize(writer))
                 return false;
+        }
+        
+        writer.Write(BindingIdentifiers.Count);
+
+        foreach (var pair in BindingIdentifiers) {
+            var properties = pair.Value;
+            
+            pair.Key.Serialize(writer);
+            writer.Write(properties.Count);
+
+            foreach (var property in properties)
+                property.Serialize(writer);
         }
 
         writer.Write(OutParams.Count);
@@ -56,17 +65,18 @@ internal class StoryboardData {
             objectReferences.Add(reference);
         }
 
-        int timelineBuilderCount = reader.ReadInt32();
-        var timelineBuilders = new List<TimelineBuilder>();
+        int bindingIdentifiersCount = reader.ReadInt32();
+        var bindingIdentifiers = new Dictionary<Identifier, HashSet<Identifier>>();
 
-        for (int i = 0; i < timelineBuilderCount; i++) {
-            if (!TimelineBuilder.TryDeserialize(reader, out var timelineBuilder)) {
-                data = null;
+        for (int i = 0; i < bindingIdentifiersCount; i++) {
+            var controller = Identifier.Deserialize(reader);
+            int propertiesCount = reader.ReadInt32();
+            var properties = new HashSet<Identifier>();
 
-                return false;
-            }
+            for (int j = 0; j < propertiesCount; j++)
+                properties.Add(Identifier.Deserialize(reader));
             
-            timelineBuilders.Add(timelineBuilder);
+            bindingIdentifiers.Add(controller, properties);
         }
 
         int outParamsCount = reader.ReadInt32();
@@ -84,7 +94,7 @@ internal class StoryboardData {
             outParams.Add(key, value);
         }
 
-        data = new StoryboardData(objectReferences, timelineBuilders, outParams);
+        data = new StoryboardData(objectReferences, bindingIdentifiers, outParams);
 
         return true;
     }

@@ -23,5 +23,5 @@ internal class CameraFovProperty : ValueProperty<float> {
         }
     }
 
-    protected override float Interp(float a, float b, float t) => Mathf.Lerp(a, b, t);
+    public override float Interpolate(float a, float b, float t) => Mathf.Lerp(a, b, t);
 }

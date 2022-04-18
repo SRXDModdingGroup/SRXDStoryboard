@@ -10,10 +10,10 @@ internal class Binding<T> : Binding {
     public override bool IsEvent { get; }
     
     private Property<T>[] properties;
-    private IController<T> controller;
+    private Controller<T> controller;
 
-    public Binding(bool isEvent, Property<T>[] properties, IController<T> controller) {
-        IsEvent = isEvent;
+    public Binding(Property<T>[] properties, Controller<T> controller) {
+        IsEvent = properties[0].IsEvent;
         this.properties = properties;
         this.controller = controller;
     }

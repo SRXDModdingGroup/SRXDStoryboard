@@ -14,7 +14,7 @@ public class Storyboard {
     private string name;
     private string directory;
     private List<LoadedObjectReference> objectReferences;
-    private List<TimelineBuilder> timelineBuilders;
+    private Dictionary<Identifier, HashSet<Identifier>> bindingIdentifiers;
     private Dictionary<string, object> outParams;
     private Binding[] bindings;
 
@@ -86,9 +86,9 @@ public class Storyboard {
             return;
         }
 
-        bindings = new Binding[timelineBuilders.Count];
+        bindings = new Binding[bindingIdentifiers.Count];
 
-        for (int i = 0; i < timelineBuilders.Count; i++) {
+        for (int i = 0; i < bindingIdentifiers.Count; i++) {
             if (timelineBuilders[i].TryCreateBinding(objectReferences, storyboardParams, out var binding)) {
                 bindings[i] = binding;
                 
@@ -132,7 +132,7 @@ public class Storyboard {
     private void SetData(StoryboardData data, ISceneManager sceneManager) {
         ClearData(sceneManager);
         objectReferences = data.ObjectReferences;
-        timelineBuilders = data.TimelineBuilders;
+        bindingIdentifiers = data.BindingIdentifiers;
         outParams = data.OutParams;
         HasData = true;
     }
@@ -140,7 +140,7 @@ public class Storyboard {
     private void ClearData(ISceneManager sceneManager) {
         Close(sceneManager);
         objectReferences = null;
-        timelineBuilders = null;
+        bindingIdentifiers = null;
         outParams = null;
         HasData = false;
     }

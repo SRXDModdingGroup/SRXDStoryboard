@@ -24,7 +24,7 @@ internal class PostProcessingEnabledProperty : ValueProperty<bool> {
         return false;
     }
 
-    protected override bool Interp(bool a, bool b, float t) {
+    public override bool Interpolate(bool a, bool b, float t) {
         if (t >= 0.5f)
             return b;
 

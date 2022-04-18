@@ -51,9 +51,10 @@ internal static class Compiler {
         var logger = StoryboardManager.Instance.Logger;
         using var resolvedArguments = PooledList.Get();
         var objectReferences = new List<LoadedObjectReference>();
-        var timelineBuilders = new List<TimelineBuilder>();
+        var timelineBuilders = new Dictionary<Name, TimelineBuilder>();
+        var implicitTimelineBuilders = new Dictionary<Identifier, TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
-        var bindings = new Dictionary<Identifier, TimelineBuilder>();
+        var bindings = new Dictionary<Identifier, HashSet<Identifier>>();
         var globals = new Dictionary<Name, object>();
         var globalScope = new Procedure("Global", 0, globals, null, null);
         bool inProcs = false;
@@ -84,16 +85,16 @@ internal static class Compiler {
             int length = arguments.Length;
 
             switch (opcode, length) {
-                case (Opcode.Bind, 2) when TryGetArguments(resolvedArguments, globalScope, out TimelineBuilder timelineBuilder, out IdentifierTree tree): {
-                    var identifier = tree.GetIdentifier();
+                case (Opcode.Bind, 2) when TryGetArguments(resolvedArguments, globalScope, out IdentifierTree controllerTree, out IdentifierTree propertyTree): {
+                    var controller = controllerTree.GetIdentifier();
+                    var property = propertyTree.GetIdentifier();
 
-                    if (bindings.ContainsKey(identifier)) {
-                        logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple curves"));
-
-                        return false;
+                    if (!bindings.TryGetValue(controller, out var properties)) {
+                        properties = new HashSet<Identifier>();
+                        bindings.Add(controller, properties);
                     }
 
-                    bindings.Add(identifier, timelineBuilder);
+                    properties.Add(property);
 
                     break;
                 }
@@ -102,29 +103,11 @@ internal static class Compiler {
 
                     break;
                 }
-                case (Opcode.Curve, >= 1) when TryGetArguments(resolvedArguments, globalScope, out Name name): {
+                case (Opcode.Curve, 1) when TryGetArguments(resolvedArguments, out Name name): {
                     var timelineBuilder = new TimelineBuilder(name.ToString());
                     
-                    timelineBuilders.Add(timelineBuilder);
-                    globals[name] = timelineBuilder;
-                    
-                    for (int j = 1; j < resolvedArguments.Count; j++) {
-                        if (resolvedArguments[j] is not IdentifierTree tree) {
-                            logger.LogWarning(GetCompileError(instruction.LineIndex, "Invalid arguments for instruction Curve"));
-
-                            return false;
-                        }
-
-                        var identifier = tree.GetIdentifier();
-
-                        if (bindings.ContainsKey(identifier)) {
-                            logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple curves"));
-
-                            return false;
-                        }
-                        
-                        bindings.Add(identifier, timelineBuilder);
-                    }
+                    timelineBuilders.Add(name, timelineBuilder);
+                    AddObjectReference(name, new LoadedTimelineReference(timelineBuilder));
 
                     break;
                 }
@@ -178,7 +161,7 @@ internal static class Compiler {
 
                     break;
                 }
-                case (Opcode.Proc, >= 1) when TryGetArguments(resolvedArguments, globalScope, out Name name): {
+                case (Opcode.Proc, >= 1) when TryGetArguments(resolvedArguments, out Name name): {
                     var argNames = new Name[resolvedArguments.Count - 1];
 
                     for (int j = 1, k = 0; j < resolvedArguments.Count; j++, k++) {
@@ -237,7 +220,7 @@ internal static class Compiler {
                     return false;
                 }
             }
-
+        
             void AddObjectReference(Name name, LoadedObjectReference reference) {
                 globals[name] = new IdentifierTree(name.ToString(), objectReferences.Count);
                 objectReferences.Add(reference);
@@ -301,16 +284,16 @@ internal static class Compiler {
             int length = arguments.Length;
             
             switch (opcode, length) {
-                case (Opcode.Bind, 2) when TryGetArguments(resolvedArguments, currentProcedure, out TimelineBuilder timelineBuilder, out IdentifierTree tree): {
-                    var identifier = tree.GetIdentifier();
+                case (Opcode.Bind, 2) when TryGetArguments(resolvedArguments, currentProcedure, out IdentifierTree controllerTree, out IdentifierTree propertyTree): {
+                    var controller = controllerTree.GetIdentifier();
+                    var property = propertyTree.GetIdentifier();
 
-                    if (bindings.ContainsKey(identifier)) {
-                        logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple curves"));
-
-                        return false;
+                    if (!bindings.TryGetValue(controller, out var properties)) {
+                        properties = new HashSet<Identifier>();
+                        bindings.Add(controller, properties);
                     }
 
-                    bindings.Add(identifier, timelineBuilder);
+                    properties.Add(property);
 
                     break;
                 }
@@ -326,8 +309,8 @@ internal static class Compiler {
 
                     break;
                 }
-                case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder): {
-                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
+                case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name) && timelineBuilders.TryGetValue(name, out var builder): {
+                    builder.AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
@@ -338,8 +321,8 @@ internal static class Compiler {
 
                     break;
                 }
-                case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder, out object value): {
-                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
+                case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out object value) && timelineBuilders.TryGetValue(name, out var builder): {
+                    builder.AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed, orderCounter);
                     orderCounter++;
 
                     break;
@@ -350,8 +333,8 @@ internal static class Compiler {
 
                     break;
                 }
-                case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder timelineBuilder, out object value, out InterpType interpType): {
-                    timelineBuilder.AddKey(currentProcedure.GetGlobalTime(time), value, interpType, orderCounter);
+                case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out object value, out InterpType interpType) && timelineBuilders.TryGetValue(name, out var builder): {
+                    builder.AddKey(currentProcedure.GetGlobalTime(time), value, interpType, orderCounter);
                     orderCounter++;
 
                     break;
@@ -449,23 +432,22 @@ internal static class Compiler {
             }
 
             TimelineBuilder GetImplicitTimelineBuilder(IdentifierTree tree) {
-                var identifier = tree.GetIdentifier();
-                
-                if (bindings.TryGetValue(identifier, out var timelineBuilder))
-                    return timelineBuilder;
+                var property = tree.GetIdentifier();
 
-                timelineBuilder = new TimelineBuilder(identifier.ToString());
-                timelineBuilders.Add(timelineBuilder);
-                bindings.Add(identifier, timelineBuilder);
+                if (implicitTimelineBuilders.TryGetValue(property, out var builder))
+                    return builder;
 
-                return timelineBuilder;
+                string name = property.ToString();
+
+                builder = new TimelineBuilder(name);
+                implicitTimelineBuilders.Add(property, builder);
+                objectReferences.Add(new LoadedTimelineReference(builder));
+
+                return builder;
             }
         }
 
-        foreach (var pair in bindings)
-            pair.Value.AddIdentifier(pair.Key);
-
-        result = new StoryboardData(objectReferences, timelineBuilders, outParams);
+        result = new StoryboardData(objectReferences, bindings, outParams);
 
         return true;
     }
@@ -639,14 +621,6 @@ internal static class Compiler {
         return false;
     }
 
-    private static bool TryGetArguments<T>(List<object> arguments, Procedure procedure, out T arg) {
-        if (TryCastObject(arguments[0], procedure, out arg))
-            return true;
-
-        arg = default;
-
-        return false;
-    }
     private static bool TryGetArguments<T0, T1>(List<object> arguments, Procedure procedure, out T0 arg0, out T1 arg1) {
         if (TryCastObject(arguments[0], procedure, out arg0)
             && TryCastObject(arguments[1], procedure, out arg1))
@@ -684,7 +658,7 @@ internal static class Compiler {
         return false;
     }
     
-    private static bool TryGetArguments(List<object> arguments, Procedure procedure, out Name arg) {
+    private static bool TryGetArguments(List<object> arguments, out Name arg) {
         if (arguments[0] is Name name) {
             arg = name;
             
@@ -756,6 +730,52 @@ internal static class Compiler {
         arg2 = default;
         arg3 = default;
         arg4 = default;
+
+        return false;
+    }
+    
+    private static bool TryGetArguments<T0>(List<object> arguments, Procedure procedure, out T0 arg0, out Name arg1) {
+        if (arguments[1] is Name name
+            && TryCastObject(arguments[0], procedure, out arg0)) {
+            arg1 = name;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+
+        return false;
+    }
+    private static bool TryGetArguments<T0, T1>(List<object> arguments, Procedure procedure, out T0 arg0, out Name arg1, out T1 arg2) {
+        if (arguments[1] is Name name
+            && TryCastObject(arguments[0], procedure, out arg0)
+            && TryCastObject(arguments[2], procedure, out arg2)) {
+            arg1 = name;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+        arg2 = default;
+
+        return false;
+    }
+    private static bool TryGetArguments<T0, T1, T2>(List<object> arguments, Procedure procedure, out T0 arg0, out Name arg1, out T1 arg2, out T2 arg3) {
+        if (arguments[1] is Name name
+            && TryCastObject(arguments[0], procedure, out arg0)
+            && TryCastObject(arguments[2], procedure, out arg2)
+            && TryCastObject(arguments[3], procedure, out arg3)) {
+            arg1 = name;
+            
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+        arg2 = default;
+        arg3 = default;
 
         return false;
     }

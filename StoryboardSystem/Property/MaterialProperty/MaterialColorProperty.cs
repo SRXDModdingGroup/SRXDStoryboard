@@ -7,7 +7,7 @@ internal class MaterialColorProperty : MaterialProperty<Color> {
 
     public override void Set(Color value) => Material.SetColor(Id, value);
 
-    protected override Color Interp(Color a, Color b, float t) => Color.Lerp(a, b, t);
+    public override Color Interpolate(Color a, Color b, float t) => Color.Lerp(a, b, t);
     
     protected override bool TryConvert(Vector4 value, int dimensions, out Color result) {
         switch (dimensions) {

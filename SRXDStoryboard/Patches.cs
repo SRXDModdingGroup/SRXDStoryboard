@@ -8,7 +8,6 @@ using HarmonyLib;
 using SMU.Utilities;
 using StoryboardSystem;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
 
 namespace SRXDStoryboard; 
 

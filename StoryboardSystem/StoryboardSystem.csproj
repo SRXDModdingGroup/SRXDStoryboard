@@ -52,10 +52,11 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="API\IController.cs" />
+        <Compile Include="API\Controller.cs" />
         <Compile Include="API\ILogger.cs" />
         <Compile Include="API\ISceneManager.cs" />
         <Compile Include="API\IStoryboardParams.cs" />
+        <Compile Include="API\Property.cs" />
         <Compile Include="API\StoryboardManager.cs" />
         <Compile Include="Compiler\Compiler.cs" />
         <Compile Include="Compiler\FuncName.cs" />
@@ -92,7 +93,6 @@
         <Compile Include="Property\MaterialProperty\MaterialVectorProperty.cs" />
         <Compile Include="Property\MaterialProperty\MaterialColorProperty.cs" />
         <Compile Include="Property\PostProcessingEnabledProperty.cs" />
-        <Compile Include="Property\Property.cs" />
         <Compile Include="Property\TransformProperty\PositionProperty.cs" />
         <Compile Include="Property\TransformProperty\RotationProperty.cs" />
         <Compile Include="Property\TransformProperty\ScaleProperty.cs" />
