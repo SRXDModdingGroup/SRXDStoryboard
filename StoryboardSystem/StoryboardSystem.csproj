@@ -53,6 +53,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="API\Controller.cs" />
+        <Compile Include="API\ICustomObject.cs" />
         <Compile Include="API\ILogger.cs" />
         <Compile Include="API\ISceneManager.cs" />
         <Compile Include="API\IStoryboardParams.cs" />
