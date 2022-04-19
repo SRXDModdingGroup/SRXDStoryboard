@@ -4,7 +4,7 @@ using System.IO;
 namespace StoryboardSystem; 
 
 internal readonly struct Fixed {
-    private const int DEC_BITS = 12;
+    private const int DEC_BITS = 14;
     private const int ONE_BIT = 1 << DEC_BITS;
     private const int FLOOR_MASK = ~(ONE_BIT - 1);
     private const float ONE_F = ONE_BIT;
