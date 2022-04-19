@@ -47,8 +47,6 @@ internal class StoryboardData {
             if (!writer.TryWrite(pair.Value))
                 return false;
         }
-        
-        StoryboardManager.Instance.Logger.LogMessage(writer.BaseStream.Length.ToString());
 
         return true;
     }

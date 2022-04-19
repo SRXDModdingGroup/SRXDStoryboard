@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 namespace StoryboardSystem; 
 
@@ -147,12 +148,12 @@ public class Storyboard {
         SetData(data, sceneManager);
         logger.LogMessage($"Attempting to save {name}");
         
-        string tempName = Path.GetTempFileName();
         bool success;
         var watch = Stopwatch.StartNew();
+        using var stream = new MemoryStream(1 << 16);
 
         try {
-            using var writer = new BinaryWriter(File.Create(tempName));
+            var writer = new BinaryWriter(stream);
             
             success = data.TrySerialize(writer);
         }
@@ -160,15 +161,18 @@ public class Storyboard {
             logger.LogError(e.Message);
             success = false;
         }
-        
-        watch.Stop();
 
         if (success) {
-            File.Copy(tempName, Path.Combine(directory, Path.ChangeExtension(name, ".bin")), true);
+            using var file = File.Create(Path.Combine(directory, Path.ChangeExtension(name, ".bin")));
+            
+            stream.WriteTo(file);
+            watch.Stop();
             logger.LogMessage($"Successfully saved {name} in {watch.ElapsedMilliseconds}ms");
         }
-        else
+        else {
+            watch.Stop();
             logger.LogWarning($"Failed to save {name}");
+        }
 
         return true;
     }
