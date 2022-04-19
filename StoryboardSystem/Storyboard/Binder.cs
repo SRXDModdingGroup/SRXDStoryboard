@@ -38,6 +38,9 @@ internal abstract class Binder {
             }
         }
 
+        if (result is ICustomObject customObject)
+            result = customObject.Self;
+
         if (result != null)
             return true;
         
@@ -109,15 +112,13 @@ internal abstract class Binder {
         }
 
         bool TryGetGameObjectProperty(GameObject gameObject, out object property) {
-            var transform = gameObject.transform;
-
             property = name switch {
-                "pos" => new PositionProperty(transform),
-                "rot" => new RotationProperty(transform),
-                "scale" => new ScaleProperty(transform),
+                "pos" => new PositionProperty(gameObject.transform),
+                "rot" => new RotationProperty(gameObject.transform),
+                "scale" => new ScaleProperty(gameObject.transform),
                 "mat" => gameObject.GetComponent<Renderer>()?.material,
                 "mats" => gameObject.GetComponent<Renderer>()?.materials,
-                _ => transform.Find(name)?.gameObject
+                _ => gameObject.transform.Find(name)?.gameObject
             };
 
             return property != null;
