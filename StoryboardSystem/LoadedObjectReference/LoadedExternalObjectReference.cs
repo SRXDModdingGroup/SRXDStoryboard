@@ -11,7 +11,12 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
     
     public LoadedExternalObjectReference(string name) => this.name = name;
 
-    public override void Unload(ISceneManager sceneManager) => externalObject = null;
+    public override void Unload(ISceneManager sceneManager) {
+        if (externalObject is ICustomObject customObject)
+            customObject.Cleanup();
+        
+        externalObject = null;
+    }
 
     public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, ISceneManager sceneManager, IStoryboardParams sParams) {
         externalObject = sParams.GetExternalObject(name);
