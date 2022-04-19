@@ -5,9 +5,11 @@ internal class PostProcessingEnabledProperty : ValueProperty<bool> {
 
     public PostProcessingEnabledProperty(PostProcessingInstance instance) => this.instance = instance;
 
-    public override void Set(bool value) => instance.SetEnabled(value);
+    protected internal override void Reset() { }
 
-    public override bool TryConvert(object value, out bool result) {
+    protected internal override void Set(bool value) => instance.SetEnabled(value);
+
+    protected internal override bool TryConvert(object value, out bool result) {
         switch (value) {
             case bool boolVal:
                 result = boolVal;
@@ -24,7 +26,7 @@ internal class PostProcessingEnabledProperty : ValueProperty<bool> {
         return false;
     }
 
-    public override bool Interpolate(bool a, bool b, float t) {
+    protected internal override bool Interpolate(bool a, bool b, float t) {
         if (t >= 0.5f)
             return b;
 

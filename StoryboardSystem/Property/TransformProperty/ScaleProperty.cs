@@ -3,9 +3,15 @@
 namespace StoryboardSystem; 
 
 internal class ScaleProperty : TransformProperty<Vector3> {
-    public ScaleProperty(Transform transform) : base(transform) { }
-    
-    public override void Set(Vector3 value) => Transform.localScale = value;
+    private Vector3 defaultScale;
+
+    public ScaleProperty(Transform transform) : base(transform) => defaultScale = transform.localScale;
+
+    protected internal override void Reset() => Transform.localScale = defaultScale;
+
+    protected internal override void Set(Vector3 value) => Transform.localScale = value;
+
+    protected internal override Vector3 Interpolate(Vector3 a, Vector3 b, float t) => Vector3.Lerp(a, b, t);
     
     protected override bool TryConvert(Vector4 value, int dimensions, out Vector3 result) {
         switch (dimensions) {
@@ -25,6 +31,4 @@ internal class ScaleProperty : TransformProperty<Vector3> {
                 return false;
         }
     }
-
-    public override Vector3 Interpolate(Vector3 a, Vector3 b, float t) => Vector3.Lerp(a, b, t);
 }

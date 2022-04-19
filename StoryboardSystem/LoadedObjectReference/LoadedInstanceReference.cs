@@ -91,8 +91,6 @@ internal class LoadedInstanceReference : LoadedObjectReference {
             }
         }
 
-        sceneManager.InitializeObject(instance);
-
         return true;
     }
 

@@ -4,12 +4,14 @@ using UnityEngine;
 namespace StoryboardSystem;
 
 internal class CurveController<T> : TimelineController<T> {
+    protected internal override bool IsEvent => false;
+
     private int lastEvaluatedIndex = -2;
     private Func<T, T, float, T> interpolate;
 
     public CurveController(Keyframe<T>[] keyframes, Func<T, T, float, T> interpolate) : base(keyframes) => this.interpolate = interpolate;
 
-    public override void Evaluate(float time, Action<T> set) {
+    protected internal override void Evaluate(float time, Action<T> set) {
         int index = lastEvaluatedIndex;
 
         if (index < -1)

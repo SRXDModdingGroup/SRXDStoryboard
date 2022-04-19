@@ -4,12 +4,18 @@ namespace StoryboardSystem;
 
 internal class CameraFovProperty : ValueProperty<float> {
     private Camera camera;
+    private float defaultFov;
     
-    public CameraFovProperty(Camera camera) => this.camera = camera;
+    public CameraFovProperty(Camera camera) {
+        this.camera = camera;
+        defaultFov = camera.fieldOfView;
+    }
 
-    public override void Set(float value) => camera.fieldOfView = value;
+    protected internal override void Reset() => camera.fieldOfView = defaultFov;
 
-    public override bool TryConvert(object value, out float result) {
+    protected internal override void Set(float value) => camera.fieldOfView = value;
+
+    protected internal override bool TryConvert(object value, out float result) {
         switch (value) {
             case float floatVal:
                 result = floatVal;
@@ -23,5 +29,5 @@ internal class CameraFovProperty : ValueProperty<float> {
         }
     }
 
-    public override float Interpolate(float a, float b, float t) => Mathf.Lerp(a, b, t);
+    protected internal override float Interpolate(float a, float b, float t) => Mathf.Lerp(a, b, t);
 }

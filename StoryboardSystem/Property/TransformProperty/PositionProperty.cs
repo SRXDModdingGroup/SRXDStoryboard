@@ -3,11 +3,15 @@
 namespace StoryboardSystem; 
 
 internal class PositionProperty : TransformProperty<Vector3> {
-    public PositionProperty(Transform transform) : base(transform) { }
-    
-    public override void Set(Vector3 value) => Transform.localPosition = value;
+    private Vector3 defaultPosition;
 
-    public override Vector3 Interpolate(Vector3 a, Vector3 b, float t) => Vector3.Lerp(a, b, t);
+    public PositionProperty(Transform transform) : base(transform) => defaultPosition = transform.localPosition;
+
+    protected internal override void Reset() => Transform.localPosition = defaultPosition;
+
+    protected internal override void Set(Vector3 value) => Transform.localPosition = value;
+
+    protected internal override Vector3 Interpolate(Vector3 a, Vector3 b, float t) => Vector3.Lerp(a, b, t);
     
     protected override bool TryConvert(Vector4 value, int dimensions, out Vector3 result) {
         switch (dimensions) {

@@ -52,8 +52,6 @@ public class SceneManager : ISceneManager {
         cameraManipulator.localRotation = Quaternion.identity;
     }
 
-    public void InitializeObject(Object uObject) { }
-
     public void AddPostProcessingInstance(Material material, Camera targetCamera) {
         var info = new PostProcessingInfo(material, targetCamera);
         

@@ -3,11 +3,18 @@
 namespace StoryboardSystem; 
 
 internal class MaterialColorProperty : MaterialProperty<Color> {
-    public MaterialColorProperty(Material material, int id) : base(material, id) { }
+    private Color defaultColor;
+    
+    public MaterialColorProperty(Material material, int id) : base(material, id) {
+        if (material.HasColor(id))
+            defaultColor = material.GetColor(id);
+    }
 
-    public override void Set(Color value) => Material.SetColor(Id, value);
+    protected internal override void Reset() => Material.SetColor(Id, defaultColor);
 
-    public override Color Interpolate(Color a, Color b, float t) => Color.Lerp(a, b, t);
+    protected internal override void Set(Color value) => Material.SetColor(Id, value);
+
+    protected internal override Color Interpolate(Color a, Color b, float t) => Color.Lerp(a, b, t);
     
     protected override bool TryConvert(Vector4 value, int dimensions, out Color result) {
         switch (dimensions) {

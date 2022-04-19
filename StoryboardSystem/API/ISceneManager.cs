@@ -9,8 +9,6 @@ public interface ISceneManager {
 
     void Stop(Storyboard storyboard);
     
-    void InitializeObject(Object uObject);
-    
     void AddPostProcessingInstance(Material material, Camera targetCamera);
     
     void RemovePostProcessingInstance(Material material, Camera targetCamera);

@@ -4,6 +4,8 @@ internal abstract class Binding {
     public abstract bool IsEvent { get; }
     
     public abstract void Evaluate(float time);
+
+    public abstract void ResetProperties();
 }
 
 internal class Binding<T> : Binding {
@@ -13,7 +15,7 @@ internal class Binding<T> : Binding {
     private Controller<T> controller;
 
     public Binding(Property<T>[] properties, Controller<T> controller) {
-        IsEvent = properties[0].IsEvent;
+        IsEvent = controller.IsEvent;
         this.properties = properties;
         this.controller = controller;
     }
@@ -21,5 +23,10 @@ internal class Binding<T> : Binding {
     public override void Evaluate(float time) {
         foreach (var property in properties)
             controller.Evaluate(time, property.Set);
+    }
+
+    public override void ResetProperties() {
+        foreach (var property in properties)
+            property.Reset();
     }
 }

@@ -3,7 +3,7 @@
 namespace StoryboardSystem; 
 
 internal abstract class VectorProperty<T> : ValueProperty<T> {
-    public override bool TryConvert(object value, out T result) {
+    protected internal override bool TryConvert(object value, out T result) {
         if (Conversion.TryConvertToVector(value, out var vector))
             return TryConvert(vector.Value, vector.Dimensions, out result);
         

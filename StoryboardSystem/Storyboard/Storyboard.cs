@@ -113,10 +113,16 @@ public class Storyboard {
 
     internal void Close(ISceneManager sceneManager, bool clearOpenOnRecompile = false) {
         opened = false;
-        bindings = null;
-
+        
         if (clearOpenOnRecompile)
             shouldOpenOnRecompile = false;
+
+        if (bindings != null) {
+            foreach (var binding in bindings)
+                binding.ResetProperties();
+        }
+        
+        bindings = null;
 
         if (!hasData)
             return;
