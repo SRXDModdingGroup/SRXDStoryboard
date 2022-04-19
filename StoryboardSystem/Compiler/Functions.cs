@@ -5,8 +5,8 @@ using UnityEngine;
 namespace StoryboardSystem; 
 
 internal static class Functions {
-    private static readonly float TWO_PI = 2f * Mathf.PI;
-    
+    private const float TWO_PI = 2f * Mathf.PI;
+
     private static Dictionary<FuncName, Func<object, object, object>> BINARY_FUNCTIONS = new() {
         { FuncName.Arr, Arr }
     };

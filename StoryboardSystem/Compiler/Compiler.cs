@@ -97,12 +97,12 @@ internal static class Compiler {
 
                     bindings.Add(property, controller);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Bundle, 2) when TryGetArguments(resolvedArguments, globalScope, out Name name, out string bundlePath): {
                     AddObjectReference(name, new LoadedAssetBundleReference(bundlePath));
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Curve, 1) when TryGetArguments(resolvedArguments, out Name name): {
                     var timelineBuilder = new TimelineBuilder(name.ToString());
@@ -112,57 +112,57 @@ internal static class Compiler {
                     globals[name] = controller;
                     objectReferences.Add(new LoadedTimelineReference(controller.GetIdentifier(), timelineBuilder));
 
-                    break;
+                    continue;
                 }
                 case (Opcode.In, 2) when TryGetArguments(resolvedArguments, globalScope, out Name name, out string paramName): {
                     AddObjectReference(name, new LoadedExternalObjectReference(paramName));
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Inst, 2) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template): {
                     AddObjectReference(name, new LoadedInstanceReference(template.GetIdentifier(), null, 0, string.Empty));
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Inst, 4) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template, out IdentifierTree parent, out int layer): {
                     AddObjectReference(name, new LoadedInstanceReference(template.GetIdentifier(), parent.GetIdentifier(), layer, string.Empty));
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Inst, 4) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template, out IdentifierTree parent, out string layer): {
                     AddObjectReference(name, new LoadedInstanceReference(template.GetIdentifier(), parent.GetIdentifier(), 0, layer));
 
-                    break;
+                    continue;
                 }
                 case (Opcode.InstA, 3) when TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template): {
                     globals[name] = CreateInstanceArray(name.ToString(), count, template, null, 0, string.Empty);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.InstA, 5) when TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out int layer): {
                     globals[name] = CreateInstanceArray(name.ToString(), count, template, parent, layer, string.Empty);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.InstA, 5) when TryGetArguments(resolvedArguments, globalScope, out Name name, out int count, out IdentifierTree template, out IdentifierTree parent, out string layer): {
                     globals[name] = CreateInstanceArray(name.ToString(), count, template, parent, 0, layer);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Load, 3) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree assetBundle, out string assetName): {
                     AddObjectReference(name, new LoadedAssetReference(assetBundle.GetIdentifier(), assetName));
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Out, 2) when TryGetArguments(resolvedArguments, globalScope, out string name, out object value): {
                     outParams[name] = value;
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Post, 3) when TryGetArguments(resolvedArguments, globalScope, out Name name, out IdentifierTree template, out IdentifierTree camera): {
                     AddObjectReference(name, new LoadedPostProcessingReference(template.GetIdentifier(), camera.GetIdentifier()));
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Proc, >= 1) when TryGetArguments(resolvedArguments, out Name name): {
                     var argNames = new Name[resolvedArguments.Count - 1];
@@ -189,14 +189,15 @@ internal static class Compiler {
                     continue;
                 }
                 case (Opcode.SetA, 2) when TryGetArguments(resolvedArguments, globalScope, out Index idx, out object value): {
-                    idx.Array[idx.index] = value;
+                    if (idx.TrySetArrayValue(value))
+                        continue;
 
-                    break;
+                    return false;
                 }
                 case (Opcode.SetG, 2) when TryGetArguments(resolvedArguments, globalScope, out Name name, out object value): {
                     globals[name] = value;
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Call, _):
                 case (Opcode.Key, _):
@@ -298,64 +299,65 @@ internal static class Compiler {
 
                     bindings.Add(property, controller);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Call, >= 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Procedure procedure): {
                     if (!TryCallProcedure(time, procedure, 2, 1, Timestamp.Zero))
                         return false;
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree): {
                     GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name) && timelineBuilders.TryGetValue(name, out var builder): {
                     builder.AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value): {
                     GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out object value) && timelineBuilders.TryGetValue(name, out var builder): {
                     builder.AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out IdentifierTree tree, out object value, out InterpType interpType): {
                     GetImplicitTimelineBuilder(tree).AddKey(currentProcedure.GetGlobalTime(time), value, interpType);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out object value, out InterpType interpType) && timelineBuilders.TryGetValue(name, out var builder): {
                     builder.AddKey(currentProcedure.GetGlobalTime(time), value, interpType);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Loop, >= 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Procedure procedure, out int iterations, out Timestamp every): {
                     if (!TryCallProcedure(time, procedure, 4, iterations, every))
                         return false;
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Set, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Name name, out object value): {
                     currentProcedure.SetValue(name, value);
 
-                    break;
+                    continue;
                 }
                 case (Opcode.SetA, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Index idx, out object value): {
-                    idx.Array[idx.index] = value;
+                    if (idx.TrySetArrayValue(value))
+                        continue;
 
-                    break;
+                    return false;
                 }
                 case (Opcode.SetG, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Name name, out object value): {
                     globals[name] = value;
 
-                    break;
+                    continue;
                 }
                 case (Opcode.Bundle, _):
                 case (Opcode.Curve, _):
@@ -598,22 +600,11 @@ internal static class Compiler {
                     return true;
 
                 StoryboardManager.Instance.Logger.LogWarning($"Variable {name} not found");
-                value = default;
+                value = null;
                 
                 return false;
             case Index index:
-                object[] array = index.Array;
-
-                if (array.Length > 0) {
-                    value = array[MathUtility.Mod(index.index, array.Length)];
-
-                    return true;
-                }
-
-                StoryboardManager.Instance.Logger.LogWarning($"Array length can not be 0");
-                value = default;
-                        
-                return false;
+                return index.TryResolve(out value);
             default:
                 value = obj;
 
