@@ -41,16 +41,21 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     [SerializeField] private GameObject cellPrefab;
     [SerializeField] private GameObject numberCellPrefab;
 
+    public event Action<int, int> OnDragBegin;
+
+    public event Action<int, int> OnDragUpdate;
+
+    public event Action<int, int> OnDragEnd;
+
+    private bool anyBoxSelection;
+    private bool mouseDragging;
+    private int selectedCount;
     private int scroll;
     private int rowCount;
     private int columnCount;
     private int visibleRowCount;
     private float rowHeight;
     private float numberColumnWidth;
-    private bool anySelected;
-    private bool anyBoxSelection;
-    private bool boxSelecting;
-    private bool selectingRows;
     private Vector2Int boxSelectionStart = new(-1, -1);
     private Vector2Int boxSelectionEnd = new (-1, -1);
     private Vector2Int boxSelectionMin;
@@ -61,6 +66,93 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     private List<List<CellState>> cellStates;
     private List<List<bool>> selection;
     private RectTransform rectTransform;
+
+    public void SelectCell(int row, int column) {
+        if (!IsInBounds(row, column))
+            return;
+
+        SelectCellInternal(row, column);
+        UpdateSelection();
+    }
+    
+    public void DeselectCell(int row, int column) {
+        if (!IsInBounds(row, column))
+            return;
+
+        DeselectCellInternal(row, column);
+        UpdateSelection();
+    }
+
+    public void SetBoxSelectionStart(int row, int column) {
+        boxSelectionStart = new Vector2Int(row, column);
+
+        if (!anyBoxSelection)
+            boxSelectionEnd = boxSelectionStart;
+        
+        UpdateSelection();
+    }
+    
+    public void SetBoxSelectionEnd(int row, int column) {
+        boxSelectionEnd = new Vector2Int(row, column);
+        
+        if (!anyBoxSelection)
+            boxSelectionStart = boxSelectionEnd;
+        
+        UpdateSelection();
+    }
+
+    public void SetRowSelectionStart(int row) {
+        if (!IsInBounds(row, 0))
+            return;
+
+        boxSelectionStart = new Vector2Int(row, 0);
+        
+        if (!anyBoxSelection)
+            boxSelectionEnd = boxSelectionStart;
+        
+        boxSelectionEnd.y = columnCount - 1;
+        UpdateSelection();
+    }
+    
+    public void SetRowSelectionEnd(int row) {
+        if (!IsInBounds(row, 0))
+            return;
+
+        boxSelectionEnd = new Vector2Int(row, columnCount - 1);
+        
+        if (!anyBoxSelection)
+            boxSelectionStart = boxSelectionEnd;
+        
+        boxSelectionStart.y = 0;
+        UpdateSelection();
+    }
+
+    public void ApplyBoxSelection() {
+        var clampedMin = ClampToBounds(boxSelectionMin);
+        var clampedMax = ClampToBounds(boxSelectionMax);
+                
+        for (int i = clampedMin.x; i <= clampedMax.x; i++) {
+            for (int j = clampedMin.y; j <= clampedMax.y; j++)
+                SelectCellInternal(i, j);
+        }
+        
+        UpdateSelection();
+    }
+
+    public void ClearSelection() {
+        for (int i = 0; i < rowCount; i++) {
+            for (int j = 0; j < columnCount; j++)
+                DeselectCellInternal(i, j);
+        }
+        
+        UpdateSelection();
+    }
+
+    public void ClearBoxSelection() {
+        boxSelectionStart = new Vector2Int(-1, -1);
+        boxSelectionEnd = new Vector2Int(-1, -1);
+        anyBoxSelection = false;
+    }
 
     public void SetCellText(int row, int column, string text) {
         if (!IsInBounds(row, column))
@@ -98,78 +190,35 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         UpdateSelection();
     }
 
-    public void ClearSelection() {
-        ClearSelectionInternal();
-        UpdateSelection();
-    }
-
     public void OnPointerDown(PointerEventData eventData) {
         if (eventData.button != PointerEventData.InputButton.Left)
             return;
-
-        if (Input.GetKey(KeyCode.LeftControl) && anyBoxSelection) {
-            var clampedMin = ClampToBounds(boxSelectionMin);
-            var clampedMax = ClampToBounds(boxSelectionMax);
-                
-            for (int i = clampedMin.x; i <= clampedMax.x; i++) {
-                for (int j = clampedMin.y; j <= clampedMax.y; j++) {
-                    selection[i][j] = true;
-                    anySelected = true;
-                }
-            }
-        }
-        else
-            ClearSelectionInternal();
+        
+        mouseDragging = true;
 
         var index = GetCellIndexAtPosition(eventData.position);
 
-        if (Input.GetKey(KeyCode.LeftShift) && anyBoxSelection)
-            boxSelectionEnd = index;
-        else {
-            boxSelectionStart = index;
-            boxSelectionEnd = boxSelectionStart;
-        }
-        
-        if (index.y == -1) {
-            selectingRows = true;
-            boxSelectionStart.y = 0;
-            boxSelectionEnd.y = columnCount - 1;
-        }
-        else
-            selectingRows = false;
-
-        boxSelecting = true;
-        UpdateSelection();
+        OnDragBegin?.Invoke(index.x, index.y);
     }
     
     public void OnPointerMove(PointerEventData eventData) {
-        if (!boxSelecting)
+        if (!mouseDragging)
             return;
         
         var index = GetCellIndexAtPosition(eventData.position);
 
-        if (selectingRows) {
-            boxSelectionStart.y = 0;
-            boxSelectionEnd = new Vector2Int(index.x, columnCount - 1);
-        }
-        else
-            boxSelectionEnd = index;
-        
-        UpdateSelection();
+        OnDragUpdate?.Invoke(index.x, index.y);
     }
     
     public void OnPointerUp(PointerEventData eventData) {
-        if (!boxSelecting)
+        if (!mouseDragging)
             return;
-
-        if (anyBoxSelection) {
-            boxSelectionStart = ClampToBounds(boxSelectionStart);
-            boxSelectionEnd = ClampToBounds(boxSelectionEnd);
-        }
         
-        UpdateSelection();
-        boxSelecting = false;
-        selectingRows = false;
+        mouseDragging = false;
+
+        var index = GetCellIndexAtPosition(eventData.position);
+
+        OnDragEnd?.Invoke(index.x, index.y);
     }
     
     public void OnScroll(PointerEventData eventData) {
@@ -240,7 +289,6 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
         rowHeight = cellPrefab.GetComponent<RectTransform>().rect.height;
         numberColumnWidth = numberColumn.rect.width;
-
         cellStates = new List<List<CellState>>(rowCount);
         selection = new List<List<bool>>();
 
@@ -260,17 +308,20 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         SetScroll(0);
     }
 
-    private void ClearSelectionInternal() {
-        anySelected = false;
-        boxSelectionStart = new Vector2Int(-1, -1);
-        boxSelectionEnd = new Vector2Int(-1, -1);
-        anyBoxSelection = false;
-        boxSelecting = false;
+    private void SelectCellInternal(int row, int column) {
+        if (selection[row][column])
+            return;
 
-        for (int i = 0; i < rowCount; i++) {
-            for (int j = 0; j < columnCount; j++)
-                selection[i][j] = false;
-        }
+        selection[row][column] = true;
+        selectedCount++;
+    }
+
+    private void DeselectCellInternal(int row, int column) {
+        if (!selection[row][column])
+            return;
+
+        selection[row][column] = false;
+        selectedCount--;
     }
 
     private void UpdateSelection() {
@@ -315,8 +366,10 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
     private bool IsInBounds(int row, int column) => row >= 0 && row < rowCount && column >= 0 && column < columnCount;
 
-    private bool IsInSelection(int row, int column)
-        => IsInBounds(row, column) && (anySelected && selection[row][column] || anyBoxSelection && row >= boxSelectionMin.x && row <= boxSelectionMax.x && column >= boxSelectionMin.y && column <= boxSelectionMax.y);
+    private bool IsInSelection(int row, int column) =>
+        IsInBounds(row, column) 
+        && (selectedCount > 0 && selection[row][column] 
+            || anyBoxSelection && row >= boxSelectionMin.x && row <= boxSelectionMax.x && column >= boxSelectionMin.y && column <= boxSelectionMax.y);
 
     private int GetRowIndexFromMousePosition(float relativeY) => (int) (relativeY / rowHeight) + scroll;
 

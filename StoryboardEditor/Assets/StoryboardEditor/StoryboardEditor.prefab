@@ -307,6 +307,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 875619908770775328}
+  - component: {fileID: 5019805979637635132}
   m_Layer: 0
   m_Name: StoryboardEditor
   m_TagString: Untagged
@@ -330,6 +331,19 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5019805979637635132
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 875619908770775359}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf07c373a56d5484eb5d5c0d10e80e5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gridView: {fileID: 4275720652195451005}
 --- !u!1 &1483778066314090633
 GameObject:
   m_ObjectHideFlags: 0
@@ -1433,6 +1447,17 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
+--- !u!114 &4275720652195451005 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9131533581308369652, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
+  m_PrefabInstance: {fileID: 5039475407268006537}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74eea851f682d834db3c066d963e8028, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!224 &6563701515968121051 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2231854597436064338, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}

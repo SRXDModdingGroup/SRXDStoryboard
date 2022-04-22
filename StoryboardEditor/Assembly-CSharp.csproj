@@ -41,8 +41,9 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
-     <Compile Include="Assets\GridView\GridView.cs" />
-     <Compile Include="Assets\GridView\GridCell.cs" />
+     <Compile Include="Assets\StoryboardEditor\GridView\GridView.cs" />
+     <Compile Include="Assets\StoryboardEditor\GridView\GridCell.cs" />
+     <Compile Include="Assets\StoryboardEditor\StoryboardEditor.cs" />
      <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />
