@@ -1423,6 +1423,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: GridView
       objectReference: {fileID: 0}
+    - target: {fileID: 9131533581308369652, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
+      propertyPath: initialRowCount
+      value: 256
+      objectReference: {fileID: 0}
+    - target: {fileID: 9131533581308369652, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
+      propertyPath: initialColumnCount
+      value: 6
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
 --- !u!224 &6563701515968121051 stripped

@@ -56,7 +56,7 @@ public sealed class StoryboardManager {
         if (storyboards.TryGetValue(key, out storyboard))
             return true;
 
-        if (!File.Exists(Path.Combine(directory, Path.ChangeExtension(name, ".txt"))))
+        if (!File.Exists(Path.Combine(directory, Path.ChangeExtension(name, ".txt"))) && !File.Exists(Path.Combine(directory, Path.ChangeExtension(name, ".bin"))))
             return false;
 
         storyboard = new Storyboard(name, directory);

@@ -1,33 +1,47 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class GridCell : MonoBehaviour {
     [SerializeField] private Sprite[] highlightSlices;
+    [SerializeField] private Image selectionBorder;
     [SerializeField] private Image selectionHighlight;
+    [SerializeField] private TMP_Text text;
 
+    public void SetText(string value) => text.SetText(value);
+    
     public void SetSelected(bool thisSelected, bool left, bool right, bool above, bool below) {
-        if (!thisSelected || left && right && above && below) {
+        if (!thisSelected) {
             selectionHighlight.gameObject.SetActive(false);
+            selectionBorder.gameObject.SetActive(false);
             
             return;
         }
         
         selectionHighlight.gameObject.SetActive(true);
 
+        if (left && right && above && below) {
+            selectionBorder.gameObject.SetActive(false);
+            
+            return;
+        }
+        
+        selectionBorder.gameObject.SetActive(true);
+
         int index = 0;
 
-        if (left)
+        if (!left)
             index |= 1;
 
-        if (right)
+        if (!right)
             index |= 1 << 1;
 
-        if (above)
+        if (!above)
             index |= 1 << 2;
 
-        if (below)
+        if (!below)
             index |= 1 << 3;
 
-        selectionHighlight.sprite = highlightSlices[index - 1];
+        selectionBorder.sprite = highlightSlices[index - 1];
     }
 }

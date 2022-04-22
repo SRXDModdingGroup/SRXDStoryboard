@@ -350,7 +350,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74eea851f682d834db3c066d963e8028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialColumnCount: 6
+  initialRowCount: 0
+  initialColumnCount: 0
   viewport: {fileID: 2703232270113401678}
   grid: {fileID: 1303050033926446300}
   numberColumn: {fileID: 3117330167002731995}
