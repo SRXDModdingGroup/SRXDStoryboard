@@ -3,6 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class GridCell : MonoBehaviour {
+    [SerializeField] private Color normalSelectedColor;
+    [SerializeField] private Color startSelectedColor;
     [SerializeField] private Sprite[] highlightSlices;
     [SerializeField] private Image selectionBorder;
     [SerializeField] private Image selectionHighlight;
@@ -10,7 +12,7 @@ public class GridCell : MonoBehaviour {
 
     public void SetText(string value) => text.SetText(value);
     
-    public void SetSelected(bool thisSelected, bool left, bool right, bool above, bool below) {
+    public void SetSelected(bool thisSelected, bool isSelectionStart, bool left, bool right, bool above, bool below) {
         if (!thisSelected) {
             selectionHighlight.gameObject.SetActive(false);
             selectionBorder.gameObject.SetActive(false);
@@ -19,6 +21,11 @@ public class GridCell : MonoBehaviour {
         }
         
         selectionHighlight.gameObject.SetActive(true);
+
+        if (isSelectionStart)
+            selectionHighlight.color = startSelectedColor;
+        else
+            selectionHighlight.color = normalSelectedColor;
 
         if (left && right && above && below) {
             selectionBorder.gameObject.SetActive(false);

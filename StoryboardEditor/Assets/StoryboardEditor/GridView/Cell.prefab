@@ -62,6 +62,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6084410f0dd00a44eaf925b1b457fc1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  normalSelectedColor: {r: 0, g: 0.5, b: 1, a: 0.14901961}
+  startSelectedColor: {r: 0, g: 1, b: 1, a: 0.14901961}
   highlightSlices:
   - {fileID: 1901418526, guid: c5d4a4b61c5646b4cb9c4bbb0980d077, type: 3}
   - {fileID: 1101164565, guid: c5d4a4b61c5646b4cb9c4bbb0980d077, type: 3}
@@ -80,6 +82,7 @@ MonoBehaviour:
   - {fileID: 555456987, guid: c5d4a4b61c5646b4cb9c4bbb0980d077, type: 3}
   selectionBorder: {fileID: 7536870052808863186}
   selectionHighlight: {fileID: 6555832007157589252}
+  text: {fileID: 6843965358168672693}
 --- !u!1 &1685334742508617355
 GameObject:
   m_ObjectHideFlags: 0

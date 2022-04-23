@@ -84,7 +84,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
 
     public void SetBoxSelectionStart(int row, int column) {
-        boxSelectionStart = new Vector2Int(row, column);
+        boxSelectionStart = ClampToBounds(new Vector2Int(row, column));
 
         if (!anyBoxSelection)
             boxSelectionEnd = boxSelectionStart;
@@ -93,7 +93,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
     
     public void SetBoxSelectionEnd(int row, int column) {
-        boxSelectionEnd = new Vector2Int(row, column);
+        boxSelectionEnd = ClampToBounds(new Vector2Int(row, column));
         
         if (!anyBoxSelection)
             boxSelectionStart = boxSelectionEnd;
@@ -105,7 +105,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         if (!IsInBounds(row, 0))
             return;
 
-        boxSelectionStart = new Vector2Int(row, 0);
+        boxSelectionStart = ClampToBounds(new Vector2Int(row, 0));
         
         if (!anyBoxSelection)
             boxSelectionEnd = boxSelectionStart;
@@ -118,7 +118,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         if (!IsInBounds(row, 0))
             return;
 
-        boxSelectionEnd = new Vector2Int(row, columnCount - 1);
+        boxSelectionEnd = ClampToBounds(new Vector2Int(row, columnCount - 1));
         
         if (!anyBoxSelection)
             boxSelectionStart = boxSelectionEnd;
@@ -152,6 +152,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         boxSelectionStart = new Vector2Int(-1, -1);
         boxSelectionEnd = new Vector2Int(-1, -1);
         anyBoxSelection = false;
+        UpdateSelection();
     }
 
     public void SetCellText(int row, int column, string text) {
@@ -188,6 +189,30 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             numberTexts[i].SetText((scroll + i + 1).ToString());
         
         UpdateSelection();
+    }
+
+    public void FocusSelectionStart() {
+        if (!anyBoxSelection)
+            return;
+
+        int row = boxSelectionStart.x;
+        
+        if (row < scroll)
+            SetScroll(row);
+        else if (row >= scroll + visibleRowCount)
+            SetScroll(row - visibleRowCount + 1);
+    }
+    
+    public void FocusSelectionEnd() {
+        if (!anyBoxSelection)
+            return;
+
+        int row = boxSelectionEnd.x;
+        
+        if (row < scroll)
+            SetScroll(row);
+        else if (row >= scroll + visibleRowCount)
+            SetScroll(row - visibleRowCount + 1);
     }
 
     public void OnPointerDown(PointerEventData eventData) {
@@ -231,9 +256,21 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             SetScroll(scroll + 1);
     }
 
-    public bool TryGetMainSelectedCell(out Vector2Int cell) {
+    public bool TryGetBoxSelectionStart(out Vector2Int cell) {
         if (anyBoxSelection) {
             cell = boxSelectionStart;
+
+            return true;
+        }
+        
+        cell = Vector2Int.zero;
+
+        return false;
+    }
+    
+    public bool TryGetBoxSelectionEnd(out Vector2Int cell) {
+        if (anyBoxSelection) {
+            cell = boxSelectionEnd;
 
             return true;
         }
@@ -254,7 +291,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
     private void Awake() {
         rectTransform = GetComponent<RectTransform>();
-        visibleRowCount = (int) (viewport.rect.height / 30f) + 2;
+        visibleRowCount = (int) (viewport.rect.height / 30f) + 1;
         rowCount = initialRowCount;
         rows = new List<Row>(visibleRowCount);
         numberTexts = new List<TMP_Text>(visibleRowCount);
@@ -335,14 +372,14 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         
             for (int i = 0; i < cells.Count; i++) {
                 if (IsInSelection(rowIndex, i)) {
-                    cells[i].SetSelected(true,
+                    cells[i].SetSelected(true, rowIndex == boxSelectionStart.x && i == boxSelectionStart.y,
                         IsInSelection(rowIndex, i - 1),
                         IsInSelection(rowIndex, i + 1),
                         IsInSelection(rowIndex - 1, i),
                         IsInSelection(rowIndex + 1, i));
                 }
                 else
-                    cells[i].SetSelected(false, false, false, false, false);
+                    cells[i].SetSelected(false, false, false, false, false, false);
             }
         }
     }
