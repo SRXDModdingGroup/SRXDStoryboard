@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerMoveHandler, IScrollHandler {
     private class Row {
@@ -28,14 +27,6 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         }
     }
 
-    private class CellState {
-        public string Text { get; set; }
-
-        public void Reset() {
-            Text = string.Empty;
-        }
-    }
-
     [SerializeField] private RectTransform viewport;
     [SerializeField] private RectTransform grid;
     [SerializeField] private RectTransform numberColumn;
@@ -43,19 +34,17 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     [SerializeField] private GameObject cellPrefab;
     [SerializeField] private GameObject numberCellPrefab;
 
+    public bool Selected => EventSystem.current.currentSelectedGameObject == gameObject;
+
     public event Action<int, int> DragBegin;
 
     public event Action<int, int> DragUpdate;
 
     public event Action<int, int> DragEnd;
 
-    public event Action<int, int> SelectionStartChanged;
-
-    public event Action BoxSelectionCancelled;
-
+    private bool needsUpdate;
     private bool anyBoxSelection;
     private bool mouseDragging;
-    private int selectedCount;
     private int scroll;
     private int rowCount;
     private int columnCount;
@@ -70,227 +59,43 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     private List<Row> rows;
     private List<Column> columns;
     private List<TMP_Text> numberTexts;
-    private List<List<CellState>> cellStates;
-    private List<List<bool>> selection;
+    private List<List<CellState>> content;
     private RectTransform rectTransform;
 
-    public void CreateEmpty(int rowCount, int columnCount) {
-        if (rowCount < 0 || columnCount < 0)
-            return;
-        
+    public void UpdateView() => needsUpdate = true;
+
+    public void SetContent(List<List<CellState>> content, int rowCount, int columnCount) {
+        this.content = content;
         this.rowCount = rowCount;
         this.columnCount = columnCount;
-
-        for (int i = 0; i < columns.Count; i++)
-            columns[i].Root.gameObject.SetActive(i < columnCount);
-
-        for (int i = 0; i < columnCount; i++) {
-            if (i < columns.Count) {
-                var column = columns[i];
-                var root = column.Root;
-                var sizeDelta = root.sizeDelta;
-
-                column.Width = defaultColumnWidth;
-                sizeDelta.x = defaultColumnWidth;
-                root.sizeDelta = sizeDelta;
-                
-                continue;
-            }
-
-            var columnRect = Instantiate(columnPrefab, grid).GetComponent<RectTransform>();
-
-            for (int j = 0; j < visibleRowCount; j++)
-                rows[j].Cells.Add(Instantiate(cellPrefab, columnRect).GetComponent<GridCell>());
-            
-            columns.Add(new Column(defaultColumnWidth, columnRect));
-        }
-
-        for (int i = 0; i < rowCount; i++) {
-            List<bool> selectionRow;
-
-            if (i < selection.Count)
-                selectionRow = selection[i];
-            else {
-                selectionRow = new List<bool>(columnCount);
-                selection.Add(selectionRow);
-            }
-
-            List<CellState> cellStateRow;
-
-            if (i >= cellStates.Count) {
-                cellStateRow = new List<CellState>(columnCount);
-                cellStates.Add(cellStateRow);
-            }
-            else
-                cellStateRow = cellStates[i];
-            
-            for (int j = 0; j < columnCount; j++) {
-                if (j < selectionRow.Count)
-                    selectionRow[j] = false;
-                else
-                    selectionRow.Add(false);
-                
-                if (j < cellStateRow.Count)
-                    cellStateRow[j].Reset();
-                else
-                    cellStateRow.Add(new CellState());
-            }
-        }
+        needsUpdate = true;
     }
 
-    public void SelectCell(int row, int column) {
-        if (!IsInBounds(row, column))
-            return;
-
-        SelectCellInternal(row, column);
+    public void SetBoxSelectionStart(Vector2Int start) {
+        boxSelectionStart = start;
         UpdateSelection();
+        needsUpdate = true;
+    }
+
+    public void SetBoxSelectionEnd(Vector2Int end) {
+        boxSelectionEnd = end;
+        UpdateSelection();
+        needsUpdate = true;
     }
     
-    public void DeselectCell(int row, int column) {
-        if (!IsInBounds(row, column))
-            return;
-
-        DeselectCellInternal(row, column);
+    public void SetBoxSelectionStartAndEnd(Vector2Int index) {
+        boxSelectionStart = index;
+        boxSelectionEnd = index;
         UpdateSelection();
-    }
-
-    public void SetBoxSelectionStart(int row, int column) {
-        if (rowCount == 0 || columnCount == 0)
-            return;
-        
-        boxSelectionStart = ClampToBounds(new Vector2Int(row, column));
-
-        if (!anyBoxSelection)
-            boxSelectionEnd = boxSelectionStart;
-        
-        UpdateSelection();
-        SelectionStartChanged?.Invoke(boxSelectionStart.x, boxSelectionStart.y);
-    }
-    
-    public void SetBoxSelectionEnd(int row, int column) {
-        if (rowCount == 0 || columnCount == 0)
-            return;
-        
-        boxSelectionEnd = ClampToBounds(new Vector2Int(row, column));
-
-        bool setStart = !anyBoxSelection;
-        
-        if (setStart)
-            boxSelectionStart = boxSelectionEnd;
-        
-        UpdateSelection();
-        
-        if (setStart)
-            SelectionStartChanged?.Invoke(boxSelectionStart.x, boxSelectionStart.y);
-    }
-
-    public void SetRowSelectionStart(int row) {
-        if (rowCount == 0 || columnCount == 0)
-            return;
-        
-        boxSelectionStart = ClampToBounds(new Vector2Int(row, 0));
-        
-        if (!anyBoxSelection)
-            boxSelectionEnd = boxSelectionStart;
-        
-        boxSelectionEnd.y = columnCount - 1;
-        UpdateSelection();
-        SelectionStartChanged?.Invoke(boxSelectionStart.x, boxSelectionStart.y);
-    }
-    
-    public void SetRowSelectionEnd(int row) {
-        if (rowCount == 0 || columnCount == 0)
-            return;
-        
-        boxSelectionEnd = ClampToBounds(new Vector2Int(row, columnCount - 1));
-
-        bool setStart = !anyBoxSelection;
-        
-        if (setStart)
-            boxSelectionStart = boxSelectionEnd;
-        
-        boxSelectionStart.y = 0;
-        UpdateSelection();
-        
-        if (setStart)
-            SelectionStartChanged?.Invoke(boxSelectionStart.x, boxSelectionStart.y);
-    }
-
-    public void ApplyBoxSelection() {
-        if (rowCount == 0 || columnCount == 0)
-            return;
-        
-        var clampedMin = ClampToBounds(boxSelectionMin);
-        var clampedMax = ClampToBounds(boxSelectionMax);
-                
-        for (int i = clampedMin.x; i <= clampedMax.x; i++) {
-            for (int j = clampedMin.y; j <= clampedMax.y; j++)
-                SelectCellInternal(i, j);
-        }
-        
-        UpdateSelection();
-    }
-
-    public void ClearSelection() {
-        if (rowCount == 0 || columnCount == 0)
-            return;
-        
-        for (int i = 0; i < rowCount; i++) {
-            for (int j = 0; j < columnCount; j++)
-                DeselectCellInternal(i, j);
-        }
-        
-        UpdateSelection();
-    }
-
-    public void ClearBoxSelection() {
-        if (rowCount == 0 || columnCount == 0)
-            return;
-        
-        boxSelectionStart = new Vector2Int(-1, -1);
-        boxSelectionEnd = new Vector2Int(-1, -1);
-        anyBoxSelection = false;
-        UpdateSelection();
-        BoxSelectionCancelled?.Invoke();
-    }
-
-    public void SetCellText(int row, int column, string text) {
-        if (!IsInBounds(row, column))
-            return;
-
-        cellStates[row][column].Text = text;
-
-        var rowAtIndex = GetRow(row);
-        
-        if (rowAtIndex.RowIndex == row)
-            UpdateRowContents(rowAtIndex);
+        needsUpdate = true;
     }
 
     public void SetScroll(int scroll) {
         if (rowCount == 0 || columnCount == 0)
             return;
         
-        scroll = Math.Max(0, Math.Min(scroll, rowCount - visibleRowCount + 2));
-        this.scroll = scroll;
-
-        int endRow = scroll + visibleRowCount;
-
-        for (int i = scroll, j = 0; i < endRow; i++, j++) {
-            var row = GetRow(i);
-            
-            if (row.RowIndex != i) {
-                SetRowIndex(row, i);
-                UpdateRowContents(row);
-            }
-
-            foreach (var cell in row.Cells)
-                cell.transform.SetSiblingIndex(j);
-        }
-
-        for (int i = 0; i < numberTexts.Count; i++)
-            numberTexts[i].SetText((scroll + i + 1).ToString());
-        
-        UpdateSelection();
+        this.scroll = Math.Max(0, Math.Min(scroll, rowCount - visibleRowCount + 2));
+        needsUpdate = true;
     }
 
     public void FocusSelectionStart() {
@@ -317,6 +122,18 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             SetScroll(row - visibleRowCount + 1);
     }
 
+    public void InsertRow(int index) {
+        var row = new List<CellState>();
+
+        for (int i = 0; i < columnCount; i++) {
+            row.Add(new CellState());
+        }
+        
+        content.Insert(index, row);
+        rowCount++;
+        needsUpdate = true;
+    }
+
     public void OnPointerDown(PointerEventData eventData) {
         if (eventData.button != PointerEventData.InputButton.Left)
             return;
@@ -325,6 +142,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
         var index = GetCellIndexAtPosition(eventData.position);
 
+        EventSystem.current.SetSelectedGameObject(gameObject);
         DragBegin?.Invoke(index.x, index.y);
     }
     
@@ -358,39 +176,6 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             SetScroll(scroll + 1);
     }
 
-    public bool TryGetBoxSelectionStart(out Vector2Int cell) {
-        if (anyBoxSelection) {
-            cell = boxSelectionStart;
-
-            return true;
-        }
-        
-        cell = Vector2Int.zero;
-
-        return false;
-    }
-    
-    public bool TryGetBoxSelectionEnd(out Vector2Int cell) {
-        if (anyBoxSelection) {
-            cell = boxSelectionEnd;
-
-            return true;
-        }
-        
-        cell = Vector2Int.zero;
-
-        return false;
-    }
-
-    public IEnumerable<Vector2Int> GetSelectedCells() {
-        for (int i = 0; i < rowCount; i++) {
-            for (int j = 0; j < columnCount; j++) {
-                if (IsInSelection(i, j))
-                    yield return new Vector2Int(i, j);
-            }
-        }
-    }
-
     private void Awake() {
         rectTransform = GetComponent<RectTransform>();
         visibleRowCount = (int) (viewport.rect.height / 30f) + 1;
@@ -410,109 +195,92 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         rowHeight = cellPrefab.GetComponent<RectTransform>().rect.height;
         numberColumnWidth = numberColumn.rect.width;
         defaultColumnWidth = columnPrefab.GetComponent<RectTransform>().rect.width;
-        cellStates = new List<List<CellState>>(rowCount);
-        selection = new List<List<bool>>();
-
-        for (int i = 0; i < rowCount; i++) {
-            var row = new List<CellState>(columnCount);
-            var rowSelection = new List<bool>(columnCount);
-
-            for (int j = 0; j < columnCount; j++) {
-                row.Add(new CellState());
-                rowSelection.Add(false);
-            }
-            
-            cellStates.Add(row);
-            selection.Add(rowSelection);
-        }
-        
         SetScroll(0);
     }
 
-    private void SelectCellInternal(int row, int column) {
-        if (selection[row][column])
+    private void Update() {
+        if (!needsUpdate)
             return;
-
-        selection[row][column] = true;
-        selectedCount++;
-    }
-
-    private void DeselectCellInternal(int row, int column) {
-        if (!selection[row][column])
+        
+        if (content == null || content.Count == 0) {
+            gameObject.SetActive(false);
+            
             return;
+        }
+        
+        gameObject.SetActive(true);
 
-        selection[row][column] = false;
-        selectedCount--;
+        for (int i = 0; i < numberTexts.Count; i++)
+            numberTexts[i].SetText((scroll + i + 1).ToString());
+
+        while (columns.Count < columnCount)
+            columns.Add(new Column(defaultColumnWidth, Instantiate(columnPrefab, grid).GetComponent<RectTransform>()));
+
+        for (int i = scroll, j = 0; j < visibleRowCount; i++, j++) {
+            var row = rows[i % visibleRowCount];
+            var cells = row.Cells;
+
+            row.RowIndex = i;
+            
+            while (cells.Count < columnCount)
+                cells.Add(Instantiate(cellPrefab, columns[cells.Count].Root).GetComponent<GridCell>());
+
+            for (int k = 0; k < columnCount; k++) {
+                var cell = cells[k];
+                
+                cell.transform.SetSiblingIndex(j);
+                
+                if (!IsInBounds(i, k)) {
+                    cell.gameObject.SetActive(false);
+                    
+                    continue;
+                }
+                
+                cell.gameObject.SetActive(true);
+                cell.SetText(content[i][k].DisplayedText);
+            
+                if (IsInSelection(i, k)) {
+                    cell.SetSelected(true, i == boxSelectionStart.x && k == boxSelectionStart.y,
+                        IsInSelection(i, k - 1),
+                        IsInSelection(i, k + 1),
+                        IsInSelection(i - 1, k),
+                        IsInSelection(i + 1, k));
+                }
+                else
+                    cell.SetSelected(false, false, false, false, false, false);
+                
+                if (IsInBounds(i, k))
+                    cell.SetText(content[i][k].DisplayedText);
+
+                bool IsInSelection(int row, int column) =>
+                    IsInBounds(row, column) 
+                    && (content[row][column].Selected
+                        || anyBoxSelection && row >= boxSelectionMin.x && row <= boxSelectionMax.x && column >= boxSelectionMin.y && column <= boxSelectionMax.y);
+            }
+        }
+
+        needsUpdate = false;
     }
 
     private void UpdateSelection() {
         boxSelectionMin = Vector2Int.Min(boxSelectionStart, boxSelectionEnd);
         boxSelectionMax = Vector2Int.Max(boxSelectionStart, boxSelectionEnd);
         anyBoxSelection = boxSelectionMin.x < rowCount && boxSelectionMax.x >= 0 && boxSelectionMin.y < columnCount && boxSelectionMax.y >= -1;
-        
-        foreach (var row in rows) {
-            int rowIndex = row.RowIndex;
-            var cells = row.Cells;
-        
-            for (int i = 0; i < cells.Count; i++) {
-                if (IsInSelection(rowIndex, i)) {
-                    cells[i].SetSelected(true, rowIndex == boxSelectionStart.x && i == boxSelectionStart.y,
-                        IsInSelection(rowIndex, i - 1),
-                        IsInSelection(rowIndex, i + 1),
-                        IsInSelection(rowIndex - 1, i),
-                        IsInSelection(rowIndex + 1, i));
-                }
-                else
-                    cells[i].SetSelected(false, false, false, false, false, false);
-            }
-        }
-    }
-
-    private void UpdateRowContents(Row row) {
-        int rowIndex = row.RowIndex;
-        var cells = row.Cells;
-
-        for (int i = 0; i < columnCount; i++)
-            cells[i].SetText(cellStates[rowIndex][i].Text);
-    }
-
-    private void SetRowIndex(Row row, int rowIndex) {
-        row.RowIndex = rowIndex;
-
-        bool visible = rowIndex < rowCount;
-
-        foreach (var cell in row.Cells)
-            cell.gameObject.SetActive(visible);
     }
 
     private bool IsInBounds(int row, int column) => row >= 0 && row < rowCount && column >= 0 && column < columnCount;
 
-    private bool IsInSelection(int row, int column) =>
-        IsInBounds(row, column) 
-        && (selectedCount > 0 && selection[row][column] 
-            || anyBoxSelection && row >= boxSelectionMin.x && row <= boxSelectionMax.x && column >= boxSelectionMin.y && column <= boxSelectionMax.y);
-
-    private int GetRowIndexFromMousePosition(float relativeY) => (int) (relativeY / rowHeight) + scroll;
-
-    private Vector2 GetRelativePosition(Vector2 screenPosition) {
-        var rectPosition = rectTransform.position;
-        
-        return new Vector2(screenPosition.x - rectPosition.x, rectPosition.y - screenPosition.y);
-    }
+    private int GetRowIndexFromMousePosition(float relativeY) => Math.Clamp((int) (relativeY / rowHeight) + scroll, 0, rowCount - 1);
 
     private Vector2Int GetCellIndexAtPosition(Vector2 position) {
-        var relativePosition = GetRelativePosition(position);
-        int row = GetRowIndexFromMousePosition(relativePosition.y);
-
-        if (row >= rowCount)
-            row = rowCount;
-        
+        var relativePosition = GetRelativePosition(position, rectTransform);
         float relativeX = relativePosition.x;
+        int row = GetRowIndexFromMousePosition(relativePosition.y);
 
         if (relativeX < numberColumnWidth)
             return new Vector2Int(row, -1);
 
-        relativeX -= numberColumnWidth;
+        relativeX = GetRelativePosition(position, grid).x;
 
         for (int i = 0; i < columnCount; i++) {
             float width = columns[i].Width;
@@ -526,7 +294,9 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         return new Vector2Int(row, columnCount);
     }
 
-    private Vector2Int ClampToBounds(Vector2Int index) => Vector2Int.Max(Vector2Int.zero, Vector2Int.Min(index, new Vector2Int(rowCount - 1, columnCount - 1)));
-
-    private Row GetRow(int index) => rows[index % visibleRowCount];
+    private static Vector2 GetRelativePosition(Vector2 screenPosition, RectTransform relativeTo) {
+        var rectPosition = relativeTo.position;
+        
+        return new Vector2(screenPosition.x - rectPosition.x, rectPosition.y - screenPosition.y);
+    }
 }
