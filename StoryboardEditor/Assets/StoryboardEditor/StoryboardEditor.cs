@@ -1,17 +1,30 @@
 using System;
+using TMPro;
 using UnityEngine;
 
 public class StoryboardEditor : MonoBehaviour {
+    [SerializeField] private TMP_InputField textField;
     [SerializeField] private GridView gridView;
 
+    private bool dragging;
     private bool rowSelecting;
 
     private void Awake() {
-        gridView.OnDragBegin += OnGridDragBegin;
-        gridView.OnDragUpdate += OnGridDragUpdate;
+        gridView.DragBegin += OnGridDragBegin;
+        gridView.DragUpdate += OnGridDragUpdate;
+        gridView.DragEnd += OnGridDragEnd;
+        gridView.SelectionStartChanged += OnSelectionStartChanged;
+        gridView.BoxSelectionCancelled += OnBoxSelectionCancelled;
+    }
+
+    private void Start() {
+        gridView.CreateEmpty(256, 6);
     }
 
     private void Update() {
+        if (dragging)
+            return;
+        
         if (Input.GetKeyDown(KeyCode.Escape)) {
             gridView.ClearSelection();
             gridView.ClearBoxSelection();
@@ -65,6 +78,7 @@ public class StoryboardEditor : MonoBehaviour {
     }
 
     private void OnGridDragBegin(int row, int column) {
+        dragging = true;
         rowSelecting = column < 0;
         
         if (Input.GetKey(KeyCode.LeftControl))
@@ -97,6 +111,14 @@ public class StoryboardEditor : MonoBehaviour {
     }
     
     private void OnGridDragEnd(int row, int column) {
-        
+        dragging = false;
+    }
+
+    private void OnSelectionStartChanged(int row, int column) {
+        textField.interactable = true;
+    }
+
+    private void OnBoxSelectionCancelled() {
+        textField.interactable = false;
     }
 }

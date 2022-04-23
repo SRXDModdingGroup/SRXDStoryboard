@@ -18,7 +18,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
 
     private class Column {
-        public float Width { get; }
+        public float Width { get; set; }
         
         public RectTransform Root { get; }
 
@@ -30,10 +30,12 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
     private class CellState {
         public string Text { get; set; }
+
+        public void Reset() {
+            Text = string.Empty;
+        }
     }
 
-    [SerializeField] private int initialRowCount;
-    [SerializeField] private int initialColumnCount;
     [SerializeField] private RectTransform viewport;
     [SerializeField] private RectTransform grid;
     [SerializeField] private RectTransform numberColumn;
@@ -41,11 +43,15 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     [SerializeField] private GameObject cellPrefab;
     [SerializeField] private GameObject numberCellPrefab;
 
-    public event Action<int, int> OnDragBegin;
+    public event Action<int, int> DragBegin;
 
-    public event Action<int, int> OnDragUpdate;
+    public event Action<int, int> DragUpdate;
 
-    public event Action<int, int> OnDragEnd;
+    public event Action<int, int> DragEnd;
+
+    public event Action<int, int> SelectionStartChanged;
+
+    public event Action BoxSelectionCancelled;
 
     private bool anyBoxSelection;
     private bool mouseDragging;
@@ -56,6 +62,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     private int visibleRowCount;
     private float rowHeight;
     private float numberColumnWidth;
+    private float defaultColumnWidth;
     private Vector2Int boxSelectionStart = new(-1, -1);
     private Vector2Int boxSelectionEnd = new (-1, -1);
     private Vector2Int boxSelectionMin;
@@ -66,6 +73,70 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     private List<List<CellState>> cellStates;
     private List<List<bool>> selection;
     private RectTransform rectTransform;
+
+    public void CreateEmpty(int rowCount, int columnCount) {
+        if (rowCount < 0 || columnCount < 0)
+            return;
+        
+        this.rowCount = rowCount;
+        this.columnCount = columnCount;
+
+        for (int i = 0; i < columns.Count; i++)
+            columns[i].Root.gameObject.SetActive(i < columnCount);
+
+        for (int i = 0; i < columnCount; i++) {
+            if (i < columns.Count) {
+                var column = columns[i];
+                var root = column.Root;
+                var sizeDelta = root.sizeDelta;
+
+                column.Width = defaultColumnWidth;
+                sizeDelta.x = defaultColumnWidth;
+                root.sizeDelta = sizeDelta;
+                
+                continue;
+            }
+
+            var columnRect = Instantiate(columnPrefab, grid).GetComponent<RectTransform>();
+
+            for (int j = 0; j < visibleRowCount; j++)
+                rows[j].Cells.Add(Instantiate(cellPrefab, columnRect).GetComponent<GridCell>());
+            
+            columns.Add(new Column(defaultColumnWidth, columnRect));
+        }
+
+        for (int i = 0; i < rowCount; i++) {
+            List<bool> selectionRow;
+
+            if (i < selection.Count)
+                selectionRow = selection[i];
+            else {
+                selectionRow = new List<bool>(columnCount);
+                selection.Add(selectionRow);
+            }
+
+            List<CellState> cellStateRow;
+
+            if (i >= cellStates.Count) {
+                cellStateRow = new List<CellState>(columnCount);
+                cellStates.Add(cellStateRow);
+            }
+            else
+                cellStateRow = cellStates[i];
+            
+            for (int j = 0; j < columnCount; j++) {
+                if (j < selectionRow.Count)
+                    selectionRow[j] = false;
+                else
+                    selectionRow.Add(false);
+                
+                if (j < cellStateRow.Count)
+                    cellStateRow[j].Reset();
+                else
+                    cellStateRow.Add(new CellState());
+            }
+        }
+    }
 
     public void SelectCell(int row, int column) {
         if (!IsInBounds(row, column))
@@ -84,27 +155,39 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
 
     public void SetBoxSelectionStart(int row, int column) {
+        if (rowCount == 0 || columnCount == 0)
+            return;
+        
         boxSelectionStart = ClampToBounds(new Vector2Int(row, column));
 
         if (!anyBoxSelection)
             boxSelectionEnd = boxSelectionStart;
         
         UpdateSelection();
+        SelectionStartChanged?.Invoke(boxSelectionStart.x, boxSelectionStart.y);
     }
     
     public void SetBoxSelectionEnd(int row, int column) {
-        boxSelectionEnd = ClampToBounds(new Vector2Int(row, column));
+        if (rowCount == 0 || columnCount == 0)
+            return;
         
-        if (!anyBoxSelection)
+        boxSelectionEnd = ClampToBounds(new Vector2Int(row, column));
+
+        bool setStart = !anyBoxSelection;
+        
+        if (setStart)
             boxSelectionStart = boxSelectionEnd;
         
         UpdateSelection();
+        
+        if (setStart)
+            SelectionStartChanged?.Invoke(boxSelectionStart.x, boxSelectionStart.y);
     }
 
     public void SetRowSelectionStart(int row) {
-        if (!IsInBounds(row, 0))
+        if (rowCount == 0 || columnCount == 0)
             return;
-
+        
         boxSelectionStart = ClampToBounds(new Vector2Int(row, 0));
         
         if (!anyBoxSelection)
@@ -112,22 +195,31 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         
         boxSelectionEnd.y = columnCount - 1;
         UpdateSelection();
+        SelectionStartChanged?.Invoke(boxSelectionStart.x, boxSelectionStart.y);
     }
     
     public void SetRowSelectionEnd(int row) {
-        if (!IsInBounds(row, 0))
+        if (rowCount == 0 || columnCount == 0)
             return;
-
-        boxSelectionEnd = ClampToBounds(new Vector2Int(row, columnCount - 1));
         
-        if (!anyBoxSelection)
+        boxSelectionEnd = ClampToBounds(new Vector2Int(row, columnCount - 1));
+
+        bool setStart = !anyBoxSelection;
+        
+        if (setStart)
             boxSelectionStart = boxSelectionEnd;
         
         boxSelectionStart.y = 0;
         UpdateSelection();
+        
+        if (setStart)
+            SelectionStartChanged?.Invoke(boxSelectionStart.x, boxSelectionStart.y);
     }
 
     public void ApplyBoxSelection() {
+        if (rowCount == 0 || columnCount == 0)
+            return;
+        
         var clampedMin = ClampToBounds(boxSelectionMin);
         var clampedMax = ClampToBounds(boxSelectionMax);
                 
@@ -140,6 +232,9 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
 
     public void ClearSelection() {
+        if (rowCount == 0 || columnCount == 0)
+            return;
+        
         for (int i = 0; i < rowCount; i++) {
             for (int j = 0; j < columnCount; j++)
                 DeselectCellInternal(i, j);
@@ -149,10 +244,14 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
 
     public void ClearBoxSelection() {
+        if (rowCount == 0 || columnCount == 0)
+            return;
+        
         boxSelectionStart = new Vector2Int(-1, -1);
         boxSelectionEnd = new Vector2Int(-1, -1);
         anyBoxSelection = false;
         UpdateSelection();
+        BoxSelectionCancelled?.Invoke();
     }
 
     public void SetCellText(int row, int column, string text) {
@@ -168,6 +267,9 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
 
     public void SetScroll(int scroll) {
+        if (rowCount == 0 || columnCount == 0)
+            return;
+        
         scroll = Math.Max(0, Math.Min(scroll, rowCount - visibleRowCount + 2));
         this.scroll = scroll;
 
@@ -223,7 +325,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
         var index = GetCellIndexAtPosition(eventData.position);
 
-        OnDragBegin?.Invoke(index.x, index.y);
+        DragBegin?.Invoke(index.x, index.y);
     }
     
     public void OnPointerMove(PointerEventData eventData) {
@@ -232,7 +334,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         
         var index = GetCellIndexAtPosition(eventData.position);
 
-        OnDragUpdate?.Invoke(index.x, index.y);
+        DragUpdate?.Invoke(index.x, index.y);
     }
     
     public void OnPointerUp(PointerEventData eventData) {
@@ -243,7 +345,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
         var index = GetCellIndexAtPosition(eventData.position);
 
-        OnDragEnd?.Invoke(index.x, index.y);
+        DragEnd?.Invoke(index.x, index.y);
     }
     
     public void OnScroll(PointerEventData eventData) {
@@ -292,17 +394,11 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     private void Awake() {
         rectTransform = GetComponent<RectTransform>();
         visibleRowCount = (int) (viewport.rect.height / 30f) + 1;
-        rowCount = initialRowCount;
         rows = new List<Row>(visibleRowCount);
         numberTexts = new List<TMP_Text>(visibleRowCount);
 
         for (int i = 0; i < visibleRowCount; i++) {
-            var row = new List<GridCell>(initialColumnCount);
-            
-            for (int j = 0; j < initialColumnCount; j++)
-                row.Add(null);
-
-            rows.Add(new Row(i, row));
+            rows.Add(new Row(i, new List<GridCell>()));
 
             var numberText = Instantiate(numberCellPrefab, numberColumn).GetComponentInChildren<TMP_Text>();
             
@@ -310,22 +406,10 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             numberTexts.Add(numberText);
         }
 
-        float columnWidth = columnPrefab.GetComponent<RectTransform>().rect.width;
-        
-        columnCount = initialColumnCount;
-        columns = new List<Column>(initialColumnCount);
-
-        for (int i = 0; i < initialColumnCount; i++) {
-            var column = Instantiate(columnPrefab, grid).GetComponent<RectTransform>();
-
-            for (int j = 0; j < visibleRowCount; j++)
-                rows[j].Cells[i] = Instantiate(cellPrefab, column).GetComponent<GridCell>();
-            
-            columns.Add(new Column(columnWidth, column));
-        }
-
+        columns = new List<Column>();
         rowHeight = cellPrefab.GetComponent<RectTransform>().rect.height;
         numberColumnWidth = numberColumn.rect.width;
+        defaultColumnWidth = columnPrefab.GetComponent<RectTransform>().rect.width;
         cellStates = new List<List<CellState>>(rowCount);
         selection = new List<List<bool>>();
 
