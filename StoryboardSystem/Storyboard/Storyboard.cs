@@ -78,7 +78,7 @@ public class Storyboard {
         var watch = Stopwatch.StartNew();
 
         foreach (var reference in objectReferences)
-            success = reference.TryLoad(objectReferences, bindingIdentifiers, sceneManager, storyboardParams) && success;
+            success = reference.TryLoad(objectReferences, bindingIdentifiers, storyboardParams) && success;
 
         if (!success) {
             Close(sceneManager);

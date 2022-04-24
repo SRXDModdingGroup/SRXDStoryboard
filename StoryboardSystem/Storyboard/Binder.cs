@@ -104,7 +104,7 @@ internal abstract class Binder {
             case Component component:
                 return TryGetGameObjectProperty(component.gameObject, out subObject);
             case ICustomObject customObject:
-                return customObject.TryGetSubObject(name, out subObject);
+                return customObject.TryGetSubObject(name, out subObject) || TryGetSubObject(customObject.Self, name, out subObject);
             default:
                 subObject = null;
 

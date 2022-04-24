@@ -17,7 +17,7 @@ internal class LoadedTimelineReference : LoadedObjectReference {
 
     public override void Unload(ISceneManager sceneManager) => controller = null;
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, ISceneManager sceneManager, IStoryboardParams storyboardParams) {
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, IStoryboardParams storyboardParams) {
         if (bindings.TryGetValue(identifier, out var properties)
             && Binder.TryResolveIdentifier(properties[0], objectReferences, out object obj)
             && obj is Property property

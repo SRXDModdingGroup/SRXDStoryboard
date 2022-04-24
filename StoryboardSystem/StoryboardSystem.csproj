@@ -56,6 +56,7 @@
         <Compile Include="API\ICustomObject.cs" />
         <Compile Include="API\ILogger.cs" />
         <Compile Include="API\ISceneManager.cs" />
+        <Compile Include="API\IStoryboardExtension.cs" />
         <Compile Include="API\IStoryboardParams.cs" />
         <Compile Include="API\Property.cs" />
         <Compile Include="API\StoryboardManager.cs" />

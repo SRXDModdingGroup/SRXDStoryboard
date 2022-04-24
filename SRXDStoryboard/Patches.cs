@@ -33,7 +33,8 @@ public static class Patches {
         if (!Directory.Exists(customAssetBundlePath))
             Directory.CreateDirectory(customAssetBundlePath);
         
-        StoryboardManager.Create(new SceneManager(customAssetBundlePath), new Logger(Plugin.Logger));
+        StoryboardManager.Instance.Initialize(new SceneManager(customAssetBundlePath), new Logger(Plugin.Logger));
+        StoryboardManager.Instance.TryAddExtension(string.Empty, new StoryboardExtension());
 
         var freeRootTransform = new GameObject("Manipulator").transform;
         var staticRootTransform = new GameObject("StaticRoot").transform;

@@ -4,27 +4,43 @@ using System.IO;
 namespace StoryboardSystem; 
 
 public sealed class StoryboardManager {
-    public static StoryboardManager Instance { get; private set; }
+    private static StoryboardManager instance;
+    public static StoryboardManager Instance {
+        get {
+            instance ??= new StoryboardManager();
+
+            return instance;
+        }
+    }
 
     internal ILogger Logger { get; private set; }
     
-    private ISceneManager sceneManager;
+    internal ISceneManager SceneManager { get; private set; }
+
+    internal Dictionary<string, IStoryboardExtension> Extensions { get; } = new();
+
     private Storyboard currentStoryboard;
     private Dictionary<string, Storyboard> storyboards = new();
+    
 
-    public void Play() => currentStoryboard?.Play(sceneManager);
+    public void Initialize(ISceneManager sceneManager,  ILogger logger) {
+        this.SceneManager = sceneManager;
+        Logger = logger;
+    }
 
-    public void Stop() => currentStoryboard?.Stop(sceneManager);
+    public void Play() => currentStoryboard?.Play(SceneManager);
+
+    public void Stop() => currentStoryboard?.Stop(SceneManager);
 
     public void SetTime(float time, bool triggerEvents) {
         currentStoryboard?.Evaluate(time, triggerEvents);
-        sceneManager.Update(time, triggerEvents);
+        SceneManager.Update(time, triggerEvents);
     }
 
     public void SetCurrentStoryboard(Storyboard storyboard, IStoryboardParams storyboardParams) {
         if (currentStoryboard != null) {
-            currentStoryboard.Stop(sceneManager);
-            currentStoryboard.Close(sceneManager, true);
+            currentStoryboard.Stop(SceneManager);
+            currentStoryboard.Close(SceneManager, true);
         }
         
         currentStoryboard = storyboard;
@@ -32,14 +48,14 @@ public sealed class StoryboardManager {
         if (storyboard == null)
             return;
         
-        if (!storyboard.TryLoad(sceneManager, Logger))
-            storyboard.TryCompile(sceneManager, Logger);
+        if (!storyboard.TryLoad(SceneManager, Logger))
+            storyboard.TryCompile(SceneManager, Logger);
         
-        storyboard.Open(sceneManager, storyboardParams, Logger);
+        storyboard.Open(SceneManager, storyboardParams, Logger);
     }
 
     public void RecompileCurrentStoryboard(IStoryboardParams storyboardParams)
-        => currentStoryboard?.Recompile(true, sceneManager, storyboardParams, Logger);
+        => currentStoryboard?.Recompile(true, SceneManager, storyboardParams, Logger);
 
     public bool TryGetStoryboard(string directory, string name, out Storyboard storyboard)
         => storyboards.TryGetValue(Path.Combine(directory, name), out storyboard);
@@ -62,19 +78,18 @@ public sealed class StoryboardManager {
         storyboard = new Storyboard(name, directory);
         storyboards.Add(key, storyboard);
         
-        if (forceCompile || !storyboard.TryLoad(sceneManager, Logger))
-            storyboard.TryCompile(sceneManager, Logger);
+        if (forceCompile || !storyboard.TryLoad(SceneManager, Logger))
+            storyboard.TryCompile(SceneManager, Logger);
 
         return true;
     }
 
-    public static void Create(ISceneManager sceneManager,  ILogger logger) {
-        if (Instance != null)
-            return;
+    public bool TryAddExtension(string key, IStoryboardExtension extension) {
+        if (Extensions.ContainsKey(key))
+            return false;
+        
+        Extensions.Add(key, extension);
 
-        Instance = new StoryboardManager {
-            sceneManager = sceneManager,
-            Logger = logger
-        };
+        return true;
     }
 }

@@ -19,7 +19,7 @@ internal class LoadedAssetReference : LoadedObjectReference {
 
     public override void Unload(ISceneManager sceneManager) => asset = null;
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, ISceneManager sceneManager, IStoryboardParams sParams) {
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, IStoryboardParams sParams) {
         if (!Binder.TryResolveIdentifier(assetBundleReference, objectReferences, out object obj))
             return false;
 
