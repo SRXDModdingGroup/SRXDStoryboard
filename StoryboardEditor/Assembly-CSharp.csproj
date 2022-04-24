@@ -44,8 +44,10 @@
      <Compile Include="Assets\StoryboardEditor\StoryboardEditor.cs" />
      <Compile Include="Assets\StoryboardEditor\GridView\GridView.cs" />
      <Compile Include="Assets\StoryboardEditor\GridView\GridCell.cs" />
-     <Compile Include="Assets\StoryboardEditor\CellState.cs" />
+     <Compile Include="Assets\StoryboardEditor\CellVisualState.cs" />
      <Compile Include="Assets\StoryboardEditor\Table.cs" />
+     <Compile Include="Assets\StoryboardEditor\Document\StoryboardDocument.cs" />
+     <Compile Include="Assets\StoryboardEditor\Document\DocumentCellInfo.cs" />
      <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />

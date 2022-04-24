@@ -72,10 +72,13 @@ public class Table<T> {
         EnsureCapacity(RowCount + 1, ColumnCount);
         RowCount++;
 
-        for (int i = RowCount - 1; i > 0; i--) {
+        for (int i = RowCount - 1; i > index; i--) {
             for (int j = 0; j < ColumnCount; j++)
                 data[i, j] = data[i - 1, j];
         }
+
+        for (int i = 0; i < ColumnCount; i++)
+            data[index, i] = default;
     }
 
     public void InsertColumn(int index) {
@@ -92,9 +95,12 @@ public class Table<T> {
         ColumnCount++;
 
         for (int i = 0; i < RowCount; i++) {
-            for (int j = ColumnCount - 1; j > 0; j--)
+            for (int j = ColumnCount - 1; j > index; j--)
                 data[i, j] = data[i, j - 1];
         }
+
+        for (int i = 0; i < RowCount; i++)
+            data[i, index] = default;
     }
 
     public void RemoveLastRow() {

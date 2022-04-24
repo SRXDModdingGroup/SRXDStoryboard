@@ -42,7 +42,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
     public event Action<int, int> DragEnd;
 
-    private bool needsUpdate;
+    private bool viewNeedsUpdate;
     private bool anyBoxSelection;
     private bool mouseDragging;
     private int scroll;
@@ -57,41 +57,41 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     private List<Row> rows;
     private List<Column> columns;
     private List<TMP_Text> numberTexts;
-    private Table<CellState> content;
+    private Table<CellVisualState> cellStates;
     private RectTransform rectTransform;
 
-    public void UpdateView() => needsUpdate = true;
+    public void UpdateView() => viewNeedsUpdate = true;
 
-    public void SetContent(Table<CellState> content) {
-        this.content = content;
-        needsUpdate = true;
+    public void SetCellStates(Table<CellVisualState> cellStates) {
+        this.cellStates = cellStates;
+        viewNeedsUpdate = true;
     }
 
     public void SetBoxSelectionStart(Vector2Int start) {
         boxSelectionStart = start;
         UpdateSelection();
-        needsUpdate = true;
+        viewNeedsUpdate = true;
     }
 
     public void SetBoxSelectionEnd(Vector2Int end) {
         boxSelectionEnd = end;
         UpdateSelection();
-        needsUpdate = true;
+        viewNeedsUpdate = true;
     }
     
     public void SetBoxSelectionStartAndEnd(Vector2Int index) {
         boxSelectionStart = index;
         boxSelectionEnd = index;
         UpdateSelection();
-        needsUpdate = true;
+        viewNeedsUpdate = true;
     }
 
     public void SetScroll(int scroll) {
-        if (content == null || content.Empty)
+        if (cellStates == null || cellStates.Empty)
             return;
         
-        this.scroll = Math.Max(0, Math.Min(scroll, content.RowCount - visibleRowCount + 2));
-        needsUpdate = true;
+        this.scroll = Math.Max(0, Math.Min(scroll, cellStates.RowCount - visibleRowCount + 2));
+        viewNeedsUpdate = true;
     }
 
     public void FocusSelectionStart() {
@@ -182,10 +182,10 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
 
     private void Update() {
-        if (!needsUpdate)
+        if (!viewNeedsUpdate)
             return;
         
-        if (content == null || content.RowCount == 0 || content.ColumnCount == 0) {
+        if (cellStates == null || cellStates.RowCount == 0 || cellStates.ColumnCount == 0) {
             gameObject.SetActive(false);
             
             return;
@@ -196,7 +196,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         for (int i = 0; i < numberTexts.Count; i++)
             numberTexts[i].SetText((scroll + i + 1).ToString());
 
-        while (columns.Count < content.ColumnCount)
+        while (columns.Count < cellStates.ColumnCount)
             columns.Add(new Column(defaultColumnWidth, Instantiate(columnPrefab, grid).GetComponent<RectTransform>()));
 
         for (int i = scroll, j = 0; j < visibleRowCount; i++, j++) {
@@ -205,10 +205,10 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
             row.RowIndex = i;
             
-            while (cells.Count < content.ColumnCount)
+            while (cells.Count < cellStates.ColumnCount)
                 cells.Add(Instantiate(cellPrefab, columns[cells.Count].Root).GetComponent<GridCell>());
 
-            for (int k = 0; k < content.ColumnCount; k++) {
+            for (int k = 0; k < cellStates.ColumnCount; k++) {
                 var cell = cells[k];
                 
                 cell.transform.SetSiblingIndex(j);
@@ -220,10 +220,10 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                 }
                 
                 cell.gameObject.SetActive(true);
-                cell.SetText(content[i, k].Text);
+                cell.SetText(cellStates[i, k].Text);
             
                 if (IsInSelection(i, k)) {
-                    cell.SetSelected(true, i == boxSelectionStart.x && k == boxSelectionStart.y,
+                    cell.SetSelected(true, anyBoxSelection && i == boxSelectionStart.x && k == boxSelectionStart.y,
                         IsInSelection(i, k - 1),
                         IsInSelection(i, k + 1),
                         IsInSelection(i - 1, k),
@@ -233,27 +233,27 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                     cell.SetSelected(false, false, false, false, false, false);
                 
                 if (IsInBounds(i, k))
-                    cell.SetText(content[i, k].Text);
+                    cell.SetText(cellStates[i, k].Text);
 
                 bool IsInSelection(int row, int column) =>
                     IsInBounds(row, column) 
-                    && (content[row, column].Selected
+                    && (cellStates[row, column].Selected
                         || anyBoxSelection && row >= boxSelectionMin.x && row <= boxSelectionMax.x && column >= boxSelectionMin.y && column <= boxSelectionMax.y);
             }
         }
 
-        needsUpdate = false;
+        viewNeedsUpdate = false;
     }
 
     private void UpdateSelection() {
         boxSelectionMin = Vector2Int.Min(boxSelectionStart, boxSelectionEnd);
         boxSelectionMax = Vector2Int.Max(boxSelectionStart, boxSelectionEnd);
-        anyBoxSelection = boxSelectionMin.x < content.RowCount && boxSelectionMax.x >= 0 && boxSelectionMin.y < content.ColumnCount && boxSelectionMax.y >= -1;
+        anyBoxSelection = boxSelectionMin.x < cellStates.RowCount && boxSelectionMax.x >= 0 && boxSelectionMin.y < cellStates.ColumnCount && boxSelectionMax.y >= -1;
     }
 
-    private bool IsInBounds(int row, int column) => row >= 0 && row < content.RowCount && column >= 0 && column < content.ColumnCount;
+    private bool IsInBounds(int row, int column) => row >= 0 && row < cellStates.RowCount && column >= 0 && column < cellStates.ColumnCount;
 
-    private int GetRowIndexFromMousePosition(float relativeY) => Math.Clamp((int) (relativeY / rowHeight) + scroll, 0, content.RowCount - 1);
+    private int GetRowIndexFromMousePosition(float relativeY) => Math.Clamp((int) (relativeY / rowHeight) + scroll, 0, cellStates.RowCount - 1);
 
     private Vector2Int GetCellIndexAtPosition(Vector2 position) {
         var relativePosition = GetRelativePosition(position, rectTransform);
@@ -265,7 +265,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
         relativeX = GetRelativePosition(position, grid).x;
 
-        for (int i = 0; i < content.ColumnCount; i++) {
+        for (int i = 0; i < cellStates.ColumnCount; i++) {
             float width = columns[i].Width;
 
             if (relativeX < width)
@@ -274,7 +274,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             relativeX -= width;
         }
         
-        return new Vector2Int(row, content.ColumnCount);
+        return new Vector2Int(row, cellStates.ColumnCount);
     }
 
     private static Vector2 GetRelativePosition(Vector2 screenPosition, RectTransform relativeTo) {

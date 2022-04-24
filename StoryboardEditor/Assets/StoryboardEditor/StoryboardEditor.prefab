@@ -140,7 +140,7 @@ MonoBehaviour:
   m_RichText: 0
   m_GlobalFontAsset: {fileID: 11400000, guid: 8670b84f3a01eef43b1d0005ba6a4b4d, type: 2}
   m_OnFocusSelectAll: 0
-  m_ResetOnDeActivation: 1
+  m_ResetOnDeActivation: 0
   m_RestoreOriginalTextOnEscape: 0
   m_isRichTextEditingAllowed: 0
   m_LineLimit: 0
@@ -343,6 +343,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bf07c373a56d5484eb5d5c0d10e80e5a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  newDocumentRows: 1
+  newDocumentColumns: 4
   textField: {fileID: 5440559702847476196}
   gridView: {fileID: 4275720652195451005}
 --- !u!1 &1483778066314090633
