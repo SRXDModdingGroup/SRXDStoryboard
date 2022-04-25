@@ -3,6 +3,12 @@
 namespace StoryboardSystem; 
 
 internal static class SerializationUtility {
+    private const int OFFSET_BITS = 8;
+    private const int LENGTH_BITS = 7;
+    private const int SEARCH_LENGTH = 1 << OFFSET_BITS;
+    private const int LOOKAHEAD_LENGTH = (1 << LENGTH_BITS) - 1;
+    private const int WINDOW_LENGTH = SEARCH_LENGTH + LOOKAHEAD_LENGTH;
+    
     private enum SerializableType {
         Null,
         False,
@@ -20,6 +26,106 @@ internal static class SerializationUtility {
         Array3,
         Array4,
         Array
+    }
+
+    public static void LZSSCompress(Stream fromStream, Stream toStream) {
+        fromStream.Position = 0;
+        toStream.Position = 0;
+
+        int[] window = new int[WINDOW_LENGTH];
+        int windowPosition = 0;
+
+        for (int i = 0; i < SEARCH_LENGTH; i++)
+            WindowSet(-1);
+
+        for (int i = 0; i < LOOKAHEAD_LENGTH; i++)
+            WindowSet(fromStream.ReadByte());
+
+        while (WindowGet(SEARCH_LENGTH) >= 0) {
+            uint offset = 0;
+            uint length = 0;
+
+            for (uint i = 0; i < SEARCH_LENGTH; i++) {
+                uint newLength = 0;
+                
+                for (uint k = i, l = SEARCH_LENGTH; l < WINDOW_LENGTH; k++, l++) {
+                    if (WindowGet(k) != WindowGet(l))
+                        break;
+
+                    newLength++;
+                }
+
+                if (newLength < length)
+                    continue;
+                
+                offset = i;
+                length = newLength;
+                    
+                if (length == LOOKAHEAD_LENGTH)
+                    break;
+            }
+
+            if (length <= 2) {
+                toStream.WriteByte(0);
+                toStream.WriteByte((byte) WindowGet(SEARCH_LENGTH));
+                WindowSet(fromStream.ReadByte());
+                
+                continue;
+            }
+
+            for (int i = 0; i < length; i++)
+                WindowSet(fromStream.ReadByte());
+
+            offset |= length << (16 - LENGTH_BITS);
+            toStream.WriteByte((byte) (offset >> 8));
+            toStream.WriteByte((byte) offset);
+        }
+
+        void WindowSet(int value) {
+            window[windowPosition % WINDOW_LENGTH] = value;
+            windowPosition = (windowPosition + 1) % WINDOW_LENGTH;
+        }
+
+        int WindowGet(uint index) => window[(windowPosition + index) % WINDOW_LENGTH];
+    }
+
+    public static void LZSSDecompress(Stream fromStream, Stream toStream) {
+        fromStream.Position = 0;
+        toStream.Position = 0;
+        
+        int[] buffer = new int[SEARCH_LENGTH];
+        int bufferPosition = 0;
+
+        while (fromStream.Position < fromStream.Length) {
+            byte byteA = (byte) fromStream.ReadByte();
+            byte byteB = (byte) fromStream.ReadByte();
+            
+            if (byteA == 0) {
+                toStream.WriteByte(byteB);
+                BufferSet(byteB);
+                
+                continue;
+            }
+
+            uint offset = (uint) (byteA << 8) | byteB;
+            uint length = (offset >> (16 - LENGTH_BITS)) & LOOKAHEAD_LENGTH;
+
+            offset &= SEARCH_LENGTH - 1;
+
+            for (int i = 0; i < length; i++) {
+                int value = BufferGet(offset);
+                
+                toStream.WriteByte((byte) value);
+                BufferSet(value);
+            }
+        }
+        
+        void BufferSet(int value) {
+            buffer[bufferPosition % SEARCH_LENGTH] = value;
+            bufferPosition = (bufferPosition + 1) % SEARCH_LENGTH;
+        }
+
+        int BufferGet(uint index) => buffer[(bufferPosition + index) % SEARCH_LENGTH];
     }
 
     public static bool TryWrite(this BinaryWriter writer, object obj) {

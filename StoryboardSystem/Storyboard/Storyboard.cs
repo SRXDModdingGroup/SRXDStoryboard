@@ -153,32 +153,33 @@ public class Storyboard {
         
         SetData(data, sceneManager);
         logger.LogMessage($"Attempting to save {name}");
-        
-        bool success;
-        var watch = Stopwatch.StartNew();
-        using var stream = new MemoryStream(1 << 16);
 
+        bool success = true;
+        var watch = Stopwatch.StartNew();
+        
         try {
+            using var stream = new MemoryStream(1 << 16);
             var writer = new BinaryWriter(stream);
             
-            success = data.TrySerialize(writer);
+            if (data.TrySerialize(writer)) {
+                using var file = File.Create(Path.Combine(directory, Path.ChangeExtension(name, ".bin")));
+
+                SerializationUtility.LZSSCompress(stream, file);
+            }
+            else
+                success = false;
         }
         catch (IOException e) {
             logger.LogError(e.Message);
             success = false;
         }
 
-        if (success) {
-            using var file = File.Create(Path.Combine(directory, Path.ChangeExtension(name, ".bin")));
-            
-            stream.WriteTo(file);
-            watch.Stop();
+        watch.Stop();
+
+        if (success)
             logger.LogMessage($"Successfully saved {name} in {watch.ElapsedMilliseconds}ms");
-        }
-        else {
-            watch.Stop();
+        else
             logger.LogWarning($"Failed to save {name}");
-        }
 
         return true;
     }
@@ -197,9 +198,15 @@ public class Storyboard {
         StoryboardData data;
         bool success;
         var watch = Stopwatch.StartNew();
-
+        
         try {
-            using var reader = new BinaryReader(File.OpenRead(path));
+            using var stream = new MemoryStream(1 << 16);
+            using var file = File.OpenRead(path);
+        
+            SerializationUtility.LZSSDecompress(file, stream);
+            stream.Position = 0;
+            
+            var reader = new BinaryReader(stream);
             
             success = StoryboardData.TryDeserialize(reader, out data);
         }

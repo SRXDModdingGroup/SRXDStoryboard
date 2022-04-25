@@ -103,19 +103,22 @@ internal class TimelineBuilder {
     public bool TrySerialize(BinaryWriter writer) {
         writer.Write(Name);
         writer.Write(keyframeBuilders.Count);
-
+        
         var previous = Timestamp.Zero;
         using var buffer = new BinaryWriter(new MemoryStream(16));
 
         foreach (var keyframeBuilder in keyframeBuilders) {
             (keyframeBuilder.Time - previous).Serialize(writer, buffer);
-
-            if (!writer.TryWrite(keyframeBuilder.Value))
-                return false;
-
-            writer.Write((byte) keyframeBuilder.InterpType);
             previous = keyframeBuilder.Time;
         }
+
+        foreach (var keyframeBuilder in keyframeBuilders) {
+            if (!writer.TryWrite(keyframeBuilder.Value))
+                return false;
+        }
+
+        foreach (var keyframeBuilder in keyframeBuilders)
+            writer.Write((byte) keyframeBuilder.InterpType);
 
         return true;
     }
@@ -124,22 +127,30 @@ internal class TimelineBuilder {
         string name = reader.ReadString();
         int keyframeBuildersCount = reader.ReadInt32();
         var keyframeBuilders = new List<KeyframeBuilder>(keyframeBuildersCount);
+        var times = new Timestamp[keyframeBuildersCount];
         var previous = Timestamp.Zero;
 
         for (int i = 0; i < keyframeBuildersCount; i++) {
-            var time = Timestamp.Deserialize(reader);
+            times[i] = Timestamp.Deserialize(reader) + previous;
+            previous = times[i];
+        }
 
-            if (!reader.TryRead(out object value)) {
-                builder = null;
+        object[] values = new object[keyframeBuildersCount];
+        
+        for (int i = 0; i < keyframeBuildersCount; i++) {
+            if (reader.TryRead(out values[i]))
+                continue;
+            
+            builder = null;
                 
-                return false;
-            }
+            return false;
+        }
 
+        for (int i = 0; i < keyframeBuildersCount; i++) {
             var interpType = (InterpType) reader.ReadByte();
-            var keyframeBuilder = new KeyframeBuilder(time + previous, value, interpType);
+            var keyframeBuilder = new KeyframeBuilder(times[i], values[i], interpType);
 
             keyframeBuilders.Add(keyframeBuilder);
-            previous = keyframeBuilder.Time;
         }
 
         builder = new TimelineBuilder(name, keyframeBuilders);
