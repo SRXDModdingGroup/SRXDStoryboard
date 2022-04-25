@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -154,28 +155,27 @@ public class Storyboard {
         SetData(data, sceneManager);
         logger.LogMessage($"Attempting to save {name}");
 
-        bool success = true;
+        bool success;
         var watch = Stopwatch.StartNew();
-        
-        try {
-            using var stream = new MemoryStream(1 << 16);
-            var writer = new BinaryWriter(stream);
-            
-            if (data.TrySerialize(writer)) {
-                using var file = File.Create(Path.Combine(directory, Path.ChangeExtension(name, ".bin")));
 
-                SerializationUtility.LZSSCompress(stream, file);
+        try {
+            var stream = new MemoryStream(1 << 16);
+
+            success = data.TrySerialize(new BinaryWriter(stream));
+
+            if (success) {
+                using var encoder = new LZSSEncoder(File.Create(Path.Combine(directory, Path.ChangeExtension(name, ".bin"))));
+
+                stream.WriteTo(encoder);
             }
-            else
-                success = false;
         }
         catch (IOException e) {
             logger.LogError(e.Message);
             success = false;
         }
-
+        
         watch.Stop();
-
+        
         if (success)
             logger.LogMessage($"Successfully saved {name} in {watch.ElapsedMilliseconds}ms");
         else
@@ -200,13 +200,7 @@ public class Storyboard {
         var watch = Stopwatch.StartNew();
         
         try {
-            using var stream = new MemoryStream(1 << 16);
-            using var file = File.OpenRead(path);
-        
-            SerializationUtility.LZSSDecompress(file, stream);
-            stream.Position = 0;
-            
-            var reader = new BinaryReader(stream);
+            using var reader = new BinaryReader(new LZSSDecoder(File.OpenRead(path)));
             
             success = StoryboardData.TryDeserialize(reader, out data);
         }
@@ -217,7 +211,7 @@ public class Storyboard {
         }
         
         watch.Stop();
-
+        
         if (success) {
             logger.LogMessage($"Successfully loaded {name} in {watch.ElapsedMilliseconds}ms");
             SetData(data, sceneManager);

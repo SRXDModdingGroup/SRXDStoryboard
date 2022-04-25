@@ -117,6 +117,8 @@
         <Compile Include="Storyboard\TimelineBuilder.cs" />
         <Compile Include="Utility\Fixed.cs" />
         <Compile Include="Utility\HashUtility.cs" />
+        <Compile Include="Utility\LZSSDecoder.cs" />
+        <Compile Include="Utility\LZSSEncoder.cs" />
         <Compile Include="Utility\MathUtility.cs" />
         <Compile Include="Utility\PooledList.cs" />
         <Compile Include="Utility\SerializationUtility.cs" />
