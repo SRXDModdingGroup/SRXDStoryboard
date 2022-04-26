@@ -3,11 +3,11 @@ using System;
 public class Table<T> {
     private const int DEFAULT_CAPACITY = 4;
     
-    public int RowCount { get; private set; }
+    public int Rows { get; private set; }
     
-    public int ColumnCount { get; private set; }
+    public int Columns { get; private set; }
 
-    public bool Empty => RowCount == 0 || ColumnCount == 0;
+    public bool Empty => Rows == 0 || Columns == 0;
     
     private T[,] data;
     private int rowCapacity;
@@ -19,30 +19,30 @@ public class Table<T> {
         columnCapacity = DEFAULT_CAPACITY;
     }
     
-    public Table(int rowCount, int columnCount) {
+    public Table(int rows, int columns) {
         rowCapacity = DEFAULT_CAPACITY;
         columnCapacity = DEFAULT_CAPACITY;
         
-        while (rowCapacity < rowCount)
+        while (rowCapacity < rows)
             rowCapacity *= 2;
 
-        while (columnCapacity < columnCount)
+        while (columnCapacity < columns)
             columnCapacity *= 2;
 
         data = new T[rowCapacity, columnCapacity];
-        RowCount = rowCount;
-        ColumnCount = columnCount;
+        Rows = rows;
+        Columns = columns;
     }
 
     public T this[int row, int column] {
         get {
-            if (row < 0 || row >= RowCount || column < 0 || column >= ColumnCount)
+            if (row < 0 || row >= Rows || column < 0 || column >= Columns)
                 throw new IndexOutOfRangeException();
 
             return data[row, column];
         }
         set {
-            if (row < 0 || row >= RowCount || column < 0 || column >= ColumnCount)
+            if (row < 0 || row >= Rows || column < 0 || column >= Columns)
                 throw new IndexOutOfRangeException();
 
             data[row, column] = value;
@@ -50,119 +50,133 @@ public class Table<T> {
     }
 
     public void AddRow() {
-        EnsureCapacity(RowCount + 1, ColumnCount);
-        RowCount++;
+        EnsureCapacity(Rows + 1, Columns);
+        Rows++;
     }
 
     public void AddColumn() {
-        EnsureCapacity(RowCount, ColumnCount + 1);
-        ColumnCount++;
+        EnsureCapacity(Rows, Columns + 1);
+        Columns++;
     }
 
     public void InsertRow(int index) {
-        if (index == RowCount) {
+        if (index == Rows) {
             AddRow();
             
             return;
         }
 
-        if (index < 0 || index > RowCount)
+        if (index < 0 || index > Rows)
             throw new IndexOutOfRangeException();
         
-        EnsureCapacity(RowCount + 1, ColumnCount);
-        RowCount++;
+        EnsureCapacity(Rows + 1, Columns);
+        Rows++;
 
-        for (int i = RowCount - 1; i > index; i--) {
-            for (int j = 0; j < ColumnCount; j++)
+        for (int i = Rows - 1; i > index; i--) {
+            for (int j = 0; j < Columns; j++)
                 data[i, j] = data[i - 1, j];
         }
 
-        for (int i = 0; i < ColumnCount; i++)
+        for (int i = 0; i < Columns; i++)
             data[index, i] = default;
     }
 
     public void InsertColumn(int index) {
-        if (index == ColumnCount) {
+        if (index == Columns) {
             AddColumn();
             
             return;
         }
         
-        if (index < 0 || index > ColumnCount)
+        if (index < 0 || index > Columns)
             throw new IndexOutOfRangeException();
         
-        EnsureCapacity(RowCount, ColumnCount + 1);
-        ColumnCount++;
+        EnsureCapacity(Rows, Columns + 1);
+        Columns++;
 
-        for (int i = 0; i < RowCount; i++) {
-            for (int j = ColumnCount - 1; j > index; j--)
+        for (int i = 0; i < Rows; i++) {
+            for (int j = Columns - 1; j > index; j--)
                 data[i, j] = data[i, j - 1];
         }
 
-        for (int i = 0; i < RowCount; i++)
+        for (int i = 0; i < Rows; i++)
             data[i, index] = default;
     }
 
     public void RemoveLastRow() {
-        if (RowCount == 0)
+        if (Rows == 0)
             throw new ArgumentOutOfRangeException();
         
-        RowCount--;
+        Rows--;
 
-        for (int i = 0; i < ColumnCount; i++)
-            data[RowCount, i] = default;
+        for (int i = 0; i < Columns; i++)
+            data[Rows, i] = default;
     }
 
     public void RemoveLastColumn() {
-        if (ColumnCount == 0)
+        if (Columns == 0)
             throw new ArgumentOutOfRangeException();
 
-        ColumnCount--;
+        Columns--;
 
-        for (int i = 0; i < RowCount; i++)
-            data[i, ColumnCount] = default;
+        for (int i = 0; i < Rows; i++)
+            data[i, Columns] = default;
     }
 
     public void RemoveRow(int index) {
-        if (index == RowCount - 1) {
+        if (index == Rows - 1) {
             RemoveLastRow();
             
             return;
         }
 
-        if (index < 0 || index >= RowCount)
+        if (index < 0 || index >= Rows)
             throw new IndexOutOfRangeException();
         
-        RowCount--;
+        Rows--;
 
-        for (int i = index; i < RowCount; i++) {
-            for (int j = 0; j < ColumnCount; j++)
+        for (int i = index; i < Rows; i++) {
+            for (int j = 0; j < Columns; j++)
                 data[index, j] = data[index + 1, j];
         }
 
-        for (int i = 0; i < ColumnCount; i++)
-            data[RowCount, i] = default;
+        for (int i = 0; i < Columns; i++)
+            data[Rows, i] = default;
     }
 
     public void RemoveColumn(int index) {
-        if (index == ColumnCount - 1) {
+        if (index == Columns - 1) {
             RemoveLastColumn();
             
             return;
         }
 
-        if (index < 0 || index >= ColumnCount)
+        if (index < 0 || index >= Columns)
             throw new IndexOutOfRangeException();
 
-        ColumnCount--;
+        Columns--;
 
-        for (int i = 0; i < RowCount; i++) {
-            for (int j = index; j < ColumnCount; j++)
+        for (int i = 0; i < Rows; i++) {
+            for (int j = index; j < Columns; j++)
                 data[i, index] = data[i, index + 1];
         }
 
-        for (int i = 0; i < RowCount; i++)
-            data[i, ColumnCount] = default;
+        for (int i = 0; i < Rows; i++)
+            data[i, Columns] = default;
+    }
+
+    public void SetSize(int rows, int columns) {
+        while (Rows < rows)
+            AddRow();
+        
+        while (Rows > rows)
+            RemoveLastRow();
+        
+        while (Columns < columns)
+            AddColumn();
+        
+        while (Columns > columns)
+            RemoveLastColumn();
     }
 
     private void EnsureCapacity(int row, int column) {
@@ -177,8 +191,8 @@ public class Table<T> {
 
         var newData = new T[rowCapacity, columnCapacity];
 
-        for (int i = 0; i < RowCount; i++) {
-            for (int j = 0; j < ColumnCount; j++)
+        for (int i = 0; i < Rows; i++) {
+            for (int j = 0; j < Columns; j++)
                 newData[i, j] = data[i, j];
         }
 

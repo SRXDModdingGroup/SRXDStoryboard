@@ -24,7 +24,7 @@ internal class LZSSEncoder : Stream, IDisposable {
     private byte[] outBuffer = new byte[BUFFER_LENGTH];
     private int bufferPosition;
     private int[] window;
-    private int windowPosition = 0;
+    private int windowPosition;
     private int readToPosition = LOOKAHEAD_LENGTH;
     
     public LZSSEncoder(Stream outStream) {

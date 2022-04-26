@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
-public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerMoveHandler, IScrollHandler {
+public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerMoveHandler, IScrollHandler, IDeselectHandler {
     private class Row {
         public int RowIndex { get; set; }
         
@@ -27,14 +28,14 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         }
     }
 
+    [SerializeField] private float scrollSpacePerRow;
     [SerializeField] private RectTransform viewport;
     [SerializeField] private RectTransform grid;
     [SerializeField] private RectTransform numberColumn;
+    [SerializeField] private Scrollbar scrollbar;
     [SerializeField] private GameObject columnPrefab;
     [SerializeField] private GameObject cellPrefab;
     [SerializeField] private GameObject numberCellPrefab;
-
-    public bool Selected => EventSystem.current.currentSelectedGameObject == gameObject;
 
     public event Action<int, int> DragBegin;
 
@@ -42,10 +43,13 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
     public event Action<int, int> DragEnd;
 
+    public event Action Deselected;
+
     private bool viewNeedsUpdate;
     private bool anyBoxSelection;
     private bool mouseDragging;
     private int scroll;
+    private int maxScroll;
     private int visibleRowCount;
     private float rowHeight;
     private float numberColumnWidth;
@@ -89,8 +93,9 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     public void SetScroll(int scroll) {
         if (cellStates == null || cellStates.Empty)
             return;
-        
-        this.scroll = Math.Max(0, Math.Min(scroll, cellStates.RowCount - visibleRowCount + 2));
+
+        maxScroll = Math.Max(0, cellStates.Rows - visibleRowCount + 2);
+        this.scroll = Math.Max(0, Math.Min(scroll, maxScroll));
         viewNeedsUpdate = true;
     }
 
@@ -121,6 +126,11 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     public void OnPointerDown(PointerEventData eventData) {
         if (eventData.button != PointerEventData.InputButton.Left)
             return;
+
+        var eventSystem = EventSystem.current;
+        
+        if (eventSystem == null || eventSystem.alreadySelecting)
+            return;
         
         mouseDragging = true;
 
@@ -131,7 +141,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
     
     public void OnPointerMove(PointerEventData eventData) {
-        if (!mouseDragging)
+        if (!mouseDragging || EventSystem.current.currentSelectedGameObject != gameObject)
             return;
         
         var index = GetCellIndexAtPosition(eventData.position);
@@ -140,7 +150,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
     
     public void OnPointerUp(PointerEventData eventData) {
-        if (!mouseDragging)
+        if (!mouseDragging || EventSystem.current.currentSelectedGameObject != gameObject)
             return;
         
         mouseDragging = false;
@@ -158,6 +168,11 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             SetScroll(scroll - 1);
         else
             SetScroll(scroll + 1);
+    }
+
+    public void OnDeselect(BaseEventData eventData) {
+        mouseDragging = false;
+        Deselected?.Invoke();
     }
 
     private void Awake() {
@@ -179,13 +194,14 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         rowHeight = cellPrefab.GetComponent<RectTransform>().rect.height;
         numberColumnWidth = numberColumn.rect.width;
         defaultColumnWidth = columnPrefab.GetComponent<RectTransform>().rect.width;
+        scrollbar.onValueChanged.AddListener(value => SetScroll(Mathf.FloorToInt(value * maxScroll)));
     }
 
-    private void Update() {
+    private void LateUpdate() {
         if (!viewNeedsUpdate)
             return;
         
-        if (cellStates == null || cellStates.RowCount == 0 || cellStates.ColumnCount == 0) {
+        if (cellStates == null || cellStates.Rows == 0 || cellStates.Columns == 0) {
             gameObject.SetActive(false);
             
             return;
@@ -196,7 +212,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         for (int i = 0; i < numberTexts.Count; i++)
             numberTexts[i].SetText((scroll + i + 1).ToString());
 
-        while (columns.Count < cellStates.ColumnCount)
+        while (columns.Count < cellStates.Columns)
             columns.Add(new Column(defaultColumnWidth, Instantiate(columnPrefab, grid).GetComponent<RectTransform>()));
 
         for (int i = scroll, j = 0; j < visibleRowCount; i++, j++) {
@@ -205,10 +221,10 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
             row.RowIndex = i;
             
-            while (cells.Count < cellStates.ColumnCount)
+            while (cells.Count < columns.Count)
                 cells.Add(Instantiate(cellPrefab, columns[cells.Count].Root).GetComponent<GridCell>());
 
-            for (int k = 0; k < cellStates.ColumnCount; k++) {
+            for (int k = 0; k < columns.Count; k++) {
                 var cell = cells[k];
                 
                 cell.transform.SetSiblingIndex(j);
@@ -241,19 +257,30 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                         || anyBoxSelection && row >= boxSelectionMin.x && row <= boxSelectionMax.x && column >= boxSelectionMin.y && column <= boxSelectionMax.y);
             }
         }
+        
+        maxScroll = Math.Max(0, cellStates.Rows - visibleRowCount + 2);
 
+        if (maxScroll == 0) {
+            scrollbar.SetValueWithoutNotify(0f);
+            scrollbar.size = 1f;
+        }
+        else {
+            scrollbar.SetValueWithoutNotify((float) scroll / maxScroll);
+            scrollbar.size = Mathf.Clamp01(1f - maxScroll * scrollSpacePerRow);
+        }
+        
         viewNeedsUpdate = false;
     }
 
     private void UpdateSelection() {
         boxSelectionMin = Vector2Int.Min(boxSelectionStart, boxSelectionEnd);
         boxSelectionMax = Vector2Int.Max(boxSelectionStart, boxSelectionEnd);
-        anyBoxSelection = boxSelectionMin.x < cellStates.RowCount && boxSelectionMax.x >= 0 && boxSelectionMin.y < cellStates.ColumnCount && boxSelectionMax.y >= -1;
+        anyBoxSelection = boxSelectionMin.x < cellStates.Rows && boxSelectionMax.x >= 0 && boxSelectionMin.y < cellStates.Columns && boxSelectionMax.y >= -1;
     }
 
-    private bool IsInBounds(int row, int column) => row >= 0 && row < cellStates.RowCount && column >= 0 && column < cellStates.ColumnCount;
+    private bool IsInBounds(int row, int column) => row >= 0 && row < cellStates.Rows && column >= 0 && column < cellStates.Columns;
 
-    private int GetRowIndexFromMousePosition(float relativeY) => Math.Clamp((int) (relativeY / rowHeight) + scroll, 0, cellStates.RowCount - 1);
+    private int GetRowIndexFromMousePosition(float relativeY) => Math.Clamp((int) (relativeY / rowHeight) + scroll, 0, cellStates.Rows - 1);
 
     private Vector2Int GetCellIndexAtPosition(Vector2 position) {
         var relativePosition = GetRelativePosition(position, rectTransform);
@@ -265,7 +292,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
         relativeX = GetRelativePosition(position, grid).x;
 
-        for (int i = 0; i < cellStates.ColumnCount; i++) {
+        for (int i = 0; i < cellStates.Columns; i++) {
             float width = columns[i].Width;
 
             if (relativeX < width)
@@ -274,7 +301,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             relativeX -= width;
         }
         
-        return new Vector2Int(row, cellStates.ColumnCount);
+        return new Vector2Int(row, cellStates.Columns);
     }
 
     private static Vector2 GetRelativePosition(Vector2 screenPosition, RectTransform relativeTo) {

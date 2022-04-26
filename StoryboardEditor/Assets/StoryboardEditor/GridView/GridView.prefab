@@ -350,11 +350,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74eea851f682d834db3c066d963e8028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialRowCount: 0
-  initialColumnCount: 0
+  scrollSpacePerRow: 0.001
   viewport: {fileID: 2703232270113401678}
   grid: {fileID: 1303050033926446300}
   numberColumn: {fileID: 3117330167002731995}
+  scrollbar: {fileID: 0}
   columnPrefab: {fileID: 8204650438665677967, guid: 9a7dd3a7933a4c1458f26c6b96fc7a2f, type: 3}
   cellPrefab: {fileID: 1377343459497565648, guid: c0aa9479230f7fb4eac574c5313e8c23, type: 3}
   numberCellPrefab: {fileID: 8468323995707391600, guid: a0c3294d7c2c2954790e3e921b1c2f53, type: 3}

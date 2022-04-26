@@ -33,7 +33,8 @@
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <PropertyGroup>
-      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\StoryboardSystem.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins"</PostBuildEvent>
+      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\StoryboardSystem.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins"
+copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\StoryboardSystem.dll" "C:\Users\domia\Git\SRXDStoryboard\StoryboardEditor\Assets\Libs"</PostBuildEvent>
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="System" />
@@ -115,6 +116,7 @@
         <Compile Include="Storyboard\StoryboardData.cs" />
         <Compile Include="Storyboard\TimelineController.cs" />
         <Compile Include="Storyboard\TimelineBuilder.cs" />
+        <Compile Include="Utility\DefaultLogger.cs" />
         <Compile Include="Utility\Fixed.cs" />
         <Compile Include="Utility\HashUtility.cs" />
         <Compile Include="Utility\LZSSDecoder.cs" />

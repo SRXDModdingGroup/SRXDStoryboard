@@ -1,11 +1,14 @@
+using System;
 using System.Collections.Generic;
+using System.Text;
+using StoryboardSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UIElements;
 
 public class StoryboardEditor : MonoBehaviour {
     [SerializeField] private int newDocumentRows;
-    [SerializeField] private int newDocumentColumns;
     [SerializeField] private TMP_InputField textField;
     [SerializeField] private GridView gridView;
 
@@ -14,6 +17,7 @@ public class StoryboardEditor : MonoBehaviour {
     private bool anySelected;
     private bool anyBoxSelection;
     private StoryboardDocument document;
+    private DocumentAnalysis analysis;
     private Table<CellVisualState> cellStates;
     private Vector2Int boxSelectionStart = new(-1, -1);
     private Vector2Int boxSelectionEnd = new (-1, -1);
@@ -23,11 +27,19 @@ public class StoryboardEditor : MonoBehaviour {
         gridView.DragBegin += OnGridDragBegin;
         gridView.DragUpdate += OnGridDragUpdate;
         gridView.DragEnd += OnGridDragEnd;
+        gridView.Deselected += OnGridDeselected;
         eventSystem = EventSystem.current;
+        analysis = new DocumentAnalysis();
     }
 
     private void Start() {
-        SetDocument(StoryboardDocument.CreateNew(newDocumentRows, newDocumentColumns));
+        if (StoryboardDocument.TryOpenFile("C:/Users/domia/OneDrive/My Charts/Storyboards/We Could Get More Machinegun Psystyle!.txt", out var document)) {
+            SetDocument(document);
+            document.SaveToFile("C:/Users/domia/OneDrive/My Charts/Storyboards/We Could Get More Machinegun Psystyle!.txt");
+        }
+        else
+            SetDocument(StoryboardDocument.CreateNew(newDocumentRows));
+        
         UpdateContent();
         UpdateSelection();
     }
@@ -37,22 +49,17 @@ public class StoryboardEditor : MonoBehaviour {
         
         if (selected == textField.gameObject)
             UpdateTextFieldInput();
-        else if (selected == gridView.gameObject && !dragging)
+        else if (selected == gridView.gameObject && anyBoxSelection && !dragging)
             UpdateGridViewInput();
     }
 
     #region Input
 
     private void UpdateTextFieldInput() {
-        if (Input.GetKeyDown(KeyCode.Escape)) {
-            eventSystem.SetSelectedGameObject(gridView.gameObject);
-
-            return;
-        }
-        
         if (Input.GetKeyDown(KeyCode.Tab)) {
-            document.SetCellText(boxSelectionStart.x, boxSelectionStart.y, textField.text.Trim());
-            UpdateContent();
+            BeginEdit();
+            document.SetCellText(boxSelectionStart.x, boxSelectionStart.y, AutoFormat(textField.text));
+            EndEdit();
             
             ClearSelection();
             SetBoxSelectionStartAndEnd(boxSelectionStart.x, boxSelectionStart.y + 1);
@@ -64,42 +71,61 @@ public class StoryboardEditor : MonoBehaviour {
         }
         
         if (Input.GetKeyDown(KeyCode.Return)) {
-            FillSelectionWithValue(textField.text.Trim());
+            BeginEdit();
+            FillSelectionWithValue(AutoFormat(textField.text));
             
             int row = GetBottomOfSelection() + 1;
 
-            if (Input.GetKey(KeyCode.LeftShift) || row >= cellStates.RowCount)
+            if (ShiftHeld() || row >= cellStates.Rows)
                 document.InsertRow(row);
-
-            UpdateContent();
+            
+            EndEdit();
             
             ClearSelection();
-            SetBoxSelectionStartAndEnd(row, 0);
+            MoveSelectionBackToLastEmpty(row, boxSelectionStart.y);
             UpdateSelection();
             
             eventSystem.SetSelectedGameObject(gridView.gameObject);
+
+            return;
+        }
+        
+        if (Input.GetKeyDown(KeyCode.Escape)) {
+            textField.DeactivateInputField(true);
+            eventSystem.SetSelectedGameObject(gridView.gameObject);
+            
+            UpdateSelection();
+
+            return;
         }
     }
 
     private void UpdateGridViewInput() {
-        if (Input.GetKeyDown(KeyCode.Return)) {
-            FocusTextField();
-            
-            return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.Space)) {
-            textField.SetTextWithoutNotify(string.Empty);
-            FocusTextField();
-            
-            return;
-        }
-        
         if (Input.GetKeyDown(KeyCode.Tab)) {
             SetBoxSelectionStartAndEnd(boxSelectionStart.x, boxSelectionStart.y + 1);
             UpdateSelection();
             
             eventSystem.SetSelectedGameObject(gridView.gameObject);
+            
+            return;
+        }
+        
+        if (Input.GetKeyDown(KeyCode.Return)) {
+            if (!ShiftHeld()) {
+                FocusTextField();
+
+                return;
+            }
+            
+            int row = GetBottomOfSelection() + 1;
+            
+            BeginEdit();
+            document.InsertRow(row);
+            EndEdit();
+            
+            ClearSelection();
+            MoveSelectionBackToLastEmpty(row, boxSelectionStart.y);
+            UpdateSelection();
             
             return;
         }
@@ -108,14 +134,26 @@ public class StoryboardEditor : MonoBehaviour {
             ClearSelection();
             ClearBoxSelection();
             UpdateSelection();
-            
-            textField.interactable = false;
-            eventSystem.SetSelectedGameObject(null);
 
             return;
         }
         
-        if (Input.anyKeyDown && !string.IsNullOrEmpty(Input.inputString)) {
+        if (Input.GetKeyDown(KeyCode.Space)) {
+            textField.SetTextWithoutNotify(string.Empty);
+            FocusTextField();
+            
+            return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Delete)) {
+            BeginEdit();
+            FillSelectionWithValue(string.Empty);
+            EndEdit();
+
+            return;
+        }
+        
+        if (Input.anyKeyDown && !string.IsNullOrEmpty(Input.inputString) && Input.inputString.Length == 1 && !char.IsControl(Input.inputString, 0)) {
             textField.SetTextWithoutNotify(Input.inputString);
             FocusTextField();
 
@@ -146,15 +184,15 @@ public class StoryboardEditor : MonoBehaviour {
         if (rightPressed)
             columnChange++;
 
-        if (Input.GetKey(KeyCode.LeftControl))
+        if (CtrlHeld())
             ApplyBoxSelection();
 
-        if (Input.GetKey(KeyCode.LeftShift)) {
+        if (ShiftHeld()) {
             SetBoxSelectionEnd(boxSelectionEnd.x + rowChange, boxSelectionEnd.y + columnChange);
             gridView.FocusSelectionEnd();
         }
         else {
-            if (!Input.GetKey(KeyCode.LeftControl))
+            if (!CtrlHeld())
                 ClearSelection();
 
             if (rowSelecting)
@@ -169,46 +207,52 @@ public class StoryboardEditor : MonoBehaviour {
     }
 
     private void FocusTextField() {
+        textField.ActivateInputField();
         textField.caretPosition = textField.text.Length;
         textField.Select();
     }
 
+    private static bool ShiftHeld() => Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+
+    private static bool CtrlHeld() => Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+
     #endregion
 
-    #region Interface
+    #region Logic
 
     private void SetDocument(StoryboardDocument document) {
         this.document = document;
 
         var content = document.Content;
 
-        cellStates = new Table<CellVisualState>(content.RowCount, content.ColumnCount);
+        cellStates = new Table<CellVisualState>(content.Rows, content.Columns);
 
-        for (int i = 0; i < cellStates.RowCount; i++) {
-            for (int j = 0; j < cellStates.ColumnCount; j++)
+        for (int i = 0; i < cellStates.Rows; i++) {
+            for (int j = 0; j < cellStates.Columns; j++)
                 cellStates[i, j] = new CellVisualState();
         }
         
         gridView.SetCellStates(cellStates);
     }
 
+    private void BeginEdit() {
+        analysis.Cancel();
+        document.BeginEdit();
+    }
+
+    private void EndEdit() {
+        document.EndEdit();
+        UpdateContent();
+        analysis.Analyse(document, UpdateContent);
+    }
+
     private void UpdateContent() {
         var content = document.Content;
         
-        while (cellStates.RowCount < content.RowCount)
-            cellStates.AddRow();
-        
-        while (cellStates.ColumnCount < content.ColumnCount)
-            cellStates.AddColumn();
+        cellStates.SetSize(content.Rows, content.Columns);
 
-        while (cellStates.RowCount > content.RowCount)
-            cellStates.RemoveLastRow();
-        
-        while (cellStates.ColumnCount > content.ColumnCount)
-            cellStates.RemoveLastColumn();
-
-        for (int i = 0; i < cellStates.RowCount; i++) {
-            for (int j = 0; j < cellStates.ColumnCount; j++) {
+        for (int i = 0; i < cellStates.Rows; i++) {
+            for (int j = 0; j < cellStates.Columns; j++) {
                 var cell = cellStates[i, j];
 
                 if (cell == null) {
@@ -216,10 +260,13 @@ public class StoryboardEditor : MonoBehaviour {
                     cellStates[i, j] = cell;
                 }
 
-                cell.Text = content[i, j].FormattedText;
+                cell.Text = content[i, j];
             }
         }
-        
+
+        if (anyBoxSelection)
+            UpdateSelection();
+
         gridView.UpdateView();
     }
 
@@ -228,13 +275,66 @@ public class StoryboardEditor : MonoBehaviour {
             document.SetCellText(cell.x, cell.y, value);
     }
 
+    private string AutoFormat(string value, bool outermost = true) {
+        var builder = new StringBuilder();
+        int length = value.Length;
+
+        for (int i = 0; i < length; i++) {
+            char c = value[i];
+            
+            switch (c) {
+                case '\"':
+                    builder.Append('\"');
+                    
+                    int start = i + 1;
+
+                    Parser.TrySkipTo(value, ref i, '\"');
+                    
+                    if (i > start)
+                        builder.Append(AutoFormat(value.Substring(start, i - start), false));
+
+                    builder.Append('\"');
+
+                    continue;
+                case '(':
+                    SkipToAndFormat('(', ')');
+                    continue;
+                case '{':
+                    SkipToAndFormat('{', '}');
+                    continue;
+                case '[':
+                    SkipToAndFormat('[', ']');
+                    continue;
+                case ' ' when outermost:
+                case ')':
+                case '}':
+                case ']':
+                    continue;
+                default:
+                    builder.Append(c);
+                    continue;
+            }
+
+            void SkipToAndFormat(char start, char end) {
+                builder.Append(start);
+
+                int idx = i + 1;
+
+                Parser.TrySkipTo(value, ref i, start, end);
+                
+                if (i > idx)
+                    builder.Append(AutoFormat(value.Substring(idx, i - idx), false));
+
+                builder.Append(end);
+            }
+        }
+
+        return builder.ToString();
+    }
+
     #endregion
 
     #region Selection
-
-    private void SelectCell(int row, int column) => cellStates[row, column].Selected = true;
-
-    private void DeselectCell(int row, int column) => cellStates[row, column].Selected = false;
 
     private void SetBoxSelectionStart(int row, int column) {
         boxSelectionStart = ClampToBounds(new Vector2Int(row, column));
@@ -255,13 +355,13 @@ public class StoryboardEditor : MonoBehaviour {
     private void SetRowSelectionStart(int row) {
         boxSelectionStart = ClampToBounds(new Vector2Int(row, 0));
         boxSelectionEnd = boxSelectionStart;
-        boxSelectionEnd.y = cellStates.ColumnCount - 1;
+        boxSelectionEnd.y = cellStates.Columns - 1;
         gridView.SetBoxSelectionStart(boxSelectionStart);
         gridView.SetBoxSelectionEnd(boxSelectionEnd);
     }
     
     private void SetRowSelectionEnd(int row) {
-        boxSelectionEnd = ClampToBounds(new Vector2Int(row, cellStates.ColumnCount - 1));
+        boxSelectionEnd = ClampToBounds(new Vector2Int(row, cellStates.Columns - 1));
         boxSelectionStart.y = 0;
         gridView.SetBoxSelectionStart(boxSelectionStart);
         gridView.SetBoxSelectionEnd(boxSelectionEnd);
@@ -270,7 +370,7 @@ public class StoryboardEditor : MonoBehaviour {
     private void SetRowSelectionStartAndEnd(int row) {
         boxSelectionStart = ClampToBounds(new Vector2Int(row, 0));
         boxSelectionEnd = boxSelectionStart;
-        boxSelectionEnd.y = cellStates.ColumnCount - 1;
+        boxSelectionEnd.y = cellStates.Columns - 1;
         gridView.SetBoxSelectionStart(boxSelectionStart);
         gridView.SetBoxSelectionEnd(boxSelectionEnd);
     }
@@ -281,14 +381,25 @@ public class StoryboardEditor : MonoBehaviour {
                 
         for (int i = clampedMin.x; i <= clampedMax.x; i++) {
             for (int j = clampedMin.y; j <= clampedMax.y; j++)
-                SelectCell(i, j);
+                cellStates[i, j].Selected = true;
         }
     }
 
+    private void MoveSelectionBackToLastEmpty(int row, int column) {
+        var content = document.Content;
+
+        if (string.IsNullOrWhiteSpace(content[row, column])) {
+            while (column > 0 && string.IsNullOrWhiteSpace(content[row, column - 1]))
+                column--;
+        }
+
+        SetBoxSelectionStartAndEnd(row, column);
+    }
+
     private void ClearSelection() {
-        for (int i = 0; i < cellStates.RowCount; i++) {
-            for (int j = 0; j < cellStates.ColumnCount; j++)
-                DeselectCell(i, j);
+        for (int i = 0; i < cellStates.Rows; i++) {
+            for (int j = 0; j < cellStates.Columns; j++)
+                cellStates[i, j].Selected = false;
         }
     }
 
@@ -302,17 +413,28 @@ public class StoryboardEditor : MonoBehaviour {
         anyBoxSelection = IsInBounds(boxSelectionStart.x, boxSelectionStart.y);
 
         if (anyBoxSelection) {
-            textField.SetTextWithoutNotify(document.Content[boxSelectionStart.x, boxSelectionStart.y].Text);
+            boxSelectionStart = ClampToBounds(boxSelectionStart);
+            boxSelectionEnd = ClampToBounds(boxSelectionEnd);
+            textField.SetTextWithoutNotify(document.Content[boxSelectionStart.x, boxSelectionStart.y]);
             textField.interactable = true;
             anySelected = true;
         }
         else {
+            boxSelectionStart = new Vector2Int(-1, -1);
+            boxSelectionEnd = boxSelectionStart;
+            gridView.SetBoxSelectionStartAndEnd(boxSelectionStart);
             textField.SetTextWithoutNotify(string.Empty);
+            textField.DeactivateInputField(true);
             textField.interactable = false;
+            
+            if (eventSystem.currentSelectedGameObject == textField.gameObject
+                || eventSystem.currentSelectedGameObject == gridView.gameObject)
+                eventSystem.SetSelectedGameObject(null);
+            
             anySelected = false;
             
-            for (int i = 0; i < cellStates.RowCount; i++) {
-                for (int j = 0; j < cellStates.ColumnCount; j++) {
+            for (int i = 0; i < cellStates.Rows; i++) {
+                for (int j = 0; j < cellStates.Columns; j++) {
                     if (!IsInSelection(i, j))
                         continue;
                     
@@ -344,7 +466,7 @@ public class StoryboardEditor : MonoBehaviour {
 
     #region Utility
 
-    private bool IsInBounds(int row, int column) => row >= 0 && row < cellStates.RowCount && column >= 0 && column < cellStates.ColumnCount;
+    private bool IsInBounds(int row, int column) => row >= 0 && row < cellStates.Rows && column >= 0 && column < cellStates.Columns;
     
     private bool IsInSelection(int row, int column) {
         var boxSelectionMin = Vector2Int.Min(boxSelectionStart, boxSelectionEnd);
@@ -354,11 +476,11 @@ public class StoryboardEditor : MonoBehaviour {
     }
 
     private Vector2Int ClampToBounds(Vector2Int index)
-        => Vector2Int.Max(Vector2Int.zero, Vector2Int.Min(index, new Vector2Int(cellStates.RowCount - 1, cellStates.ColumnCount - 1)));
+        => Vector2Int.Max(Vector2Int.zero, Vector2Int.Min(index, new Vector2Int(cellStates.Rows - 1, cellStates.Columns - 1)));
 
     private IEnumerable<Vector2Int> GetSelectedCells() {
-        for (int i = 0; i < cellStates.RowCount; i++) {
-            for (int j = 0; j < cellStates.ColumnCount; j++) {
+        for (int i = 0; i < cellStates.Rows; i++) {
+            for (int j = 0; j < cellStates.Columns; j++) {
                 if (IsInSelection(i, j))
                     yield return new Vector2Int(i, j);
             }
@@ -374,17 +496,17 @@ public class StoryboardEditor : MonoBehaviour {
         dragging = true;
         rowSelecting = column < 0;
         
-        if (Input.GetKey(KeyCode.LeftControl))
+        if (CtrlHeld())
             ApplyBoxSelection();
 
-        if (Input.GetKey(KeyCode.LeftShift)) {
+        if (ShiftHeld()) {
             if (rowSelecting)
                 SetRowSelectionEnd(row);
             else
                 SetBoxSelectionEnd(row, column);
         }
         else {
-            if (!Input.GetKey(KeyCode.LeftControl))
+            if (!CtrlHeld())
                 ClearSelection();
             
             if (rowSelecting)
@@ -408,6 +530,11 @@ public class StoryboardEditor : MonoBehaviour {
     private void OnGridDragEnd(int row, int column) {
         dragging = false;
         UpdateSelection();
+    }
+
+    private void OnGridDeselected() {
+        dragging = false;
+        rowSelecting = false;
     }
 
     #endregion

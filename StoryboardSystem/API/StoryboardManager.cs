@@ -13,7 +13,7 @@ public sealed class StoryboardManager {
         }
     }
 
-    internal ILogger Logger { get; private set; }
+    internal ILogger Logger { get; private set; } = new DefaultLogger();
     
     internal ISceneManager SceneManager { get; private set; }
 
@@ -24,7 +24,7 @@ public sealed class StoryboardManager {
     
 
     public void Initialize(ISceneManager sceneManager,  ILogger logger) {
-        this.SceneManager = sceneManager;
+        SceneManager = sceneManager;
         Logger = logger;
     }
 

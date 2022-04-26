@@ -53,7 +53,7 @@ internal static class Parser {
         return success;
     }
 
-    private static bool TryTokenize(string value, int lineIndex, out List<Token> tokens) {
+    public static bool TryTokenize(string value, int lineIndex, out List<Token> tokens) {
         tokens = new List<Token>();
         
         int length = value.Length;
@@ -114,16 +114,15 @@ internal static class Parser {
         return true;
     }
 
-    private static bool TryParseToken(string str, int lineIndex, out Token token) {
+    public static bool TryParseToken(string str, int lineIndex, out Token token) {
         token = default;
         
         if (str[0] == '\"' && str[str.Length - 1] == '\"') {
             string subString = str.Substring(1, str.Length - 2);
 
-            if (subString.Contains("\"")) {
+            if (subString.Contains("\""))
                 return false;
-            }
-            
+
             token = new Constant(subString);
         }
         else if (TryParseTimestamp(str, out token)) { }
@@ -134,11 +133,84 @@ internal static class Parser {
             token = new Constant(interpType);
         else if (!TryParseArray(str, lineIndex, out token)
                  && !TryParseFuncCall(str, lineIndex, out token)
-                 && !TryParseChain(str, lineIndex, out token)) {
+                 && !TryParseChain(str, lineIndex, out token))
             return false;
-        }
 
         return true;
+    }
+    
+    public static bool TrySkipTo(string str, ref int index, char bounds) {
+        while (true) {
+            index++;
+            
+            if (index == str.Length)
+                return false;
+            
+            if (str[index] == bounds)
+                return true;
+        }
+    }
+    
+    public static bool TrySkipTo(string str, ref int index, char start, char end) {
+        int depth = 0;
+
+        while (index < str.Length) {
+            char c = str[index];
+
+            if (c == start)
+                depth++;
+            else if (c == end)
+                depth--;
+
+            if (depth == 0)
+                return true;
+
+            index++;
+        }
+
+        return false;
+    }
+
+    public static IEnumerable<string> Split(string value) {
+        int length = value.Length;
+        int startIndex = 0;
+        int commentIndex = value.IndexOf("//", StringComparison.Ordinal);
+
+        for (int i = 0; i <= length; i++) {
+            if (i == length || char.IsWhiteSpace(value[i]) || i == commentIndex) {
+                string subString = value.Substring(startIndex, i - startIndex);
+                
+                startIndex = i + 1;
+                
+                if (!string.IsNullOrWhiteSpace(subString))
+                    yield return subString;
+
+                if (i != commentIndex)
+                    continue;
+
+                yield return value.Substring(i, length - i);
+                yield break;
+            }
+            
+            switch (value[i]) {
+                case '\"':
+                    TrySkipTo(value, ref i, '\"');
+
+                    continue;
+                case '{':
+                    TrySkipTo(value, ref i, '{', '}');
+
+                    continue;
+                case '(':
+                    TrySkipTo(value, ref i, '(', ')');
+
+                    continue;
+                case '[':
+                    TrySkipTo(value, ref i, '[', ']');
+
+                    continue;
+            }
+        }
     }
 
     private static bool TryParseTimestamp(string value, out Token timestamp) {
@@ -303,37 +375,6 @@ internal static class Parser {
         chain = new Chain(chainList.ToArray());
 
         return true;
-    }
-    
-    private static bool TrySkipTo(string str, ref int index, char bounds) {
-        do {
-            index++;
-            
-            if (str[index] == bounds)
-                return true;
-        } while (index < str.Length);
-
-        return false;
-    }
-    
-    private static bool TrySkipTo(string str, ref int index, char start, char end) {
-        int depth = 0;
-
-        while (index < str.Length) {
-            char c = str[index];
-
-            if (c == start)
-                depth++;
-            else if (c == end)
-                depth--;
-
-            if (depth == 0)
-                return true;
-
-            index++;
-        }
-
-        return false;
     }
     
     private static string GetParseError(int line, string message) => $"Failed to parse storyboard line {line}: {message}";
