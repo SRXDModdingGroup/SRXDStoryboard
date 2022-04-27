@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UIElements;
+using static EditorInput;
 
 public class StoryboardEditor : MonoBehaviour {
     [SerializeField] private int newDocumentRows;
@@ -17,6 +18,7 @@ public class StoryboardEditor : MonoBehaviour {
     private bool rowSelecting;
     private bool anySelected;
     private bool anyBoxSelection;
+    private bool editing;
     private StoryboardDocument document;
     private DocumentAnalysis analysis;
     private Table<CellVisualState> cellStates;
@@ -31,6 +33,17 @@ public class StoryboardEditor : MonoBehaviour {
         gridView.Deselected += OnGridDeselected;
         eventSystem = EventSystem.current;
         analysis = new DocumentAnalysis();
+
+        var input = GetComponent<EditorInput>();
+
+        input.Backspace += OnBackspace;
+        input.Tab += OnTab;
+        input.Return += OnReturn;
+        input.Escape += OnEscape;
+        input.Space += OnSpace;
+        input.Delete += OnDelete;
+        input.Direction += OnDirection;
+        input.Character += OnCharacter;
     }
 
     private void Start() {
@@ -47,13 +60,6 @@ public class StoryboardEditor : MonoBehaviour {
     }
 
     private void Update() {
-        var selected = eventSystem.currentSelectedGameObject;
-        
-        if (selected == textField.gameObject)
-            UpdateTextFieldInput();
-        else if (selected == gridView.gameObject && anyBoxSelection && !dragging)
-            UpdateGridViewInput();
-        
         if (contentNeedsUpdate)
             UpdateContent();
 
@@ -62,257 +68,203 @@ public class StoryboardEditor : MonoBehaviour {
 
     #region Input
 
-    private void UpdateTextFieldInput() {
-        if (Input.GetKeyDown(KeyCode.Tab)) {
-            UnfocusTextField();
-            BeginEdit();
-            FillSelectionWithValue(AutoFormat(textField.text));
-            
-            var rightmostPerRow = new List<Vector2Int>(GetRightmostSelectedPerRow());
+    private void OnBackspace(InputModifier modifiers) {
+        if (eventSystem.currentSelectedGameObject != gridView.gameObject)
+            return;
+        
+        BeginEdit();
 
-            if (ShiftHeld()) {
-                foreach (var index in rightmostPerRow) {
-                    if (index.y < document.Content.Columns - 1)
-                        InsertAndPushCellsRight(index.x, index.y + 1, string.Empty);
-                }
-            }
+        if (modifiers.HasModifiers(InputModifier.Shift)) {
+            foreach (var index in GetSelectedCellsReversed())
+                DeleteAndPullCellsLeft(index.x, index.y);
+        }
+        else
+            FillSelectionWithValue(string.Empty);
+
+        if (!AnyInSelectedRows()) {
+            foreach (int row in GetSelectedRowsReversed())
+                document.RemoveRow(row);
                 
             EndEdit();
 
+            int top = Math.Max(0, GetTopOfSelection() - 1);
+
+            SetBoxSelectionStartAndEnd(top, GetRightmostFilledInRow(top));
             ClearSelection();
-
-            foreach (var index in rightmostPerRow) {
-                if (index.y < document.Content.Columns - 1)
-                    cellStates[index.x, index.y + 1].Selected = true;
-            }
-            
-            SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetRightmostSelectedInRow(boxSelectionStart.x));
             UpdateSelection();
-            
-            eventSystem.SetSelectedGameObject(gridView.gameObject);
-            
+                
             return;
         }
-        
-        if (Input.GetKeyDown(KeyCode.Return)) {
-            UnfocusTextField();
-            BeginEdit();
-            FillSelectionWithValue(AutoFormat(textField.text));
-            
-            int row = GetBottomOfSelection() + 1;
 
-            if (ShiftHeld() || row >= cellStates.Rows)
-                document.InsertRow(row);
+        EndEdit();
             
-            EndEdit();
+        var leftmostPerRow = new List<Vector2Int>(GetLeftmostSelectedPerRow());
             
-            ClearSelection();
-            MoveSelectionBackToLastEmpty(row, boxSelectionStart.y);
-            UpdateSelection();
+        ClearSelection();
             
-            eventSystem.SetSelectedGameObject(gridView.gameObject);
-
-            return;
+        foreach (var index in leftmostPerRow) {
+            if (IsInBounds(index.x, index.y - 1))
+                cellStates[index.x, index.y - 1].Selected = true;
         }
-        
-        if (Input.GetKeyDown(KeyCode.Escape)) {
-            UnfocusTextField();
-            eventSystem.SetSelectedGameObject(gridView.gameObject);
-            
-            UpdateSelection();
 
-            return;
-        }
+        SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetLeftmostSelectedInRow(boxSelectionStart.x));
+        UpdateSelection();
     }
 
-    private void UpdateGridViewInput() {
-        if (Input.GetKeyDown(KeyCode.Backspace)) {
-            BeginEdit();
-
-            if (ShiftHeld()) {
-                foreach (var index in GetSelectedCellsReversed())
-                    DeleteAndPullCellsLeft(index.x, index.y);
-            }
-            else
-                FillSelectionWithValue(string.Empty);
-
-            if (!AnyInSelectedRows()) {
-                foreach (int row in GetSelectedRowsReversed())
-                    document.RemoveRow(row);
-                
-                EndEdit();
-
-                int top = Math.Max(0, GetTopOfSelection() - 1);
-
-                SetBoxSelectionStartAndEnd(top, GetRightmostFilledInRow(top));
-                ClearSelection();
-                UpdateSelection();
-                
-                return;
-            }
-
-            EndEdit();
-            
-            var leftmostPerRow = new List<Vector2Int>(GetLeftmostSelectedPerRow());
-            
-            ClearSelection();
-            
-            foreach (var index in leftmostPerRow) {
-                if (IsInBounds(index.x, index.y - 1))
-                    cellStates[index.x, index.y - 1].Selected = true;
-            }
-            
-            
-            
-            SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetLeftmostSelectedInRow(boxSelectionStart.x));
-            UpdateSelection();
-            
+    private void OnTab(InputModifier modifiers) {
+        var selected = eventSystem.currentSelectedGameObject;
+        
+        if (selected != gridView.gameObject && selected != textField.gameObject)
             return;
+
+        if (selected == textField.gameObject) {
+            UnfocusTextField();
+            BeginEdit();
+            FillSelectionWithValue(AutoFormat(textField.text));
         }
         
-        if (Input.GetKeyDown(KeyCode.Tab)) {
-            var rightmostPerRow = new List<Vector2Int>(GetRightmostSelectedPerRow());
+        var rightmostPerRow = new List<Vector2Int>(GetRightmostSelectedPerRow());
 
-            if (ShiftHeld()) {
-                BeginEdit();
+        if (modifiers.HasModifiers(InputModifier.Shift)) {
+            BeginEdit();
                 
-                foreach (var index in rightmostPerRow) {
-                    if (index.y < document.Content.Columns - 1)
-                        InsertAndPushCellsRight(index.x, index.y + 1, string.Empty);
-                }
-                
-                EndEdit();
-            }
-            
-            ClearSelection();
-
             foreach (var index in rightmostPerRow) {
                 if (index.y < document.Content.Columns - 1)
-                    cellStates[index.x, index.y + 1].Selected = true;
+                    InsertAndPushCellsRight(index.x, index.y + 1, string.Empty);
             }
+        }
+        
+        EndEdit();
             
-            SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetRightmostSelectedInRow(boxSelectionStart.x));
-            UpdateSelection();
+        ClearSelection();
+
+        foreach (var index in rightmostPerRow) {
+            if (index.y < document.Content.Columns - 1)
+                cellStates[index.x, index.y + 1].Selected = true;
+        }
             
+        SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetRightmostSelectedInRow(boxSelectionStart.x));
+        UpdateSelection();
+        
+        eventSystem.SetSelectedGameObject(gridView.gameObject);
+    }
+
+    private void OnReturn(InputModifier modifiers) {
+        var selected = eventSystem.currentSelectedGameObject;
+        
+        if (selected != gridView.gameObject && selected != textField.gameObject)
+            return;
+        
+        if (selected == gridView.gameObject && !modifiers.HasModifiers(InputModifier.Shift)) {
+            FocusTextField();
+
             return;
         }
         
-        if (Input.GetKeyDown(KeyCode.Return)) {
-            if (!ShiftHeld()) {
-                FocusTextField();
-
-                return;
-            }
-            
-            int row = GetBottomOfSelection() + 1;
-            
+        if (selected == textField.gameObject) {
+            UnfocusTextField();
             BeginEdit();
-            document.InsertRow(row);
-            EndEdit();
-            
-            ClearSelection();
-            MoveSelectionBackToLastEmpty(row, boxSelectionStart.y);
-            UpdateSelection();
-            
-            return;
+            FillSelectionWithValue(AutoFormat(textField.text));
         }
 
-        if (Input.GetKeyDown(KeyCode.Escape)) {
+        int row = GetBottomOfSelection() + 1;
+
+        if (modifiers.HasModifiers(InputModifier.Shift) || row >= cellStates.Rows) {
+            BeginEdit();
+            document.InsertRow(row);
+        }
+        
+        EndEdit();
+            
+        ClearSelection();
+        MoveSelectionBackToLastEmpty(row, boxSelectionStart.y);
+        UpdateSelection();
+        
+        eventSystem.SetSelectedGameObject(gridView.gameObject);
+    }
+
+    private void OnEscape(InputModifier modifiers) {
+        if (eventSystem.currentSelectedGameObject == textField.gameObject) {
+            UnfocusTextField();
+            eventSystem.SetSelectedGameObject(gridView.gameObject);
+            
+            UpdateSelection();
+        }
+        else if (eventSystem.currentSelectedGameObject == gridView.gameObject) {
             ClearSelection();
             ClearBoxSelection();
             UpdateSelection();
-
-            return;
         }
+    }
+
+    private void OnSpace(InputModifier modifiers) {
+        if (eventSystem.currentSelectedGameObject != gridView.gameObject)
+            return;
         
-        if (Input.GetKeyDown(KeyCode.Space)) {
-            textField.SetTextWithoutNotify(string.Empty);
-            FocusTextField();
-            
+        textField.SetTextWithoutNotify(string.Empty);
+        FocusTextField();
+    }
+
+    private void OnDelete(InputModifier modifiers) {
+        if (eventSystem.currentSelectedGameObject != gridView.gameObject)
             return;
+        
+        BeginEdit();
+            
+        if (modifiers.HasModifiers(InputModifier.Shift)) {
+            foreach (var index in GetSelectedCellsReversed())
+                DeleteAndPullCellsLeft(index.x, index.y);
         }
+        else
+            FillSelectionWithValue(string.Empty);
 
-        if (Input.GetKeyDown(KeyCode.Delete)) {
-            BeginEdit();
+        EndEdit();
+
+        if (!modifiers.HasModifiers(InputModifier.Shift))
+            return;
             
-            if (ShiftHeld()) {
-                foreach (var index in GetSelectedCellsReversed())
-                    DeleteAndPullCellsLeft(index.x, index.y);
-            }
-            else
-                FillSelectionWithValue(string.Empty);
-
-            EndEdit();
-
-            if (!ShiftHeld())
-                return;
-            
-            var leftmostPerRow = new List<Vector2Int>(GetLeftmostSelectedPerRow());
+        var leftmostPerRow = new List<Vector2Int>(GetLeftmostSelectedPerRow());
                 
-            ClearSelection();
+        ClearSelection();
             
-            foreach (var index in leftmostPerRow) {
-                if (IsInBounds(index.x, index.y))
-                    cellStates[index.x, index.y].Selected = true;
-            }
+        foreach (var index in leftmostPerRow) {
+            if (IsInBounds(index.x, index.y))
+                cellStates[index.x, index.y].Selected = true;
+        }
             
-            SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetLeftmostSelectedInRow(boxSelectionStart.x));
-            UpdateSelection();
+        SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetLeftmostSelectedInRow(boxSelectionStart.x));
+        UpdateSelection();
+    }
 
-            return;
-        }
-        
-        if (Input.anyKeyDown && !string.IsNullOrEmpty(Input.inputString) && Input.inputString.Length == 1 && !char.IsControl(Input.inputString, 0)) {
-            textField.SetTextWithoutNotify(Input.inputString);
-            FocusTextField();
-
-            return;
-        }
-
-        bool leftPressed = Input.GetKeyDown(KeyCode.LeftArrow);
-        bool rightPressed = Input.GetKeyDown(KeyCode.RightArrow);
-        bool upPressed = Input.GetKeyDown(KeyCode.UpArrow);
-        bool downPressed = Input.GetKeyDown(KeyCode.DownArrow);
-
-        if (!leftPressed && !rightPressed && !upPressed && !downPressed)
-            return;
-
-        int rowChange = 0;
-
-        if (upPressed)
-            rowChange--;
-
-        if (downPressed)
-            rowChange++;
-
-        int columnChange = 0;
-
-        if (leftPressed)
-            columnChange--;
-
-        if (rightPressed)
-            columnChange++;
-
-        if (CtrlHeld())
+    private void OnDirection(Vector2Int direction, InputModifier modifiers) {
+        if (modifiers.HasModifiers(InputModifier.Control))
             ApplyBoxSelection();
 
-        if (ShiftHeld()) {
-            SetBoxSelectionEnd(boxSelectionEnd.x + rowChange, boxSelectionEnd.y + columnChange);
+        if (modifiers.HasModifiers(InputModifier.Shift)) {
+            SetBoxSelectionEnd(boxSelectionEnd.x + direction.x, boxSelectionEnd.y + direction.y);
             gridView.FocusSelectionEnd();
         }
         else {
-            if (!CtrlHeld())
+            if (!modifiers.HasModifiers(InputModifier.Control))
                 ClearSelection();
 
             if (rowSelecting)
                 boxSelectionEnd.y = 0;
 
-            SetBoxSelectionStartAndEnd(boxSelectionEnd.x + rowChange, boxSelectionEnd.y + columnChange);
+            SetBoxSelectionStartAndEnd(boxSelectionEnd.x + direction.x, boxSelectionEnd.y + direction.y);
             gridView.FocusSelectionStart();
         }
 
         UpdateSelection();
         rowSelecting = false;
+    }
+
+    private void OnCharacter(string character, InputModifier modifiers) {
+        if (eventSystem.currentSelectedGameObject != gridView.gameObject)
+            return;
+        
+        textField.SetTextWithoutNotify(character);
+        FocusTextField();
     }
 
     private void FocusTextField() {
@@ -328,10 +280,6 @@ public class StoryboardEditor : MonoBehaviour {
         if (eventSystem.currentSelectedGameObject == textField.gameObject)
             eventSystem.SetSelectedGameObject(null);
     }
-
-    private static bool ShiftHeld() => Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-
-    private static bool CtrlHeld() => Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
 
     #endregion
 
@@ -353,11 +301,19 @@ public class StoryboardEditor : MonoBehaviour {
     }
 
     private void BeginEdit() {
+        if (editing)
+            return;
+
+        editing = true;
         analysis.Cancel();
         document.BeginEdit();
     }
 
     private void EndEdit() {
+        if (!editing)
+            return;
+
+        editing = false;
         document.EndEdit();
         contentNeedsUpdate = true;
         analysis.Analyse(document, () => contentNeedsUpdate = true);
@@ -776,24 +732,24 @@ public class StoryboardEditor : MonoBehaviour {
 
     #region Events
 
-    private void OnGridDragBegin(int row, int column) {
+    private void OnGridDragBegin(int row, int column, InputModifier modifiers) {
         textField.DeactivateInputField(true);
         textField.ReleaseSelection();
         eventSystem.SetSelectedGameObject(gridView.gameObject);
         dragging = true;
         rowSelecting = column < 0;
         
-        if (CtrlHeld())
+        if (modifiers.HasModifiers(InputModifier.Control))
             ApplyBoxSelection();
 
-        if (ShiftHeld()) {
+        if (modifiers.HasModifiers(InputModifier.Shift)) {
             if (rowSelecting)
                 SetRowSelectionEnd(row);
             else
                 SetBoxSelectionEnd(row, column);
         }
         else {
-            if (!CtrlHeld())
+            if (!modifiers.HasModifiers(InputModifier.Control))
                 ClearSelection();
             
             if (rowSelecting)
@@ -805,7 +761,7 @@ public class StoryboardEditor : MonoBehaviour {
         UpdateSelection();
     }
     
-    private void OnGridDragUpdate(int row, int column) {
+    private void OnGridDragUpdate(int row, int column, InputModifier modifiers) {
         if (rowSelecting)
             SetRowSelectionEnd(row);
         else
@@ -814,12 +770,12 @@ public class StoryboardEditor : MonoBehaviour {
         UpdateSelection();
     }
     
-    private void OnGridDragEnd(int row, int column) {
+    private void OnGridDragEnd(int row, int column, InputModifier modifiers) {
         dragging = false;
         UpdateSelection();
     }
 
-    private void OnGridDeselected() {
+    private void OnGridDeselected(InputModifier modifiers) {
         dragging = false;
         rowSelecting = false;
     }

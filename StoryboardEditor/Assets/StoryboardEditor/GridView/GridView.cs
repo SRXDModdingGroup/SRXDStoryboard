@@ -37,13 +37,13 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     [SerializeField] private GameObject cellPrefab;
     [SerializeField] private GameObject numberCellPrefab;
 
-    public event Action<int, int> DragBegin;
+    public event Action<int, int, EditorInput.InputModifier> DragBegin;
 
-    public event Action<int, int> DragUpdate;
+    public event Action<int, int, EditorInput.InputModifier> DragUpdate;
 
-    public event Action<int, int> DragEnd;
+    public event Action<int, int, EditorInput.InputModifier> DragEnd;
 
-    public event Action Deselected;
+    public event Action<EditorInput.InputModifier> Deselected;
 
     private bool viewNeedsUpdate;
     private bool anyBoxSelection;
@@ -137,7 +137,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         var index = GetCellIndexAtPosition(eventData.position);
 
         EventSystem.current.SetSelectedGameObject(gameObject);
-        DragBegin?.Invoke(index.x, index.y);
+        DragBegin?.Invoke(index.x, index.y, EditorInput.GetModifiers());
     }
     
     public void OnPointerMove(PointerEventData eventData) {
@@ -146,7 +146,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         
         var index = GetCellIndexAtPosition(eventData.position);
 
-        DragUpdate?.Invoke(index.x, index.y);
+        DragUpdate?.Invoke(index.x, index.y, EditorInput.GetModifiers());
     }
     
     public void OnPointerUp(PointerEventData eventData) {
@@ -157,7 +157,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
         var index = GetCellIndexAtPosition(eventData.position);
 
-        DragEnd?.Invoke(index.x, index.y);
+        DragEnd?.Invoke(index.x, index.y, EditorInput.GetModifiers());
     }
     
     public void OnScroll(PointerEventData eventData) {
@@ -172,7 +172,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
     public void OnDeselect(BaseEventData eventData) {
         mouseDragging = false;
-        Deselected?.Invoke();
+        Deselected?.Invoke(EditorInput.GetModifiers());
     }
 
     private void Awake() {
