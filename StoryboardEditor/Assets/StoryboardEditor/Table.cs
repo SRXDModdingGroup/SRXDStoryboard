@@ -137,7 +137,7 @@ public class Table<T> {
 
         for (int i = index; i < Rows; i++) {
             for (int j = 0; j < Columns; j++)
-                data[index, j] = data[index + 1, j];
+                data[i, j] = data[i + 1, j];
         }
 
         for (int i = 0; i < Columns; i++)
@@ -158,7 +158,7 @@ public class Table<T> {
 
         for (int i = 0; i < Rows; i++) {
             for (int j = index; j < Columns; j++)
-                data[i, index] = data[i, index + 1];
+                data[i, j] = data[i, j + 1];
         }
 
         for (int i = 0; i < Rows; i++)

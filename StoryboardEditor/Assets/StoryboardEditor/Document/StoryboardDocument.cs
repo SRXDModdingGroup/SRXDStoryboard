@@ -38,6 +38,8 @@ public class StoryboardDocument {
 
     public void InsertRow(int index) => Content.InsertRow(index);
 
+    public void RemoveRow(int index) => Content.RemoveRow(index);
+
     public void SaveToFile(string path) {
         using var writer = new StreamWriter(File.Create(path));
 
@@ -80,7 +82,7 @@ public class StoryboardDocument {
             content.AddRow();
 
             foreach (string s in Parser.Split(line)) {
-                if (content.Columns <= j)
+                if (content.Columns <= j + 1)
                     content.AddColumn();
 
                 content[i, j] = s;

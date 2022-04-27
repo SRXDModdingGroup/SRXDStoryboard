@@ -94,7 +94,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         if (cellStates == null || cellStates.Empty)
             return;
 
-        maxScroll = Math.Max(0, cellStates.Rows - visibleRowCount + 2);
+        maxScroll = Math.Max(0, cellStates.Rows - visibleRowCount + 1);
         this.scroll = Math.Max(0, Math.Min(scroll, maxScroll));
         viewNeedsUpdate = true;
     }
@@ -177,7 +177,8 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
 
     private void Awake() {
         rectTransform = GetComponent<RectTransform>();
-        visibleRowCount = (int) (viewport.rect.height / 30f) + 1;
+        rowHeight = cellPrefab.GetComponent<RectTransform>().rect.height;
+        visibleRowCount = (int) (viewport.rect.height / rowHeight) + 1;
         rows = new List<Row>(visibleRowCount);
         numberTexts = new List<TMP_Text>(visibleRowCount);
 
@@ -191,7 +192,6 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         }
 
         columns = new List<Column>();
-        rowHeight = cellPrefab.GetComponent<RectTransform>().rect.height;
         numberColumnWidth = numberColumn.rect.width;
         defaultColumnWidth = columnPrefab.GetComponent<RectTransform>().rect.width;
         scrollbar.onValueChanged.AddListener(value => SetScroll(Mathf.FloorToInt(value * maxScroll)));
@@ -258,7 +258,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             }
         }
         
-        maxScroll = Math.Max(0, cellStates.Rows - visibleRowCount + 2);
+        maxScroll = Math.Max(0, cellStates.Rows - visibleRowCount + 1);
 
         if (maxScroll == 0) {
             scrollbar.SetValueWithoutNotify(0f);
