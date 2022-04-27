@@ -114,6 +114,58 @@ internal static class Parser {
         return true;
     }
 
+    public static bool TryTokenizeAndFormat(string value, out List<Token> tokens, out string formatted) {
+        tokens = new List<Token>();
+        formatted = value;
+        
+        int length = value.Length;
+        int startIndex = 0;
+        var builder = new StringBuilder();
+
+        for (int i = 0; i <= length; i++) {
+            if (i == length || char.IsWhiteSpace(value[i])) {
+                string subString = value.Substring(startIndex, i - startIndex);
+                
+                startIndex = i + 1;
+                
+                if (string.IsNullOrWhiteSpace(subString)) {
+                    builder.Append(subString);
+                    
+                    if (i < length)
+                        builder.Append(value[i]);
+                    
+                    continue;
+                }
+
+                if (!TryParseAndFormatToken(subString, out var token, out string formattedToken))
+                    return false;
+
+                tokens.Add(token);
+                builder.Append(formattedToken);
+                
+                if (i < length)
+                    builder.Append(value[i]);
+
+                continue;
+            }
+            
+            switch (value[i]) {
+                case '\"' when !TrySkipTo(value, ref i, '\"'):
+                case '{' when !TrySkipTo(value, ref i, '{', '}'):
+                case '(' when !TrySkipTo(value, ref i, '(', ')'):
+                case '[' when !TrySkipTo(value, ref i, '[', ']'):
+                case '}':
+                case ')':
+                case ']':
+                    return false;
+            }
+        }
+
+        formatted = builder.ToString();
+
+        return true;
+    }
+
     public static bool TryParseToken(string str, int lineIndex, out Token token) {
         token = default;
         
@@ -125,8 +177,7 @@ internal static class Parser {
 
             token = new Constant(subString);
         }
-        else if (TryParseTimestamp(str, out token)) { }
-        else if (TryParsePrimitive(str, out token)) { }
+        else if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
         else if (Enum.TryParse<Opcode>(str, true, out var opcode))
             token = new Constant(opcode);
         else if (Enum.TryParse<InterpType>(str, true, out var interpType))
@@ -134,6 +185,62 @@ internal static class Parser {
         else if (!TryParseArray(str, lineIndex, out token)
                  && !TryParseFuncCall(str, lineIndex, out token)
                  && !TryParseChain(str, lineIndex, out token))
+            return false;
+
+        return true;
+    }
+    
+    public static bool TryParseAndFormatToken(string str, out Token token, out string formatted) {
+        token = null;
+        formatted = str;
+        
+        if (str[0] == '\"' && str[str.Length - 1] == '\"') {
+            string subString = str.Substring(1, str.Length - 2);
+
+            if (subString.Contains("\""))
+                return false;
+
+            token = new Constant(subString);
+            formatted = $"<color=#D28080FF>{str}</color>";
+        }
+        else if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
+        else if (Enum.TryParse<Opcode>(str, true, out var opcode)) {
+            token = new Constant(opcode);
+
+            switch (opcode) {
+                case Opcode.Bind:
+                case Opcode.Bundle:
+                case Opcode.Curve:
+                case Opcode.In:
+                case Opcode.Inst:
+                case Opcode.InstA:
+                case Opcode.Load:
+                case Opcode.Out:
+                case Opcode.Post:
+                    formatted = $"<color=#FFFF00FF>{str}</color>";
+                    return true;
+                case Opcode.Call:
+                case Opcode.Loop:
+                case Opcode.Key:
+                    formatted = $"<color=#0080FFFF>{str}</color>";
+                    return true;
+                case Opcode.Proc:
+                    formatted = $"<color=#00FFFFFF>{str}</color>";
+                    return true;
+                case Opcode.Set:
+                case Opcode.SetA:
+                case Opcode.SetG:
+                    formatted = $"<color=#FF80FFFF>{str}</color>";
+                    return true;
+                default:
+                    return true;
+            }
+        }
+        else if (Enum.TryParse<InterpType>(str, true, out var interpType))
+            token = new Constant(interpType);
+        else if (!TryParseAndFormatArray(str, out token, out formatted)
+                 && !TryParseAndFormatFuncCall(str, out token, out formatted)
+                 && !TryParseAndFormatChain(str, out token, out formatted))
             return false;
 
         return true;
@@ -340,10 +447,10 @@ internal static class Parser {
         return false;
     }
 
-    private static bool TryParseChain(string token, int lineIndex, out Token chain) {
+    private static bool TryParseChain(string value, int lineIndex, out Token chain) {
         chain = null;
 
-        string[] split = token.Split('.');
+        string[] split = value.Split('.');
 
         if (split.Length == 0)
             return false;
@@ -373,6 +480,104 @@ internal static class Parser {
         }
         
         chain = new Chain(chainList.ToArray());
+
+        return true;
+    }
+
+    private static bool TryParseAndFormatArray(string value, out Token array, out string formatted) {
+        if (value[0] != '{' || value[value.Length - 1] != '}' || !TryTokenizeAndFormat(value.Substring(1, value.Length - 2), out var tokens, out formatted)) {
+            array = null;
+            formatted = value;
+
+            return false;
+        }
+
+        formatted = $"{{{formatted}}}";
+
+        bool isConstant = true;
+
+        foreach (var token in tokens) {
+            if (token is Constant)
+                continue;
+
+            isConstant = false;
+
+            break;
+        }
+
+        if (isConstant) {
+            object[] objArr = new object[tokens.Count];
+
+            for (int i = 0; i < objArr.Length; i++)
+                objArr[i] = ((Constant) tokens[i]).Value;
+
+            array = new Constant(objArr);
+        }
+        else
+            array = new ArrayT(tokens.ToArray());
+
+        return true;
+    }
+
+    private static bool TryParseAndFormatFuncCall(string value, out Token funcCall, out string formatted) {
+        var match = MATCH_FUNC_CALL.Match(value);
+
+        if (match.Success && Enum.TryParse<FuncName>(match.Groups[1].Value, true, out var name) && TryTokenizeAndFormat(match.Groups[2].Value, out var tokens, out formatted)) {
+            funcCall = new FuncCall(name, tokens.ToArray());
+            formatted = $"<color=#A0FFFFFF>{match.Groups[1]}</color>({formatted})";
+
+            return true;
+        }
+
+        funcCall = null;
+        formatted = value;
+
+        return false;
+    }
+
+    private static bool TryParseAndFormatChain(string value, out Token chain, out string formatted) {
+        chain = null;
+        formatted = value;
+
+        string[] split = value.Split('.');
+
+        if (split.Length == 0)
+            return false;
+
+        var chainList = new List<Token>();
+        var builder = new StringBuilder();
+
+        foreach (string s in split) {
+            if (string.IsNullOrWhiteSpace(s))
+                return false;
+
+            var match = MATCH_CHAIN_ELEMENT.Match(s);
+
+            if (!match.Success)
+                return false;
+
+            chainList.Add(new Name(match.Groups[1].Value));
+
+            if (builder.Length > 0)
+                builder.Append('.');
+
+            builder.Append($"<color=#D0FFFFFF>{match.Groups[1]}</color>");
+
+            string indexer = match.Groups[3].Value;
+
+            if (string.IsNullOrWhiteSpace(indexer))
+                continue;
+            
+            if (TryParseAndFormatToken(indexer, out var indexerToken, out string formattedToken)) {
+                chainList.Add(new Indexer(indexerToken));
+                builder.Append($"[{formattedToken}]");
+            }
+            else
+                return false;
+        }
+        
+        chain = new Chain(chainList.ToArray());
+        formatted = builder.ToString();
 
         return true;
     }

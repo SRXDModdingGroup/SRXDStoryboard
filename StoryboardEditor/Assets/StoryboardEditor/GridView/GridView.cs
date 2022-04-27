@@ -236,7 +236,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                 }
                 
                 cell.gameObject.SetActive(true);
-                cell.SetText(cellStates[i, k].Text);
+                cell.SetText(cellStates[i, k].FormattedText);
             
                 if (IsInSelection(i, k)) {
                     cell.SetSelected(true, anyBoxSelection && i == boxSelectionStart.x && k == boxSelectionStart.y,
@@ -247,9 +247,6 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                 }
                 else
                     cell.SetSelected(false, false, false, false, false, false);
-                
-                if (IsInBounds(i, k))
-                    cell.SetText(cellStates[i, k].Text);
 
                 bool IsInSelection(int row, int column) =>
                     IsInBounds(row, column) 

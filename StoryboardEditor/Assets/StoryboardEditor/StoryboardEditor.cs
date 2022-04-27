@@ -12,6 +12,7 @@ public class StoryboardEditor : MonoBehaviour {
     [SerializeField] private TMP_InputField textField;
     [SerializeField] private GridView gridView;
 
+    private bool contentNeedsUpdate;
     private bool dragging;
     private bool rowSelecting;
     private bool anySelected;
@@ -42,6 +43,7 @@ public class StoryboardEditor : MonoBehaviour {
         
         UpdateContent();
         UpdateSelection();
+        analysis.Analyse(document, () => contentNeedsUpdate = true);
     }
 
     private void Update() {
@@ -51,6 +53,11 @@ public class StoryboardEditor : MonoBehaviour {
             UpdateTextFieldInput();
         else if (selected == gridView.gameObject && anyBoxSelection && !dragging)
             UpdateGridViewInput();
+        
+        if (contentNeedsUpdate)
+            UpdateContent();
+
+        contentNeedsUpdate = false;
     }
 
     #region Input
@@ -352,8 +359,8 @@ public class StoryboardEditor : MonoBehaviour {
 
     private void EndEdit() {
         document.EndEdit();
-        UpdateContent();
-        analysis.Analyse(document, UpdateContent);
+        contentNeedsUpdate = true;
+        analysis.Analyse(document, () => contentNeedsUpdate = true);
     }
 
     private void UpdateContent() {
@@ -371,6 +378,21 @@ public class StoryboardEditor : MonoBehaviour {
                 }
 
                 cell.Text = content[i, j];
+
+                var info = analysis.Cells;
+
+                if (i >= info.Rows || j >= info.Columns) {
+                    cell.FormattedText = cell.Text;
+                    
+                    continue;
+                }
+
+                var infoCell = info[i, j];
+
+                if (string.IsNullOrWhiteSpace(infoCell.FormattedText) || cell.Text != infoCell.Text)
+                    cell.FormattedText = cell.Text;
+                else
+                    cell.FormattedText = infoCell.FormattedText;
             }
         }
 
@@ -404,6 +426,11 @@ public class StoryboardEditor : MonoBehaviour {
     }
 
     private static string AutoFormat(string value, bool outermost = true) {
+        value = value.Trim();
+        
+        if (value.StartsWith("//"))
+            return value;
+        
         var builder = new StringBuilder();
         int length = value.Length;
 

@@ -104,7 +104,7 @@ MonoBehaviour:
   m_HideSoftKeyboard: 0
   m_CharacterValidation: 0
   m_RegexValue: 
-  m_GlobalPointSize: 14
+  m_GlobalPointSize: 16
   m_CharacterLimit: 0
   m_OnEndEdit:
     m_PersistentCalls:
@@ -133,7 +133,7 @@ MonoBehaviour:
   m_CaretColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
   m_CustomCaretColor: 0
   m_SelectionColor: {r: 0.65882355, g: 0.80784315, b: 1, a: 0.7529412}
-  m_Text: 
+  m_Text: Text
   m_CaretBlinkRate: 0.85
   m_CaretWidth: 1
   m_ReadOnly: 0
@@ -197,7 +197,7 @@ Canvas:
   m_RenderMode: 0
   m_Camera: {fileID: 0}
   m_PlaneDistance: 100
-  m_PixelPerfect: 0
+  m_PixelPerfect: 1
   m_ReceivesEvents: 1
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
@@ -405,7 +405,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
+  m_Color: {r: 0.16078432, g: 0.19215688, b: 0.20392159, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -488,7 +488,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u200B"
+  m_text: "Text\u200B"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8670b84f3a01eef43b1d0005ba6a4b4d, type: 2}
   m_sharedMaterial: {fileID: 6914460483436295758, guid: 8670b84f3a01eef43b1d0005ba6a4b4d, type: 2}
@@ -515,8 +515,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 18
-  m_fontSizeBase: 18
+  m_fontSize: 16
+  m_fontSizeBase: 16
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1375,24 +1375,12 @@ PrefabInstance:
       propertyPath: m_HorizontalScrollbar
       value: 
       objectReference: {fileID: 6973472273743447041}
-    - target: {fileID: 1214556448480301563, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 1303050033926446300, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
       propertyPath: m_SizeDelta.x
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1303050033926446300, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1303050033926446300, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1303050033926446300, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
-      propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2231854597436064338, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
@@ -1438,18 +1426,6 @@ PrefabInstance:
     - target: {fileID: 2231854597436064338, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2890362951067897674, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
-      propertyPath: m_Color.b
-      value: 0.34509805
-      objectReference: {fileID: 0}
-    - target: {fileID: 2890362951067897674, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
-      propertyPath: m_Color.g
-      value: 0.34509805
-      objectReference: {fileID: 0}
-    - target: {fileID: 2890362951067897674, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
-      propertyPath: m_Color.r
-      value: 0.34509805
       objectReference: {fileID: 0}
     - target: {fileID: 5489021851167786624, guid: 0cfe9d50338d897489179b0b8b132a0f, type: 3}
       propertyPath: m_Name

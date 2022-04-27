@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using StoryboardSystem;
+using UnityEngine;
 
 public class DocumentAnalysis {
     public Table<CellAnalysis> Cells { get; } = new();
@@ -31,23 +32,26 @@ public class DocumentAnalysis {
                 string value = content[i, j];
 
                 if (string.IsNullOrWhiteSpace(value)) {
-                    Cells[i, j] = new CellAnalysis(string.Empty, null, false);
+                    Cells[i, j] = new CellAnalysis(string.Empty, string.Empty, null, false);
                         
                     continue;
                 }
 
                 value = value.Trim();
+                
+                if (value == Cells[i, j].Text)
+                    continue;
 
                 if (value.StartsWith("//")) {
-                    Cells[i, j] = new CellAnalysis(value, null, false);
+                    Cells[i, j] = new CellAnalysis(value, $"<color=#00FF00FF>{value}</color>", null, false);
                         
                     continue;
                 }
                 
-                if (Parser.TryParseToken(value, i + 1, out var token))
-                    Cells[i, j] = new CellAnalysis(value, token, false);
+                if (Parser.TryParseAndFormatToken(value, out var token, out string formatted))
+                    Cells[i, j] = new CellAnalysis(value, formatted, token, false);
                 else
-                    Cells[i, j] = new CellAnalysis(value, null, true);
+                    Cells[i, j] = new CellAnalysis(value, $"<color=#FF0000FF>{value}</color>", null, true);
             }
         }
         
