@@ -29,9 +29,12 @@ public class DocumentAnalysis {
 
     public Table<CellAnalysis> Cells { get; private set; } = new();
 
+    public List<ProcedureInfo> Procedures { get; private set; } = new();
+
     public object Lock { get; } = new();
 
     private Table<CellAnalysis> newCells = new();
+    private List<ProcedureInfo> newProcedures = new();
 
     private CancellationTokenSource ctSource;
     private Task activeTask;
@@ -56,10 +59,10 @@ public class DocumentAnalysis {
         newCells.SetSize(document.Rows, document.Columns);
 
         for (int i = 0; i < document.Rows; i++) {
+            if (ct.IsCancellationRequested)
+                return;
+            
             for (int j = 0; j < document.Columns; j++) {
-                if (ct.IsCancellationRequested)
-                    return;
-
                 string value = document[i, j];
 
                 if (string.IsNullOrWhiteSpace(value)) {
@@ -88,16 +91,96 @@ public class DocumentAnalysis {
                     newCells[i, j] = new CellAnalysis(value, $"<color=#FF0000FF>{value}</color>", null, true);
             }
         }
+        
+        newProcedures.Clear();
 
+        var proceduresDict = new Dictionary<string, ProcedureInfo>();
+
+        for (int i = 0; i < newCells.Rows; i++) {
+            if (ct.IsCancellationRequested)
+                return;
+
+            var cell = newCells[i, 0];
+            var token = cell.Token;
+            
+            if (token is not {Type: TokenType.Opcode} || ((OpcodeT) token).Opcode != Opcode.Proc || newCells.Columns < 2)
+                continue;
+
+            token = newCells[i, 1].Token;
+            
+            if (token is not {Type: TokenType.Chain})
+                continue;
+
+            var chain = (Chain) token;
+            
+            if (chain.Length != 1 || chain[0] is not Name name0) {
+                newCells[i, 0] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                
+                continue;
+            }
+
+            string nameStr = name0.ToString();
+
+            if (proceduresDict.ContainsKey(nameStr)) {
+                newCells[i, 0] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                
+                continue;
+            }
+            
+            var newArgNames = new List<string>();
+            bool success = true;
+            int rightMost = newCells.Columns;
+
+            for (int j = newCells.Columns - 1; j >= 0; j--) {
+                if (string.IsNullOrWhiteSpace(newCells[i, j].Text))
+                    continue;
+
+                rightMost = j;
+
+                break;
+            }
+
+            for (int j = 2; j <= rightMost; j++) {
+                cell = newCells[i, j];
+                token = cell.Token;
+                
+                if (token is not {Type: TokenType.Chain}) {
+                    newCells[i, j] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                    success = false;
+                    
+                    continue;
+                }
+
+                chain = (Chain) token;
+            
+                if (chain.Length != 1 || chain[0] is not Name name1) {
+                    newCells[i, j] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                    success = false;
+                    
+                    continue;
+                }
+
+                newArgNames.Add(name1.ToString());
+            }
+            
+            if (!success)
+                newArgNames.Clear();
+
+            var info = new ProcedureInfo(i, nameStr, newArgNames);
+            
+            newProcedures.Add(info);
+            proceduresDict.Add(nameStr, info);
+        }
+        
         string[] argNames = new string[newCells.Columns];
 
         for (int i = 0; i < newCells.Rows; i++) {
+            if (ct.IsCancellationRequested)
+                return;
+            
             int lastFilled = -1;
 
             for (int j = newCells.Columns - 1; j >= 0; j--) {
-                if (ct.IsCancellationRequested)
-                    return;
-                
                 if (string.IsNullOrWhiteSpace(newCells[i, j].Text) || newCells[i, j].Token == null)
                     continue;
                 
@@ -118,17 +201,15 @@ public class DocumentAnalysis {
                 continue;
             }
 
-            int expectedLength = GetExpectedArgumentsForInstruction(((OpcodeT) token).Opcode, lastFilled, out string[] names);
+            var opcode = ((OpcodeT) token).Opcode;
+            int expectedLength = GetExpectedArgumentsForInstruction(opcode, lastFilled, out string[] names);
             
             names.CopyTo(argNames, 0);
-            
-            for (int j = 1, k = 0; j < newCells.Columns; j++, k++) {
-                if (ct.IsCancellationRequested)
-                    return;
 
+            for (int j = 1, k = 0; j < newCells.Columns; j++, k++) {
                 bool empty = string.IsNullOrWhiteSpace(newCells[i, j].Text);
                 
-                if (empty != k < expectedLength)
+                if (k < expectedLength && !empty || k >= expectedLength && (empty || opcode is Opcode.Call or Opcode.Loop or Opcode.Proc))
                     continue;
 
                 var cell = newCells[i, j];
@@ -138,13 +219,47 @@ public class DocumentAnalysis {
                 else
                     newCells[i, j] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
             }
+
+            if (opcode is not (Opcode.Call or Opcode.Loop))
+                continue;
+            
+            int shift;
+
+            if (opcode == Opcode.Call)
+                shift = 3;
+            else
+                shift = 5;
+                
+            if (shift >= newCells.Columns)
+                continue;
+
+            token = newCells[i, 2].Token;
+            
+            if (token is not {Type: TokenType.Chain})
+                continue;
+
+            var chain = (Chain) token;
+            
+            if (chain.Length != 1 || chain[0] is not Name name || !proceduresDict.TryGetValue(name.ToString(), out var procedure))
+                continue;
+
+            var procArgNames = procedure.ArgNames;
+
+            for (int j = 0, k = shift; j < procArgNames.Count && k < newCells.Columns; j++, k++) {
+                var cell = newCells[i, k];
+
+                if (string.IsNullOrWhiteSpace(cell.Text))
+                    newCells[i, k] = new CellAnalysis(cell.Text, $"<color=#FFFFFF40>{procArgNames[j]}</color>", cell.Token, cell.IsError);
+            }
         }
         
         if (ct.IsCancellationRequested)
             return;
         
-        lock (Lock)
+        lock (Lock) {
             (Cells, newCells) = (newCells, Cells);
+            (Procedures, newProcedures) = (newProcedures, Procedures);
+        }
 
         callback?.Invoke();
     }
