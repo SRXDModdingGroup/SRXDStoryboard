@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal class FuncCall : Token {
+public class FuncCall : Token {
     public override TokenType Type => TokenType.FuncCall;
 
     public FuncName Name { get; }

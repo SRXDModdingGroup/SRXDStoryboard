@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal class Chain : Token {
+public class Chain : Token {
     public override TokenType Type => TokenType.Chain;
 
     public int Length => chain.Length;

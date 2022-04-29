@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal class Constant : Token {
+public class Constant : Token {
     public override TokenType Type => TokenType.Constant;
 
     public object Value { get; }

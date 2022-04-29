@@ -6,5 +6,6 @@ public enum TokenType {
     Constant,
     FuncCall,
     Indexer,
-    Name
+    Name,
+    Opcode
 }

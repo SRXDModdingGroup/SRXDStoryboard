@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace StoryboardSystem;
 
-internal static class Parser {
+public static class Parser {
     private static readonly Regex MATCH_FUNC_CALL = new (@"^(\w+)\((.*)\)$");
     private static readonly Regex MATCH_CHAIN_ELEMENT = new (@"^(\w+)(\[(.+)\])?$");
     
@@ -36,7 +36,7 @@ internal static class Parser {
 
             if (!TryTokenize(line, lineIndex, out var tokens))
                 success = false;
-            else if (tokens[0] is not Constant { Value: Opcode opcode }) {
+            else if (tokens[0] is not OpcodeT opcode) {
                 StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "First argument must be an opcode"));
                 success = false;
             }
@@ -46,7 +46,7 @@ internal static class Parser {
                 for (int i = 0, j = 1; i < arguments.Length; i++, j++)
                     arguments[i] = tokens[j];
 
-                instructions.Add(new Instruction(opcode, arguments, lineIndex));
+                instructions.Add(new Instruction(opcode.Opcode, arguments, lineIndex));
             }
         }
 
@@ -179,7 +179,7 @@ internal static class Parser {
         }
         else if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
         else if (Enum.TryParse<Opcode>(str, true, out var opcode))
-            token = new Constant(opcode);
+            token = new OpcodeT(opcode);
         else if (Enum.TryParse<InterpType>(str, true, out var interpType))
             token = new Constant(interpType);
         else if (!TryParseArray(str, lineIndex, out token)
@@ -201,11 +201,11 @@ internal static class Parser {
                 return false;
 
             token = new Constant(subString);
-            formatted = $"<color=#D28080FF>{str}</color>";
+            formatted = $"<color=#D08080FF>{str}</color>";
         }
         else if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
         else if (Enum.TryParse<Opcode>(str, true, out var opcode)) {
-            token = new Constant(opcode);
+            token = new OpcodeT(opcode);
 
             switch (opcode) {
                 case Opcode.Bind:
@@ -524,7 +524,7 @@ internal static class Parser {
 
         if (match.Success && Enum.TryParse<FuncName>(match.Groups[1].Value, true, out var name) && TryTokenizeAndFormat(match.Groups[2].Value, out var tokens, out formatted)) {
             funcCall = new FuncCall(name, tokens.ToArray());
-            formatted = $"<color=#A0FFFFFF>{match.Groups[1]}</color>({formatted})";
+            formatted = $"{match.Groups[1]}({formatted})";
 
             return true;
         }
@@ -561,7 +561,7 @@ internal static class Parser {
             if (builder.Length > 0)
                 builder.Append('.');
 
-            builder.Append($"<color=#D0FFFFFF>{match.Groups[1]}</color>");
+            builder.Append($"<color=#A0FFFFFF>{match.Groups[1]}</color>");
 
             string indexer = match.Groups[3].Value;
 

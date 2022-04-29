@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal enum Opcode {
+public enum Opcode {
     Bind,
     Bundle,
     Call,

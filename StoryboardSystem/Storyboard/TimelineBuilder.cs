@@ -10,16 +10,20 @@ internal class TimelineBuilder {
     
     public string Name { get; }
     
+    public Identifier Identifier { get; }
+    
     private List<KeyframeBuilder> keyframeBuilders;
     
-    public TimelineBuilder(string name) {
+    public TimelineBuilder(string name, Identifier identifier) {
         Name = name;
         keyframeBuilders = new List<KeyframeBuilder>();
+        Identifier = identifier;
     }
 
-    private TimelineBuilder(string name, List<KeyframeBuilder> keyframeBuilders) {
+    private TimelineBuilder(string name, List<KeyframeBuilder> keyframeBuilders, Identifier identifier) {
         Name = name;
         this.keyframeBuilders = keyframeBuilders;
+        Identifier = identifier;
     }
 
     public void AddKey(Timestamp time, object value, InterpType interpType)
@@ -153,7 +157,7 @@ internal class TimelineBuilder {
             keyframeBuilders.Add(keyframeBuilder);
         }
 
-        builder = new TimelineBuilder(name, keyframeBuilders);
+        builder = new TimelineBuilder(name, keyframeBuilders, null);
 
         return true;
     }

@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal readonly struct Instruction {
+public readonly struct Instruction {
     public Opcode Opcode { get; }
     
     public Token[] Arguments { get; }

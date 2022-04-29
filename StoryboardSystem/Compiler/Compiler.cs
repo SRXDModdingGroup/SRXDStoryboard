@@ -51,7 +51,6 @@ internal static class Compiler {
         var logger = StoryboardManager.Instance.Logger;
         using var resolvedArguments = PooledList.Get();
         var objectReferences = new List<LoadedObjectReference>();
-        var timelineBuilders = new Dictionary<Name, TimelineBuilder>();
         var implicitTimelineBuilders = new Dictionary<Identifier, TimelineBuilder>();
         var outParams = new Dictionary<string, object>();
         var bindings = new Dictionary<Identifier, Identifier>();
@@ -99,18 +98,31 @@ internal static class Compiler {
 
                     continue;
                 }
+                case (Opcode.Bind, 2) when TryGetArguments(resolvedArguments, globalScope, out TimelineBuilder builder, out IdentifierTree propertyTree): {
+                    var controller = builder.Identifier;
+                    var property = propertyTree.GetIdentifier();
+
+                    if (bindings.ContainsKey(property)) {
+                        StoryboardManager.Instance.Logger.LogWarning(GetCompileError(instruction.LineIndex, "A property can not be bound to multiple controllers"));
+
+                        return false;
+                    }
+
+                    bindings.Add(property, controller);
+
+                    continue;
+                }
                 case (Opcode.Bundle, 2) when TryGetArguments(resolvedArguments, globalScope, out Name name, out string bundlePath): {
                     AddObjectReference(name, new LoadedAssetBundleReference(bundlePath));
 
                     continue;
                 }
                 case (Opcode.Curve, 1) when TryGetArguments(resolvedArguments, out Name name): {
-                    var timelineBuilder = new TimelineBuilder(name.ToString());
-                    var controller = new IdentifierTree(name.ToString(), objectReferences.Count);
+                    var controller = new IdentifierTree(name.ToString(), objectReferences.Count).GetIdentifier();
+                    var timelineBuilder = new TimelineBuilder(name.ToString(), controller);
                     
-                    timelineBuilders.Add(name, timelineBuilder);
-                    globals[name] = controller;
-                    objectReferences.Add(new LoadedTimelineReference(controller.GetIdentifier(), timelineBuilder));
+                    globals[name] = timelineBuilder;
+                    objectReferences.Add(new LoadedTimelineReference(controller, timelineBuilder));
 
                     continue;
                 }
@@ -312,7 +324,7 @@ internal static class Compiler {
 
                     continue;
                 }
-                case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name) && timelineBuilders.TryGetValue(name, out var builder): {
+                case (Opcode.Key, 2) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder builder): {
                     builder.AddKey(currentProcedure.GetGlobalTime(time), null, InterpType.Fixed);
 
                     continue;
@@ -322,7 +334,7 @@ internal static class Compiler {
 
                     continue;
                 }
-                case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out object value) && timelineBuilders.TryGetValue(name, out var builder): {
+                case (Opcode.Key, 3) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder builder, out object value): {
                     builder.AddKey(currentProcedure.GetGlobalTime(time), value, InterpType.Fixed);
 
                     continue;
@@ -332,7 +344,7 @@ internal static class Compiler {
 
                     continue;
                 }
-                case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out Name name, out object value, out InterpType interpType) && timelineBuilders.TryGetValue(name, out var builder): {
+                case (Opcode.Key, 4) when TryGetArguments(resolvedArguments, currentProcedure, out Timestamp time, out TimelineBuilder builder, out object value, out InterpType interpType): {
                     builder.AddKey(currentProcedure.GetGlobalTime(time), value, interpType);
 
                     continue;
@@ -439,7 +451,7 @@ internal static class Compiler {
                 string name = property.ToString();
                 var controller = new Identifier(name, objectReferences.Count, Array.Empty<object>());
 
-                builder = new TimelineBuilder(name);
+                builder = new TimelineBuilder(name, controller);
                 implicitTimelineBuilders.Add(property, builder);
                 bindings.Add(property, controller);
                 objectReferences.Add(new LoadedTimelineReference(controller, builder));
@@ -585,6 +597,7 @@ internal static class Compiler {
             }
             case TokenType.Indexer:
             case TokenType.Name:
+            case TokenType.Opcode:
             default:
                 result = null;
                 StoryboardManager.Instance.Logger.LogWarning($"Not a valid token");

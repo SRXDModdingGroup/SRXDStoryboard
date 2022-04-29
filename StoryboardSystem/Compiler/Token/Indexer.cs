@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal class Indexer : Token {
+public class Indexer : Token {
     public override TokenType Type => TokenType.Indexer;
 
     public Token Token { get; }

@@ -1,9 +1,7 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class EditorInput : MonoBehaviour {
+public class EditorInput {
     [Flags]
     public enum InputModifier {
         None = 0,
@@ -27,9 +25,9 @@ public class EditorInput : MonoBehaviour {
     public event Action<Vector2Int, InputModifier> Direction;
 
     public event Action<string, InputModifier> Character;
-
+    
     // ReSharper disable Unity.PerformanceAnalysis
-    private void Update() {
+    public void UpdateInput() {
         if (!Input.anyKeyDown)
             return;
         

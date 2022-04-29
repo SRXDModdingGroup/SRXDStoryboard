@@ -208,6 +208,17 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         }
         
         gameObject.SetActive(true);
+        maxScroll = Math.Max(0, cellStates.Rows - visibleRowCount + 1);
+        scroll = Math.Max(0, Math.Min(scroll, maxScroll));
+        
+        if (maxScroll == 0) {
+            scrollbar.SetValueWithoutNotify(0f);
+            scrollbar.size = 1f;
+        }
+        else {
+            scrollbar.SetValueWithoutNotify((float) scroll / maxScroll);
+            scrollbar.size = Mathf.Clamp01(1f - maxScroll * scrollSpacePerRow);
+        }
 
         for (int i = 0; i < numberTexts.Count; i++)
             numberTexts[i].SetText((scroll + i + 1).ToString());
@@ -234,9 +245,11 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                     
                     continue;
                 }
+
+                var cellState = cellStates[i, k];
                 
                 cell.gameObject.SetActive(true);
-                cell.SetText(cellStates[i, k].FormattedText);
+                cell.SetText(cellState.FormattedText);
             
                 if (IsInSelection(i, k)) {
                     cell.SetSelected(true, anyBoxSelection && i == boxSelectionStart.x && k == boxSelectionStart.y,
@@ -247,6 +260,8 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                 }
                 else
                     cell.SetSelected(false, false, false, false, false, false);
+                
+                cell.SetIsError(cellState.IsError);
 
                 bool IsInSelection(int row, int column) =>
                     IsInBounds(row, column) 
@@ -254,18 +269,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                         || anyBoxSelection && row >= boxSelectionMin.x && row <= boxSelectionMax.x && column >= boxSelectionMin.y && column <= boxSelectionMax.y);
             }
         }
-        
-        maxScroll = Math.Max(0, cellStates.Rows - visibleRowCount + 1);
 
-        if (maxScroll == 0) {
-            scrollbar.SetValueWithoutNotify(0f);
-            scrollbar.size = 1f;
-        }
-        else {
-            scrollbar.SetValueWithoutNotify((float) scroll / maxScroll);
-            scrollbar.size = Mathf.Clamp01(1f - maxScroll * scrollSpacePerRow);
-        }
-        
         viewNeedsUpdate = false;
     }
 

@@ -1,20 +1,13 @@
-using System;
 using System.IO;
 using StoryboardSystem;
 
-public class StoryboardDocument {
-    public Table<string> Content { get; }
-
-    private StoryboardDocument(Table<string> content) => Content = content;
-    
-    public void BeginEdit() { }
-
-    public void EndEdit() {
-        for (int i = Content.Columns - 1; i >= 0; i--) {
+public static class StoryboardDocument {
+    public static void MinimizeColumns(Table<string> document) {
+        for (int i = document.Columns - 1; i >= 0; i--) {
             bool anyInColumn = false;
 
-            for (int j = 0; j < Content.Rows; j++) {
-                if (string.IsNullOrWhiteSpace(Content[j, i]))
+            for (int j = 0; j < document.Rows; j++) {
+                if (string.IsNullOrWhiteSpace(document[j, i]))
                     continue;
                 
                 anyInColumn = true;
@@ -23,29 +16,23 @@ public class StoryboardDocument {
             }
 
             if (anyInColumn) {
-                if (i == Content.Columns - 1)
-                    Content.AddColumn();
+                if (i == document.Columns - 1)
+                    document.AddColumn();
                 
                 return;
             }
             
-            if (i < Content.Columns - 1)
-                Content.RemoveLastColumn();
+            if (i < document.Columns - 1)
+                document.RemoveLastColumn();
         }
     }
 
-    public void SetCellText(int row, int column, string text) => Content[row, column] = text;
-
-    public void InsertRow(int index) => Content.InsertRow(index);
-
-    public void RemoveRow(int index) => Content.RemoveRow(index);
-
-    public void SaveToFile(string path) {
+    public static void SaveToFile(Table<string> document, string path) {
         using var writer = new StreamWriter(File.Create(path));
 
-        for (int i = 0; i < Content.Rows; i++) {
-            for (int j = 0; j < Content.Columns; j++) {
-                string value = Content[i, j];
+        for (int i = 0; i < document.Rows; i++) {
+            for (int j = 0; j < document.Columns; j++) {
+                string value = document[i, j];
                 
                 if (string.IsNullOrWhiteSpace(value))
                     continue;
@@ -62,37 +49,36 @@ public class StoryboardDocument {
         }
     }
 
-    public static StoryboardDocument CreateNew(int rowCount) => new(new Table<string>(rowCount, 1));
+    public static Table<string> CreateNew(int rowCount) => new(rowCount, 1);
 
-    public static bool TryOpenFile(string path, out StoryboardDocument document) {
+    public static bool TryOpenFile(string path, out Table<string> document) {
         if (!File.Exists(path)) {
             document = null;
 
             return false;
         }
         
+        document = new Table<string>();
+        
         using var reader = new StreamReader(path);
-        var content = new Table<string>();
         int i = 0;
-
+        
         while (!reader.EndOfStream) {
             string line = reader.ReadLine();
             int j = 0;
             
-            content.AddRow();
+            document.AddRow();
 
             foreach (string s in Parser.Split(line)) {
-                if (content.Columns <= j + 1)
-                    content.AddColumn();
+                if (document.Columns <= j + 1)
+                    document.AddColumn();
 
-                content[i, j] = s;
+                document[i, j] = s;
                 j++;
             }
 
             i++;
         }
-
-        document = new StoryboardDocument(content);
 
         return true;
     }

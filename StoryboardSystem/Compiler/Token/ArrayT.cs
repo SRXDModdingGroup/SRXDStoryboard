@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-internal class ArrayT : Token {
+public class ArrayT : Token {
     public override TokenType Type => TokenType.Array;
     
     public int Length => array.Length;

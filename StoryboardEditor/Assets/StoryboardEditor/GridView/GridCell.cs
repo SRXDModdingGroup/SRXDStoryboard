@@ -8,6 +8,7 @@ public class GridCell : MonoBehaviour {
     [SerializeField] private Sprite[] highlightSlices;
     [SerializeField] private Image selectionBorder;
     [SerializeField] private Image selectionHighlight;
+    [SerializeField] private GameObject errorHighlight;
     [SerializeField] private TMP_Text text;
 
     public void SetText(string value) => text.SetText(value);
@@ -51,4 +52,6 @@ public class GridCell : MonoBehaviour {
 
         selectionBorder.sprite = highlightSlices[index - 1];
     }
+
+    public void SetIsError(bool isError) => errorHighlight.SetActive(isError);
 }
