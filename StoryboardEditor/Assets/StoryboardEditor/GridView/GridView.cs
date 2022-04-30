@@ -46,7 +46,6 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     public event Action<EditorInput.InputModifier> Deselected;
 
     private bool viewNeedsUpdate;
-    private bool anyBoxSelection;
     private bool mouseDragging;
     private int scroll;
     private int maxScroll;
@@ -54,39 +53,18 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     private float rowHeight;
     private float numberColumnWidth;
     private float defaultColumnWidth;
-    private Vector2Int boxSelectionStart = new(-1, -1);
-    private Vector2Int boxSelectionEnd = new (-1, -1);
-    private Vector2Int boxSelectionMin;
-    private Vector2Int boxSelectionMax;
     private List<Row> rows;
     private List<Column> columns;
     private List<TMP_Text> numberTexts;
     private Table<CellVisualState> cellStates;
+    private EditorSelection selection;
     private RectTransform rectTransform;
 
     public void UpdateView() => viewNeedsUpdate = true;
 
-    public void SetCellStates(Table<CellVisualState> cellStates) {
+    public void Init(Table<CellVisualState> cellStates, EditorSelection selection) {
         this.cellStates = cellStates;
-        viewNeedsUpdate = true;
-    }
-
-    public void SetBoxSelectionStart(Vector2Int start) {
-        boxSelectionStart = start;
-        UpdateSelection();
-        viewNeedsUpdate = true;
-    }
-
-    public void SetBoxSelectionEnd(Vector2Int end) {
-        boxSelectionEnd = end;
-        UpdateSelection();
-        viewNeedsUpdate = true;
-    }
-    
-    public void SetBoxSelectionStartAndEnd(Vector2Int index) {
-        boxSelectionStart = index;
-        boxSelectionEnd = index;
-        UpdateSelection();
+        this.selection = selection;
         viewNeedsUpdate = true;
     }
 
@@ -100,10 +78,10 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
 
     public void FocusSelectionStart() {
-        if (!anyBoxSelection)
+        if (!selection.AnyBoxSelection)
             return;
 
-        int row = boxSelectionStart.x;
+        int row = selection.BoxSelectionStart.x;
         
         if (row < scroll)
             SetScroll(row);
@@ -112,10 +90,10 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     }
     
     public void FocusSelectionEnd() {
-        if (!anyBoxSelection)
+        if (!selection.AnyBoxSelection)
             return;
 
-        int row = boxSelectionEnd.x;
+        int row = selection.BoxSelectionEnd.x;
         
         if (row < scroll)
             SetScroll(row);
@@ -251,32 +229,21 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                 cell.gameObject.SetActive(true);
                 cell.SetText(cellState.FormattedText);
             
-                if (IsInSelection(i, k)) {
-                    cell.SetSelected(true, anyBoxSelection && i == boxSelectionStart.x && k == boxSelectionStart.y,
-                        IsInSelection(i, k - 1),
-                        IsInSelection(i, k + 1),
-                        IsInSelection(i - 1, k),
-                        IsInSelection(i + 1, k));
+                if (selection.IsInSelection(i, k)) {
+                    cell.SetSelected(true, selection.AnyBoxSelection && i == selection.BoxSelectionStart.x && k == selection.BoxSelectionStart.y,
+                        selection.IsInSelection(i, k - 1),
+                        selection.IsInSelection(i, k + 1),
+                        selection.IsInSelection(i - 1, k),
+                        selection.IsInSelection(i + 1, k));
                 }
                 else
                     cell.SetSelected(false, false, false, false, false, false);
                 
                 cell.SetIsError(cellState.IsError);
-
-                bool IsInSelection(int row, int column) =>
-                    IsInBounds(row, column) 
-                    && (cellStates[row, column].Selected
-                        || anyBoxSelection && row >= boxSelectionMin.x && row <= boxSelectionMax.x && column >= boxSelectionMin.y && column <= boxSelectionMax.y);
             }
         }
 
         viewNeedsUpdate = false;
-    }
-
-    private void UpdateSelection() {
-        boxSelectionMin = Vector2Int.Min(boxSelectionStart, boxSelectionEnd);
-        boxSelectionMax = Vector2Int.Max(boxSelectionStart, boxSelectionEnd);
-        anyBoxSelection = boxSelectionMin.x < cellStates.Rows && boxSelectionMax.x >= 0 && boxSelectionMin.y < cellStates.Columns && boxSelectionMax.y >= -1;
     }
 
     private bool IsInBounds(int row, int column) => row >= 0 && row < cellStates.Rows && column >= 0 && column < cellStates.Columns;

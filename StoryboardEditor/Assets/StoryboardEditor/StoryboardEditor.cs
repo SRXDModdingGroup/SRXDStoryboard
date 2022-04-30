@@ -13,18 +13,14 @@ public class StoryboardEditor : MonoBehaviour {
     [SerializeField] private GridView gridView;
 
     private bool contentNeedsUpdate;
-    private bool selectionNeedsUpdate;
-    private bool rowSelecting;
-    private bool anySelected;
-    private bool anyBoxSelection;
     private bool editing;
+    private bool rowSelecting;
     private DocumentAnalysis analysis;
     private Table<string> document;
     private Table<CellVisualState> cellStates;
-    private Vector2Int boxSelectionStart = new(-1, -1);
-    private Vector2Int boxSelectionEnd = new (-1, -1);
     private EventSystem eventSystem;
     private EditorInput input;
+    private EditorSelection selection;
 
     private void Awake() {
         gridView.DragBegin += OnGridDragBegin;
@@ -33,6 +29,7 @@ public class StoryboardEditor : MonoBehaviour {
         gridView.Deselected += OnGridDeselected;
         eventSystem = EventSystem.current;
         analysis = new DocumentAnalysis();
+        selection = new EditorSelection();
 
         input = new EditorInput();
         input.Backspace += OnBackspace;
@@ -53,6 +50,7 @@ public class StoryboardEditor : MonoBehaviour {
         else
             SetDocument(StoryboardDocument.CreateNew(newDocumentRows));
         
+        UpdateBounds();
         UpdateContent();
         UpdateSelection();
         analysis.Analyze(document, () => contentNeedsUpdate = true);
@@ -76,22 +74,22 @@ public class StoryboardEditor : MonoBehaviour {
         BeginEdit();
 
         if (modifiers.HasModifiers(InputModifier.Shift)) {
-            foreach (var index in GetSelectedCellsReversed())
+            foreach (var index in selection.GetSelectedCellsReversed())
                 DeleteAndPullCellsLeft(index.x, index.y);
         }
         else
             FillSelectionWithValue(string.Empty);
 
         if (!AnyInSelectedRows()) {
-            int top = Math.Max(0, GetTopOfSelection() - 1);
+            int top = Math.Max(0, selection.GetTopOfSelection() - 1);
             
-            foreach (int row in GetSelectedRowsReversed())
+            foreach (int row in selection.GetSelectedRowsReversed())
                 RemoveRow(row);
                 
             EndEdit();
 
-            SetBoxSelectionStartAndEnd(top, GetRightmostFilledInRow(top));
-            ClearSelection();
+            selection.SetBoxSelectionStartAndEnd(top, GetRightmostFilledInRow(top));
+            selection.ClearSelection();
             UpdateSelection();
                 
             return;
@@ -99,16 +97,14 @@ public class StoryboardEditor : MonoBehaviour {
 
         EndEdit();
             
-        var leftmostPerRow = new List<Vector2Int>(GetLeftmostSelectedPerRow());
+        var leftmostPerRow = new List<Vector2Int>(selection.GetLeftmostSelectedPerRow());
             
-        ClearSelection();
+        selection.ClearSelection();
             
-        foreach (var index in leftmostPerRow) {
-            if (IsInBounds(index.x, index.y - 1))
-                cellStates[index.x, index.y - 1].Selected = true;
-        }
+        foreach (var index in leftmostPerRow)
+            selection.Select(index.x, index.y - 1);
 
-        SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetLeftmostSelectedInRow(boxSelectionStart.x));
+        selection.SetBoxSelectionStartAndEnd(selection.BoxSelectionStart.x, selection.GetLeftmostSelectedInRow(selection.BoxSelectionStart.x));
         UpdateSelection();
     }
 
@@ -124,7 +120,7 @@ public class StoryboardEditor : MonoBehaviour {
             FillSelectionWithValue(AutoFormat(textField.text));
         }
         
-        var rightmostPerRow = new List<Vector2Int>(GetRightmostSelectedPerRow());
+        var rightmostPerRow = new List<Vector2Int>(selection.GetRightmostSelectedPerRow());
         bool insertNew = false;
         int insertOffset = 1;
 
@@ -149,14 +145,12 @@ public class StoryboardEditor : MonoBehaviour {
         
         EndEdit();
             
-        ClearSelection();
+        selection.ClearSelection();
 
-        foreach (var index in rightmostPerRow) {
-            if (index.y < document.Columns - 1)
-                cellStates[index.x, index.y + insertOffset].Selected = true;
-        }
-            
-        SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetRightmostSelectedInRow(boxSelectionStart.x));
+        foreach (var index in rightmostPerRow)
+            selection.Select(index.x, index.y + insertOffset);
+
+        selection.SetBoxSelectionStartAndEnd(selection.BoxSelectionStart.x, selection.GetRightmostSelectedInRow(selection.BoxSelectionStart.x));
         UpdateSelection();
         
         eventSystem.SetSelectedGameObject(gridView.gameObject);
@@ -193,7 +187,7 @@ public class StoryboardEditor : MonoBehaviour {
             FillSelectionWithValue(AutoFormat(textField.text));
         }
 
-        int row = GetBottomOfSelection() + insertOffset;
+        int row = selection.GetBottomOfSelection() + insertOffset;
 
         if (insertNew || row >= document.Rows) {
             BeginEdit();
@@ -202,8 +196,8 @@ public class StoryboardEditor : MonoBehaviour {
         
         EndEdit();
             
-        ClearSelection();
-        SetBoxSelectionStartAndEnd(row, Math.Min(boxSelectionStart.y, GetRightmostFilledInRow(row) + 1));
+        selection.ClearSelection();
+        selection.SetBoxSelectionStartAndEnd(row, Math.Min(selection.BoxSelectionStart.y, GetRightmostFilledInRow(row) + 1));
         UpdateSelection();
         
         eventSystem.SetSelectedGameObject(gridView.gameObject);
@@ -217,8 +211,8 @@ public class StoryboardEditor : MonoBehaviour {
             UpdateSelection();
         }
         else if (eventSystem.currentSelectedGameObject == gridView.gameObject) {
-            ClearSelection();
-            ClearBoxSelection();
+            selection.ClearSelection();
+            selection.ClearBoxSelection();
             UpdateSelection();
         }
     }
@@ -238,7 +232,7 @@ public class StoryboardEditor : MonoBehaviour {
         BeginEdit();
             
         if (modifiers.HasModifiers(InputModifier.Shift)) {
-            foreach (var index in GetSelectedCellsReversed())
+            foreach (var index in selection.GetSelectedCellsReversed())
                 DeleteAndPullCellsLeft(index.x, index.y);
         }
         else
@@ -247,16 +241,14 @@ public class StoryboardEditor : MonoBehaviour {
         EndEdit();
 
         if (modifiers.HasModifiers(InputModifier.Shift)) {
-            var leftmostPerRow = new List<Vector2Int>(GetLeftmostSelectedPerRow());
+            var leftmostPerRow = new List<Vector2Int>(selection.GetLeftmostSelectedPerRow());
 
-            ClearSelection();
+            selection.ClearSelection();
 
-            foreach (var index in leftmostPerRow) {
-                if (IsInBounds(index.x, index.y))
-                    cellStates[index.x, index.y].Selected = true;
-            }
+            foreach (var index in leftmostPerRow)
+                selection.Select(index.x, index.y);
 
-            SetBoxSelectionStartAndEnd(boxSelectionStart.x, GetLeftmostSelectedInRow(boxSelectionStart.x));
+            selection.SetBoxSelectionStartAndEnd(selection.BoxSelectionStart.x, selection.GetLeftmostSelectedInRow(selection.BoxSelectionStart.x));
         }
         
         UpdateSelection();
@@ -267,20 +259,17 @@ public class StoryboardEditor : MonoBehaviour {
             return;
         
         if (modifiers.HasModifiers(InputModifier.Control))
-            ApplyBoxSelection();
+            selection.ApplyBoxSelection();
 
         if (modifiers.HasModifiers(InputModifier.Shift)) {
-            SetBoxSelectionEnd(boxSelectionEnd.x + direction.x, boxSelectionEnd.y + direction.y);
+            selection.SetBoxSelectionEnd(selection.BoxSelectionEnd.x + direction.x, selection.BoxSelectionEnd.y + direction.y);
             gridView.FocusSelectionEnd();
         }
         else {
             if (!modifiers.HasModifiers(InputModifier.Control))
-                ClearSelection();
+                selection.ClearSelection();
 
-            if (rowSelecting)
-                boxSelectionEnd.y = 0;
-
-            SetBoxSelectionStartAndEnd(boxSelectionEnd.x + direction.x, boxSelectionEnd.y + direction.y);
+            selection.SetBoxSelectionStartAndEnd(selection.BoxSelectionEnd.x + direction.x, selection.BoxSelectionEnd.y + direction.y);
             gridView.FocusSelectionStart();
         }
 
@@ -323,7 +312,7 @@ public class StoryboardEditor : MonoBehaviour {
                 cellStates[i, j] = new CellVisualState();
         }
         
-        gridView.SetCellStates(cellStates);
+        gridView.Init(cellStates, selection);
     }
 
     private void BeginEdit() {
@@ -365,6 +354,7 @@ public class StoryboardEditor : MonoBehaviour {
 
     private void UpdateBounds() {
         cellStates.SetSize(document.Rows, document.Columns);
+        selection.SetSize(document.Rows, document.Columns);
 
         for (int i = 0; i < cellStates.Rows; i++) {
             for (int j = 0; j < cellStates.Columns; j++)
@@ -404,14 +394,36 @@ public class StoryboardEditor : MonoBehaviour {
             }
         }
 
-        if (anyBoxSelection)
+        if (selection.AnyBoxSelection)
             UpdateSelection();
 
         gridView.UpdateView();
     }
+    
+    private void UpdateSelection() {
+        selection.UpdateSelection();
+
+        if (selection.AnyBoxSelection) {
+            if (eventSystem.currentSelectedGameObject != textField.gameObject)
+                textField.SetTextWithoutNotify(document[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y]);
+            
+            textField.interactable = true;
+        }
+        else {
+            textField.SetTextWithoutNotify(string.Empty);
+            UnfocusTextField();
+            textField.interactable = false;
+            
+            if (eventSystem.currentSelectedGameObject == textField.gameObject
+                || eventSystem.currentSelectedGameObject == gridView.gameObject)
+                eventSystem.SetSelectedGameObject(null);
+        }
+        
+        gridView.UpdateView();
+    }
 
     private void FillSelectionWithValue(string value) {
-        foreach (var cell in GetSelectedCells())
+        foreach (var cell in selection.GetSelectedCells())
             SetCellText(cell.x, cell.y, value);
     }
 
@@ -427,6 +439,33 @@ public class StoryboardEditor : MonoBehaviour {
             SetCellText(row, i, document[row, i + 1]);
         
         SetCellText(row, document.Columns - 1, string.Empty);
+    }
+    
+    private bool AnyInRow(int row) {
+        for (int i = 0; i < document.Columns; i++) {
+            if (!string.IsNullOrWhiteSpace(document[row, i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool AnyInSelectedRows() {
+        foreach (int row in selection.GetSelectedRows()) {
+            if (AnyInRow(row))
+                return true;
+        }
+
+        return false;
+    }
+
+    private int GetRightmostFilledInRow(int row) {
+        for (int i = document.Columns - 1; i >= 0; i--) {
+            if (!string.IsNullOrWhiteSpace(document[row, i]))
+                return i;
+        }
+
+        return -1;
     }
 
     private static string AutoFormat(string value, bool outermost = true) {
@@ -495,276 +534,6 @@ public class StoryboardEditor : MonoBehaviour {
 
     #endregion
 
-    #region Selection
-
-    private void SetBoxSelectionStart(int row, int column) {
-        boxSelectionStart = ClampToBounds(new Vector2Int(row, column));
-        gridView.SetBoxSelectionStart(boxSelectionStart);
-    }
-    
-    private void SetBoxSelectionEnd(int row, int column) {
-        boxSelectionEnd = ClampToBounds(new Vector2Int(row, column));
-        gridView.SetBoxSelectionEnd(boxSelectionEnd);
-    }
-
-    private void SetBoxSelectionStartAndEnd(int row, int column) {
-        boxSelectionStart = ClampToBounds(new Vector2Int(row, column));
-        boxSelectionEnd = boxSelectionStart;
-        gridView.SetBoxSelectionStartAndEnd(boxSelectionStart);
-    }
-    
-    private void SetRowSelectionStart(int row) {
-        boxSelectionStart = ClampToBounds(new Vector2Int(row, 0));
-        boxSelectionEnd = boxSelectionStart;
-        boxSelectionEnd.y = cellStates.Columns - 1;
-        gridView.SetBoxSelectionStart(boxSelectionStart);
-        gridView.SetBoxSelectionEnd(boxSelectionEnd);
-    }
-    
-    private void SetRowSelectionEnd(int row) {
-        boxSelectionEnd = ClampToBounds(new Vector2Int(row, cellStates.Columns - 1));
-        boxSelectionStart.y = 0;
-        gridView.SetBoxSelectionStart(boxSelectionStart);
-        gridView.SetBoxSelectionEnd(boxSelectionEnd);
-    }
-
-    private void SetRowSelectionStartAndEnd(int row) {
-        boxSelectionStart = ClampToBounds(new Vector2Int(row, 0));
-        boxSelectionEnd = boxSelectionStart;
-        boxSelectionEnd.y = cellStates.Columns - 1;
-        gridView.SetBoxSelectionStart(boxSelectionStart);
-        gridView.SetBoxSelectionEnd(boxSelectionEnd);
-    }
-
-    private void ApplyBoxSelection() {
-        var clampedMin = ClampToBounds(Vector2Int.Min(boxSelectionStart, boxSelectionEnd));
-        var clampedMax = ClampToBounds(Vector2Int.Max(boxSelectionStart, boxSelectionEnd));
-                
-        for (int i = clampedMin.x; i <= clampedMax.x; i++) {
-            for (int j = clampedMin.y; j <= clampedMax.y; j++)
-                cellStates[i, j].Selected = true;
-        }
-    }
-
-    private void ClearSelection() {
-        for (int i = 0; i < cellStates.Rows; i++) {
-            for (int j = 0; j < cellStates.Columns; j++)
-                cellStates[i, j].Selected = false;
-        }
-    }
-
-    private void ClearBoxSelection() {
-        boxSelectionStart = new Vector2Int(-1, -1);
-        boxSelectionEnd = boxSelectionStart;
-        gridView.SetBoxSelectionStartAndEnd(boxSelectionStart);
-    }
-
-    private void UpdateSelection() {
-        anyBoxSelection = IsInBounds(boxSelectionStart.x, boxSelectionStart.y);
-
-        if (anyBoxSelection) {
-            boxSelectionStart = ClampToBounds(boxSelectionStart);
-            boxSelectionEnd = ClampToBounds(boxSelectionEnd);
-            
-            if (eventSystem.currentSelectedGameObject != textField.gameObject)
-                textField.SetTextWithoutNotify(document[boxSelectionStart.x, boxSelectionStart.y]);
-            
-            textField.interactable = true;
-            anySelected = true;
-        }
-        else {
-            boxSelectionStart = new Vector2Int(-1, -1);
-            boxSelectionEnd = boxSelectionStart;
-            gridView.SetBoxSelectionStartAndEnd(boxSelectionStart);
-            textField.SetTextWithoutNotify(string.Empty);
-            UnfocusTextField();
-            textField.interactable = false;
-            
-            if (eventSystem.currentSelectedGameObject == textField.gameObject
-                || eventSystem.currentSelectedGameObject == gridView.gameObject)
-                eventSystem.SetSelectedGameObject(null);
-            
-            anySelected = false;
-            
-            for (int i = 0; i < cellStates.Rows; i++) {
-                for (int j = 0; j < cellStates.Columns; j++) {
-                    if (!IsInSelection(i, j))
-                        continue;
-                    
-                    anySelected = true;
-                        
-                    break;
-                }
-
-                if (anySelected)
-                    break;
-            }
-        }
-        
-        gridView.UpdateView();
-    }
-    
-    private bool IsInSelection(int row, int column) {
-        var boxSelectionMin = Vector2Int.Min(boxSelectionStart, boxSelectionEnd);
-        var boxSelectionMax = Vector2Int.Max(boxSelectionStart, boxSelectionEnd);
-        
-        return IsInBounds(row, column) && (cellStates[row, column].Selected || row >= boxSelectionMin.x && row <= boxSelectionMax.x && column >= boxSelectionMin.y && column <= boxSelectionMax.y);
-    }
-
-    private bool AnyInSelectedRows() {
-        foreach (int row in GetSelectedRows()) {
-            if (AnyInRow(row))
-                return true;
-        }
-
-        return false;
-    }
-
-    private int GetTopOfSelection() {
-        for (int i = 0; i < cellStates.Rows; i++) {
-            for (int j = 0; j < cellStates.Columns; j++) {
-                if (IsInSelection(i, j))
-                    return i;
-            }
-        }
-
-        return 0;
-    }
-
-    private int GetBottomOfSelection() {
-        for (int i = cellStates.Rows - 1; i >= 0; i--) {
-            for (int j = 0; j < cellStates.Columns; j++) {
-                if (IsInSelection(i, j))
-                    return i;
-            }
-        }
-
-        return 0;
-    }
-
-    private int GetRightmostSelectedInRow(int row) {
-        int rightmost = -1;
-            
-        for (int j = 0; j < cellStates.Columns; j++) {
-            if (IsInSelection(row, j))
-                rightmost = j;
-        }
-
-        if (rightmost >= 0)
-            return rightmost;
-
-        return -1;
-    }
-
-    private int GetLeftmostSelectedInRow(int row) {
-        int leftmost = -1;
-            
-        for (int j = 0; j < cellStates.Columns; j++) {
-            if (!IsInSelection(row, j))
-                continue;
-            
-            leftmost = j;
-
-            break;
-        }
-
-        if (leftmost >= 0)
-            return leftmost;
-
-        return -1;
-    }
-
-    private IEnumerable<int> GetSelectedRows() {
-        for (int i = 0; i < cellStates.Rows; i++) {
-            for (int j = 0; j < cellStates.Columns; j++) {
-                if (!IsInSelection(i, j))
-                    continue;
-                
-                yield return i;
-
-                break;
-            }
-        }
-    }
-
-    private IEnumerable<int> GetSelectedRowsReversed() {
-        for (int i = cellStates.Rows - 1; i >= 0; i--) {
-            for (int j = 0; j < cellStates.Columns; j++) {
-                if (!IsInSelection(i, j))
-                    continue;
-                
-                yield return i;
-
-                break;
-            }
-        }
-    }
-
-    private IEnumerable<Vector2Int> GetSelectedCells() {
-        for (int i = 0; i < cellStates.Rows; i++) {
-            for (int j = 0; j < cellStates.Columns; j++) {
-                if (IsInSelection(i, j))
-                    yield return new Vector2Int(i, j);
-            }
-        }
-    }
-
-    private IEnumerable<Vector2Int> GetSelectedCellsReversed() {
-        for (int i = 0; i < cellStates.Rows; i++) {
-            for (int j = cellStates.Columns - 1; j >= 0; j--) {
-                if (IsInSelection(i, j))
-                    yield return new Vector2Int(i, j);
-            }
-        }
-    }
-
-    private IEnumerable<Vector2Int> GetRightmostSelectedPerRow() {
-        for (int i = 0; i < cellStates.Rows; i++) {
-            int rightmost = GetRightmostSelectedInRow(i);
-
-            if (IsInBounds(i, rightmost))
-                yield return new Vector2Int(i, rightmost);
-        }
-    }
-
-    private IEnumerable<Vector2Int> GetLeftmostSelectedPerRow() {
-        for (int i = 0; i < cellStates.Rows; i++) {
-            int leftmost = GetLeftmostSelectedInRow(i);
-
-            if (IsInBounds(i, leftmost))
-                yield return new Vector2Int(i, leftmost);
-        }
-    }
-
-    #endregion
-
-    #region Utility
-
-    private bool IsInBounds(int row, int column) => row >= 0 && row < cellStates.Rows && column >= 0 && column < cellStates.Columns;
-    
-    private bool AnyInRow(int row) {
-        for (int i = 0; i < document.Columns; i++) {
-            if (!string.IsNullOrWhiteSpace(document[row, i]))
-                return true;
-        }
-
-        return false;
-    }
-
-    private int GetRightmostFilledInRow(int row) {
-        for (int i = document.Columns - 1; i >= 0; i--) {
-            if (!string.IsNullOrWhiteSpace(document[row, i]))
-                return i;
-        }
-
-        return -1;
-    }
-
-    private Vector2Int ClampToBounds(Vector2Int index)
-        => Vector2Int.Max(Vector2Int.zero, Vector2Int.Min(index, new Vector2Int(cellStates.Rows - 1, cellStates.Columns - 1)));
-
-    #endregion
-
     #region Events
 
     private void OnGridDragBegin(int row, int column, InputModifier modifiers) {
@@ -774,22 +543,22 @@ public class StoryboardEditor : MonoBehaviour {
         rowSelecting = column < 0;
         
         if (modifiers.HasModifiers(InputModifier.Control))
-            ApplyBoxSelection();
+            selection.ApplyBoxSelection();
 
         if (modifiers.HasModifiers(InputModifier.Shift)) {
             if (rowSelecting)
-                SetRowSelectionEnd(row);
+                selection.SetRowSelectionEnd(row);
             else
-                SetBoxSelectionEnd(row, column);
+                selection.SetBoxSelectionEnd(row, column);
         }
         else {
             if (!modifiers.HasModifiers(InputModifier.Control))
-                ClearSelection();
+                selection.ClearSelection();
             
             if (rowSelecting)
-                SetRowSelectionStartAndEnd(row);
+                selection.SetRowSelectionStartAndEnd(row);
             else
-                SetBoxSelectionStartAndEnd(row, column);
+                selection.SetBoxSelectionStartAndEnd(row, column);
         }
         
         UpdateSelection();
@@ -797,9 +566,9 @@ public class StoryboardEditor : MonoBehaviour {
     
     private void OnGridDragUpdate(int row, int column, InputModifier modifiers) {
         if (rowSelecting)
-            SetRowSelectionEnd(row);
+            selection.SetRowSelectionEnd(row);
         else
-            SetBoxSelectionEnd(row, column);
+            selection.SetBoxSelectionEnd(row, column);
         
         UpdateSelection();
     }
