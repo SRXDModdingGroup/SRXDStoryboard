@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using StoryboardSystem;
+using UnityEngine;
 
-public class DocumentAnalysis {
+public class EditorAnalysis {
     private static readonly string[] BIND_2 = { "controller", "property" };
     private static readonly string[] BUNDLE_2 = { "name", "fileName" };
     private static readonly string[] CALL_2 = { "time", "procedure" };
@@ -30,13 +31,13 @@ public class DocumentAnalysis {
 
     public List<ProcedureInfo> Procedures { get; private set; } = new();
 
-    public HashSet<string> Globals { get; private set; } = new();
+    public Dictionary<string, VariableInfo> Globals { get; private set; } = new();
 
     public object Lock { get; } = new();
 
     private Table<CellAnalysis> newCells = new();
     private List<ProcedureInfo> newProcedures = new();
-    private HashSet<string> newGlobals = new();
+    private Dictionary<string, VariableInfo> newGlobals = new();
 
     private CancellationTokenSource ctSource;
     private Task activeTask;
@@ -107,7 +108,7 @@ public class DocumentAnalysis {
         int currentProcedureIndex = -1;
         string currentProcedureName = string.Empty;
         var currentProcedureArgNames = new List<string>();
-        var currentProcedureLocals = new Dictionary<string, int>();
+        var currentProcedureLocals = new Dictionary<string, VariableInfo>();
 
         for (int i = 0; i < newCells.Rows; i++) {
             if (ct.IsCancellationRequested)
@@ -120,8 +121,8 @@ public class DocumentAnalysis {
                 for (int j = 1; j < newCells.Columns; j++) {
                     if (newCells[i, j].Token == null)
                         continue;
-                    
-                    newCells[i, 0] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+
+                    cell.IsError = true;
 
                     break;
                 }
@@ -135,18 +136,18 @@ public class DocumentAnalysis {
                         var info = new ProcedureInfo(currentProcedureIndex, currentProcedureName, currentProcedureArgNames, currentProcedureLocals);
 
                         newProcedures.Add(info);
-                        newGlobals.Add(info.Name);
+                        newGlobals.Add(currentProcedureName, new VariableInfo(currentProcedureName, new Vector2Int(currentProcedureIndex, 1)));
                         proceduresDict.Add(currentProcedureName, info);
                     }
 
                     currentProcedureIndex = i;
                     currentProcedureArgNames = new List<string>();
-                    currentProcedureLocals = new Dictionary<string, int>() {{ "count", i }, { "iter", i }};
+                    currentProcedureLocals = new Dictionary<string, VariableInfo>() {{ "count", new VariableInfo("count", new Vector2Int(i, -1)) }, { "iter", new VariableInfo("iter", new Vector2Int(i, -1)) }};
 
                     cell = newCells[i, 1];
 
                     if (!TryGetName(cell.Token, out currentProcedureName) || proceduresDict.ContainsKey(currentProcedureName)) {
-                        newCells[i, 1] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                        cell.IsError = true;
                         currentProcedureIndex = -1;
                         
                         continue;
@@ -167,14 +168,14 @@ public class DocumentAnalysis {
                         cell = newCells[i, j];
 
                         if (!TryGetName(cell.Token, out string argName)) {
-                            newCells[i, j] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                            cell.IsError = true;
                             currentProcedureIndex = -1;
 
                             continue;
                         }
 
                         currentProcedureArgNames.Add(argName);
-                        currentProcedureLocals.Add(argName, i);
+                        currentProcedureLocals.Add(argName, new VariableInfo(argName, new Vector2Int(i, j)));
                     }
 
                     continue;
@@ -190,12 +191,12 @@ public class DocumentAnalysis {
                     cell = newCells[i, 1];
 
                     if (!TryGetName(cell.Token, out string globalName)) {
-                        newCells[i, 1] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                        cell.IsError = true;
 
                         continue;
                     }
                     
-                    newGlobals.Add(globalName);
+                    newGlobals.Add(globalName, new VariableInfo(globalName, new Vector2Int(i, 1)));
 
                     continue;
                 }
@@ -203,13 +204,13 @@ public class DocumentAnalysis {
                     cell = newCells[i, 1];
 
                     if (!TryGetName(cell.Token, out string localName)) {
-                        newCells[i, 1] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                        cell.IsError = true;
 
                         continue;
                     }
                     
                     if (!currentProcedureLocals.ContainsKey(localName))
-                        currentProcedureLocals.Add(localName, i);
+                        currentProcedureLocals.Add(localName, new VariableInfo(localName, new Vector2Int(i, 1)));
 
                     continue;
                 }
@@ -228,7 +229,7 @@ public class DocumentAnalysis {
             var info = new ProcedureInfo(currentProcedureIndex, currentProcedureName, currentProcedureArgNames, currentProcedureLocals);
 
             newProcedures.Add(info);
-            newGlobals.Add(info.Name);
+            newGlobals.Add(currentProcedureName, new VariableInfo(currentProcedureName, new Vector2Int(currentProcedureIndex, 1)));
             proceduresDict.Add(currentProcedureName, info);
         }
         
@@ -264,11 +265,11 @@ public class DocumentAnalysis {
             if (lastFilled < 0)
                 continue;
 
-            var first = newCells[i, 0];
-            var token = first.Token;
+            var cell = newCells[i, 0];
+            var token = cell.Token;
 
             if (token is not { Type: TokenType.Opcode }) {
-                newCells[i, 0] = new CellAnalysis(first.Text, first.FormattedText, first.Token, true);
+                cell.IsError = true;
                 
                 continue;
             }
@@ -280,20 +281,21 @@ public class DocumentAnalysis {
             names.CopyTo(argNames, 0);
 
             for (int j = 1, k = 0; j < newCells.Columns; j++, k++) {
-                var cell = newCells[i, j];
+                cell = newCells[i, j];
+                
                 bool empty = string.IsNullOrWhiteSpace(cell.Text);
 
                 if ((k < expectedLength && empty) || (k >= expectedLength && !empty && !unlimited)) {
                     if (empty)
-                        newCells[i, j] = new CellAnalysis(cell.Text, $"<color=#FFFFFF40>{argNames[k]}</color>", cell.Token, true);
-                    else
-                        newCells[i, j] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                        cell.FormattedText = $"<color=#FFFFFF40>{argNames[k]}</color>";
+
+                    cell.IsError = true;
                     
                     continue;
                 }
 
                 if (!empty && !ValidateToken(cell.Token))
-                    newCells[i, j] = new CellAnalysis(cell.Text, cell.FormattedText, cell.Token, true);
+                    cell.IsError = true;
 
                 bool ValidateToken(Token token) {
                     switch (token.Type) {
@@ -314,8 +316,8 @@ public class DocumentAnalysis {
                             
                             string name = ((Name) chain[0]).ToString();
                             
-                            if (!newGlobals.Contains(name)
-                                && (currentProcedure.Index < 0 || !currentProcedure.Locals.TryGetValue(name, out int localIndex) || i < localIndex))
+                            if (!newGlobals.ContainsKey(name)
+                                && (currentProcedure.Index < 0 || !currentProcedure.Locals.TryGetValue(name, out var localInfo) || i < localInfo.Declaration.x))
                                 return false;
 
                             for (int l = 0; l < chain.Length; l++) {
@@ -360,10 +362,10 @@ public class DocumentAnalysis {
             var procArgNames = procedure.ArgNames;
 
             for (int j = 0, k = shift; j < procArgNames.Count && k < newCells.Columns; j++, k++) {
-                var cell = newCells[i, k];
+                cell = newCells[i, k];
 
                 if (string.IsNullOrWhiteSpace(cell.Text))
-                    newCells[i, k] = new CellAnalysis(cell.Text, $"<color=#FFFFFF40>{procArgNames[j]}</color>", cell.Token, cell.IsError);
+                    cell.FormattedText = $"<color=#FFFFFF40>{procArgNames[j]}</color>";
             }
         }
         

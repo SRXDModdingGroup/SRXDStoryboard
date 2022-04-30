@@ -37,13 +37,13 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     [SerializeField] private GameObject cellPrefab;
     [SerializeField] private GameObject numberCellPrefab;
 
-    public event Action<int, int, EditorInput.InputModifier> DragBegin;
+    public event Action<int, int, InputModifier> DragBegin;
 
-    public event Action<int, int, EditorInput.InputModifier> DragUpdate;
+    public event Action<int, int, InputModifier> DragUpdate;
 
-    public event Action<int, int, EditorInput.InputModifier> DragEnd;
+    public event Action<int, int, InputModifier> DragEnd;
 
-    public event Action<EditorInput.InputModifier> Deselected;
+    public event Action<InputModifier> Deselected;
 
     private bool viewNeedsUpdate;
     private bool mouseDragging;

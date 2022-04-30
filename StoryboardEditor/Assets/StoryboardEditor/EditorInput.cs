@@ -1,15 +1,8 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EditorInput {
-    [Flags]
-    public enum InputModifier {
-        None = 0,
-        Shift = 1 << 0,
-        Control = 1 << 1,
-        Alt = 1 << 2
-    }
-    
     public event Action<InputModifier> Backspace;
     
     public event Action<InputModifier> Tab;
@@ -25,7 +18,19 @@ public class EditorInput {
     public event Action<Vector2Int, InputModifier> Direction;
 
     public event Action<string, InputModifier> Character;
-    
+
+    private EditorSettings settings;
+    private Dictionary<BindableAction, List<Action>> bindingsDict { get; }
+
+    public EditorInput(EditorSettings settings) {
+        this.settings = settings;
+        
+        bindingsDict = new Dictionary<BindableAction, List<Action>>();
+
+        foreach (var binding in settings.Bindings)
+            bindingsDict.Add(binding.ActionId, new List<Action>());
+    }
+
     // ReSharper disable Unity.PerformanceAnalysis
     public void UpdateInput() {
         if (!Input.anyKeyDown)
@@ -70,8 +75,27 @@ public class EditorInput {
 
         string inputString = Input.inputString;
         
-        if (!string.IsNullOrEmpty(inputString) && inputString.Length == 1 && !char.IsControl(inputString, 0))
+        if (!IsSingleCharacter(inputString))
+            return;
+
+        if (modifiers.HasAnyModifiers(InputModifier.Control | InputModifier.Alt)) {
+            inputString = inputString.ToLowerInvariant();
+            
+            foreach (var binding in settings.Bindings) {
+                if (binding.InputString != inputString || !modifiers.HasExactModifiers(binding.Modifiers) || !bindingsDict.TryGetValue(binding.ActionId, out var actions))
+                    continue;
+                
+                foreach (var action in actions)
+                    action?.Invoke();
+            }
+        }
+        else
             Character?.Invoke(inputString, modifiers);
+    }
+    
+    public void Bind(BindableAction actionId, Action action) {
+        if (bindingsDict.TryGetValue(actionId, out var actions))
+            actions.Add(action);
     }
 
     public static InputModifier GetModifiers() {
@@ -88,8 +112,6 @@ public class EditorInput {
         
         return modifiers;
     }
-}
 
-public static class EditorInputExtensions {
-    public static bool HasModifiers(this EditorInput.InputModifier input, EditorInput.InputModifier desired) => (input & desired) == desired;
+    private static bool IsSingleCharacter(string inputString) => !string.IsNullOrEmpty(inputString) && inputString.Length == 1 && !char.IsControl(inputString, 0);
 }

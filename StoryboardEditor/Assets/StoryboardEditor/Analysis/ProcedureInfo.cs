@@ -1,15 +1,15 @@
 ﻿using System.Collections.Generic;
 
-public readonly struct ProcedureInfo {
+public class ProcedureInfo {
     public int Index { get; }
         
     public string Name { get; }
         
     public List<string> ArgNames { get; }
     
-    public Dictionary<string, int> Locals { get; }
+    public Dictionary<string, VariableInfo> Locals { get; }
 
-    public ProcedureInfo(int index, string name, List<string> argNames, Dictionary<string, int> locals) {
+    public ProcedureInfo(int index, string name, List<string> argNames, Dictionary<string, VariableInfo> locals) {
         Index = index;
         Name = name;
         ArgNames = argNames;

@@ -49,6 +49,19 @@ public class Table<T> {
         }
     }
 
+    public void SetValueSafe(int row, int column, T value) {
+        if (row < 0 || column < 0)
+            throw new IndexOutOfRangeException();
+        
+        while (Rows <= row)
+            AddRow();
+        
+        while (Columns <= column)
+            AddColumn();
+
+        data[row, column] = value;
+    }
+
     public void AddRow() {
         EnsureCapacity(Rows + 1, Columns);
         Rows++;

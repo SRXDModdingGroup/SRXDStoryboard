@@ -5,7 +5,6 @@ using StoryboardSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using static EditorInput;
 
 public class StoryboardEditor : MonoBehaviour {
     [SerializeField] private int newDocumentRows;
@@ -15,12 +14,14 @@ public class StoryboardEditor : MonoBehaviour {
     private bool contentNeedsUpdate;
     private bool editing;
     private bool rowSelecting;
-    private DocumentAnalysis analysis;
     private Table<string> document;
     private Table<CellVisualState> cellStates;
     private EventSystem eventSystem;
+    private EditorSettings settings;
     private EditorInput input;
     private EditorSelection selection;
+    private EditorAnalysis analysis;
+    private UndoRedo undoRedo;
 
     private void Awake() {
         gridView.DragBegin += OnGridDragBegin;
@@ -28,10 +29,12 @@ public class StoryboardEditor : MonoBehaviour {
         gridView.DragEnd += OnGridDragEnd;
         gridView.Deselected += OnGridDeselected;
         eventSystem = EventSystem.current;
-        analysis = new DocumentAnalysis();
+        settings = new EditorSettings();
+        input = new EditorInput(settings);
         selection = new EditorSelection();
+        analysis = new EditorAnalysis();
+        undoRedo = new UndoRedo();
 
-        input = new EditorInput();
         input.Backspace += OnBackspace;
         input.Tab += OnTab;
         input.Return += OnReturn;
@@ -40,6 +43,8 @@ public class StoryboardEditor : MonoBehaviour {
         input.Delete += OnDelete;
         input.Direction += OnDirection;
         input.Character += OnCharacter;
+        input.Bind(BindableAction.Undo, Undo);
+        input.Bind(BindableAction.Redo, Redo);
     }
 
     private void Start() {
@@ -73,7 +78,7 @@ public class StoryboardEditor : MonoBehaviour {
         
         BeginEdit();
 
-        if (modifiers.HasModifiers(InputModifier.Shift)) {
+        if (modifiers.HasAllModifiers(InputModifier.Shift)) {
             foreach (var index in selection.GetSelectedCellsReversed())
                 DeleteAndPullCellsLeft(index.x, index.y);
         }
@@ -124,12 +129,12 @@ public class StoryboardEditor : MonoBehaviour {
         bool insertNew = false;
         int insertOffset = 1;
 
-        if (modifiers.HasModifiers(InputModifier.Control)) {
+        if (modifiers.HasExactModifiers(InputModifier.Control)) {
             insertNew = true;
             insertOffset = 0;
         }
 
-        if (modifiers.HasModifiers(InputModifier.Shift)) {
+        if (modifiers.HasExactModifiers(InputModifier.Shift)) {
             insertNew = true;
             insertOffset = 1;
         }
@@ -165,12 +170,12 @@ public class StoryboardEditor : MonoBehaviour {
         bool insertNew = false;
         int insertOffset = 1;
 
-        if (modifiers.HasModifiers(InputModifier.Control)) {
+        if (modifiers.HasExactModifiers(InputModifier.Control)) {
             insertNew = true;
             insertOffset = 0;
         }
 
-        if (modifiers.HasModifiers(InputModifier.Shift)) {
+        if (modifiers.HasExactModifiers(InputModifier.Shift)) {
             insertNew = true;
             insertOffset = 1;
         }
@@ -231,7 +236,7 @@ public class StoryboardEditor : MonoBehaviour {
         
         BeginEdit();
             
-        if (modifiers.HasModifiers(InputModifier.Shift)) {
+        if (modifiers.HasAllModifiers(InputModifier.Shift)) {
             foreach (var index in selection.GetSelectedCellsReversed())
                 DeleteAndPullCellsLeft(index.x, index.y);
         }
@@ -240,7 +245,7 @@ public class StoryboardEditor : MonoBehaviour {
 
         EndEdit();
 
-        if (modifiers.HasModifiers(InputModifier.Shift)) {
+        if (modifiers.HasAllModifiers(InputModifier.Shift)) {
             var leftmostPerRow = new List<Vector2Int>(selection.GetLeftmostSelectedPerRow());
 
             selection.ClearSelection();
@@ -258,15 +263,15 @@ public class StoryboardEditor : MonoBehaviour {
         if (eventSystem.currentSelectedGameObject != gridView.gameObject)
             return;
         
-        if (modifiers.HasModifiers(InputModifier.Control))
+        if (modifiers.HasAllModifiers(InputModifier.Control))
             selection.ApplyBoxSelection();
 
-        if (modifiers.HasModifiers(InputModifier.Shift)) {
+        if (modifiers.HasAllModifiers(InputModifier.Shift)) {
             selection.SetBoxSelectionEnd(selection.BoxSelectionEnd.x + direction.x, selection.BoxSelectionEnd.y + direction.y);
             gridView.FocusSelectionEnd();
         }
         else {
-            if (!modifiers.HasModifiers(InputModifier.Control))
+            if (!modifiers.HasAllModifiers(InputModifier.Control))
                 selection.ClearSelection();
 
             selection.SetBoxSelectionStartAndEnd(selection.BoxSelectionEnd.x + direction.x, selection.BoxSelectionEnd.y + direction.y);
@@ -305,17 +310,17 @@ public class StoryboardEditor : MonoBehaviour {
         eventSystem.SetSelectedGameObject(gridView.gameObject);
         rowSelecting = column < 0;
         
-        if (modifiers.HasModifiers(InputModifier.Control))
+        if (modifiers.HasAllModifiers(InputModifier.Control))
             selection.ApplyBoxSelection();
 
-        if (modifiers.HasModifiers(InputModifier.Shift)) {
+        if (modifiers.HasAllModifiers(InputModifier.Shift)) {
             if (rowSelecting)
                 selection.SetRowSelectionEnd(row);
             else
                 selection.SetBoxSelectionEnd(row, column);
         }
         else {
-            if (!modifiers.HasModifiers(InputModifier.Control))
+            if (!modifiers.HasAllModifiers(InputModifier.Control))
                 selection.ClearSelection();
             
             if (rowSelecting)
@@ -358,6 +363,7 @@ public class StoryboardEditor : MonoBehaviour {
         }
         
         gridView.Init(cellStates, selection);
+        undoRedo.Clear();
     }
 
     private void BeginEdit() {
@@ -366,6 +372,7 @@ public class StoryboardEditor : MonoBehaviour {
 
         editing = true;
         analysis.Cancel();
+        undoRedo.BeginNewAction();
     }
 
     private void EndEdit() {
@@ -376,25 +383,83 @@ public class StoryboardEditor : MonoBehaviour {
         StoryboardDocument.MinimizeColumns(document);
         UpdateBounds();
         analysis.Analyze(document, () => contentNeedsUpdate = true);
+        undoRedo.CompleteAction();
+        gridView.UpdateView();
     }
 
     private void SetCellText(int row, int column, string value) {
-        document[row, column] = value;
-        cellStates[row, column].Text = value;
-        cellStates[row, column].FormattedText = value;
+        string oldValue = document[row, column];
+        
+        Do(row, column, value);
+        undoRedo.AddSubAction(() => Do(row, column, oldValue), () => Do(row, column, value));
+
+        void Do(int row, int column, string value) {
+            document.SetValueSafe(row, column, value);
+            cellStates.SetValueSafe(row, column, new CellVisualState(value));
+        }
     }
 
     private void InsertRow(int index) {
-        document.InsertRow(index);
-        cellStates.InsertRow(index);
+        Do(index);
+        undoRedo.AddSubAction(() => Undo(index), () => Do(index));
 
-        for (int i = 0; i < cellStates.Columns; i++)
-            cellStates[index, i] = new CellVisualState();
+        void Do(int index) {
+            document.InsertRow(index);
+            cellStates.InsertRow(index);
+
+            for (int i = 0; i < cellStates.Columns; i++)
+                cellStates[index, i] = new CellVisualState();
+        }
+
+        void Undo(int index) {
+            document.RemoveRow(index);
+            cellStates.RemoveRow(index);
+        }
     }
 
     private void RemoveRow(int index) {
-        document.RemoveRow(index);
-        cellStates.RemoveRow(index);
+        string[] oldContents = new string[document.Columns];
+
+        for (int i = 0; i < document.Columns; i++)
+            oldContents[i] = document[index, i];
+        
+        Do(index);
+        undoRedo.AddSubAction(() => Undo(oldContents, index), () => Do(index));
+
+        void Do(int index) {
+            document.RemoveRow(index);
+            cellStates.RemoveRow(index);
+        }
+
+        void Undo(string[] oldContents, int index) {
+            document.InsertRow(index);
+            cellStates.InsertRow(index);
+
+            for (int i = 0; i < oldContents.Length; i++) {
+                string value = oldContents[i];
+
+                document.SetValueSafe(index, i, value);
+                cellStates.SetValueSafe(index, i, new CellVisualState(value));
+            }
+        }
+    }
+
+    private void Undo() {
+        if (!undoRedo.TryUndo())
+            return;
+        
+        StoryboardDocument.MinimizeColumns(document);
+        UpdateBounds();
+        analysis.Analyze(document, () => contentNeedsUpdate = true);
+    }
+    
+    private void Redo() {
+        if (!undoRedo.TryRedo())
+            return;
+        
+        StoryboardDocument.MinimizeColumns(document);
+        UpdateBounds();
+        analysis.Analyze(document, () => contentNeedsUpdate = true);
     }
 
     private void UpdateBounds() {
