@@ -1,8 +1,6 @@
 ﻿namespace StoryboardSystem; 
 
-public interface ICustomObject {
-    object Self { get; }
-
+public interface IStoryboardObject {
     void Cleanup();
 
     bool TryGetSubObject(string name, out object subObject);

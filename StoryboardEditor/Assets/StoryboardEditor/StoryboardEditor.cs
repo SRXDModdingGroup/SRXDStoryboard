@@ -299,6 +299,51 @@ public class StoryboardEditor : MonoBehaviour {
             eventSystem.SetSelectedGameObject(null);
     }
 
+    private void OnGridDragBegin(int row, int column, InputModifier modifiers) {
+        textField.DeactivateInputField(true);
+        textField.ReleaseSelection();
+        eventSystem.SetSelectedGameObject(gridView.gameObject);
+        rowSelecting = column < 0;
+        
+        if (modifiers.HasModifiers(InputModifier.Control))
+            selection.ApplyBoxSelection();
+
+        if (modifiers.HasModifiers(InputModifier.Shift)) {
+            if (rowSelecting)
+                selection.SetRowSelectionEnd(row);
+            else
+                selection.SetBoxSelectionEnd(row, column);
+        }
+        else {
+            if (!modifiers.HasModifiers(InputModifier.Control))
+                selection.ClearSelection();
+            
+            if (rowSelecting)
+                selection.SetRowSelectionStartAndEnd(row);
+            else
+                selection.SetBoxSelectionStartAndEnd(row, column);
+        }
+        
+        UpdateSelection();
+    }
+    
+    private void OnGridDragUpdate(int row, int column, InputModifier modifiers) {
+        if (rowSelecting)
+            selection.SetRowSelectionEnd(row);
+        else
+            selection.SetBoxSelectionEnd(row, column);
+        
+        UpdateSelection();
+    }
+    
+    private void OnGridDragEnd(int row, int column, InputModifier modifiers) {
+        UpdateSelection();
+    }
+
+    private void OnGridDeselected(InputModifier modifiers) {
+        rowSelecting = false;
+    }
+
     #endregion
 
     #region Logic
@@ -530,55 +575,6 @@ public class StoryboardEditor : MonoBehaviour {
         }
 
         return builder.ToString();
-    }
-
-    #endregion
-
-    #region Events
-
-    private void OnGridDragBegin(int row, int column, InputModifier modifiers) {
-        textField.DeactivateInputField(true);
-        textField.ReleaseSelection();
-        eventSystem.SetSelectedGameObject(gridView.gameObject);
-        rowSelecting = column < 0;
-        
-        if (modifiers.HasModifiers(InputModifier.Control))
-            selection.ApplyBoxSelection();
-
-        if (modifiers.HasModifiers(InputModifier.Shift)) {
-            if (rowSelecting)
-                selection.SetRowSelectionEnd(row);
-            else
-                selection.SetBoxSelectionEnd(row, column);
-        }
-        else {
-            if (!modifiers.HasModifiers(InputModifier.Control))
-                selection.ClearSelection();
-            
-            if (rowSelecting)
-                selection.SetRowSelectionStartAndEnd(row);
-            else
-                selection.SetBoxSelectionStartAndEnd(row, column);
-        }
-        
-        UpdateSelection();
-    }
-    
-    private void OnGridDragUpdate(int row, int column, InputModifier modifiers) {
-        if (rowSelecting)
-            selection.SetRowSelectionEnd(row);
-        else
-            selection.SetBoxSelectionEnd(row, column);
-        
-        UpdateSelection();
-    }
-    
-    private void OnGridDragEnd(int row, int column, InputModifier modifiers) {
-        UpdateSelection();
-    }
-
-    private void OnGridDeselected(InputModifier modifiers) {
-        rowSelecting = false;
     }
 
     #endregion

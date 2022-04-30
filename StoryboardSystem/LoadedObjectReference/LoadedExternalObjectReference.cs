@@ -33,7 +33,7 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
     }
 
     public override void Unload(ISceneManager sceneManager) {
-        if (externalObject is ICustomObject customObject)
+        if (externalObject is IStoryboardObject customObject)
             customObject.Cleanup();
         
         externalObject = null;

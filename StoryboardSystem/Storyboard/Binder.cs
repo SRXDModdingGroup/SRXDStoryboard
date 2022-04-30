@@ -38,9 +38,6 @@ internal abstract class Binder {
             }
         }
 
-        if (result is ICustomObject customObject)
-            result = customObject.Self;
-
         if (result != null)
             return true;
         
@@ -101,10 +98,10 @@ internal abstract class Binder {
                 subObject = new CameraFovProperty(camera);
                 
                 return true;
+            case IStoryboardObject sObject when sObject.TryGetSubObject(name, out subObject):
+                return true;
             case Component component:
                 return TryGetGameObjectProperty(component.gameObject, out subObject);
-            case ICustomObject customObject:
-                return customObject.TryGetSubObject(name, out subObject) || TryGetSubObject(customObject.Self, name, out subObject);
             default:
                 subObject = null;
 
@@ -121,7 +118,17 @@ internal abstract class Binder {
                 _ => gameObject.transform.Find(name)?.gameObject
             };
 
-            return property != null;
+            if (property != null)
+                return true;
+            
+            foreach (var sObject in gameObject.GetComponents<IStoryboardObject>()) {
+                if (sObject.TryGetSubObject(name, out property))
+                    return true;
+            }
+
+            property = null;
+
+            return false;
         }
 
         bool TryGetMaterialProperty(Material material, out object property) {
