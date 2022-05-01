@@ -71,12 +71,14 @@ copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\Storyboa
         <Compile Include="Compiler\Opcode.cs" />
         <Compile Include="Compiler\Parser.cs" />
         <Compile Include="Compiler\Procedure.cs" />
+        <Compile Include="Compiler\StringRange.cs" />
         <Compile Include="Compiler\Timestamp.cs" />
         <Compile Include="Compiler\Token\ArrayT.cs" />
         <Compile Include="Compiler\Token\Chain.cs" />
         <Compile Include="Compiler\Token\Constant.cs" />
         <Compile Include="Compiler\Token\FuncCall.cs" />
         <Compile Include="Compiler\Token\Indexer.cs" />
+        <Compile Include="Compiler\Token\InvalidToken.cs" />
         <Compile Include="Compiler\Token\Name.cs" />
         <Compile Include="Compiler\Token\OpcodeT.cs" />
         <Compile Include="Compiler\Token\Token.cs" />

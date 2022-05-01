@@ -122,7 +122,7 @@ public class StoryboardEditor : MonoBehaviour {
         if (selected == textField.gameObject) {
             UnfocusTextField();
             BeginEdit();
-            FillSelectionWithValue(AutoFormat(textField.text));
+            FillSelectionWithValue(AutoFormat(new StringRange(textField.text)));
         }
         
         var rightmostPerRow = new List<Vector2Int>(selection.GetRightmostSelectedPerRow());
@@ -189,7 +189,7 @@ public class StoryboardEditor : MonoBehaviour {
         if (selected == textField.gameObject) {
             UnfocusTextField();
             BeginEdit();
-            FillSelectionWithValue(AutoFormat(textField.text));
+            FillSelectionWithValue(AutoFormat(new StringRange(textField.text)));
         }
 
         int row = selection.GetBottomOfSelection() + insertOffset;
@@ -578,13 +578,13 @@ public class StoryboardEditor : MonoBehaviour {
         return -1;
     }
 
-    private static string AutoFormat(string value, bool outermost = true) {
+    private static string AutoFormat(StringRange value, bool outermost = true) {
         value = value.Trim();
 
-        int commentIndex = value.IndexOf("//", StringComparison.Ordinal);
+        int commentIndex = value.IndexOf("//");
         
         if (commentIndex >= 0)
-            return value.Substring(commentIndex, value.Length - commentIndex);
+            return value.Substring(commentIndex, value.Length - commentIndex).ToString();
 
         var builder = new StringBuilder();
         int length = value.Length;

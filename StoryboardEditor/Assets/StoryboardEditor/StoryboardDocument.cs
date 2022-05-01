@@ -69,7 +69,7 @@ public static class StoryboardDocument {
             
             document.AddRow();
 
-            foreach (string s in Parser.Split(line)) {
+            foreach (string s in Parser.Split(new StringRange(line))) {
                 if (document.Columns <= j + 1)
                     document.AddColumn();
 

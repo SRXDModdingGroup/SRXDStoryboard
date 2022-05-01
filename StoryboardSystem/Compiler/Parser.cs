@@ -34,7 +34,7 @@ public static class Parser {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            if (!TryTokenize(line, lineIndex, out var tokens))
+            if (!TryTokenize(new StringRange(line), lineIndex, StoryboardManager.Instance.Logger, false, out var tokens, out _))
                 success = false;
             else if (tokens[0] is not OpcodeT opcode) {
                 StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "First argument must be an opcode"));
@@ -53,95 +53,44 @@ public static class Parser {
         return success;
     }
 
-    public static bool TryTokenize(string value, int lineIndex, out List<Token> tokens) {
+    public static bool TryTokenize(StringRange value, int lineIndex, ILogger logger, bool format, out List<Token> tokens, out string formattedText) {
         tokens = new List<Token>();
-        
-        int length = value.Length;
-        int startIndex = 0;
-
-        for (int i = 0; i <= length; i++) {
-            if (i == length || char.IsWhiteSpace(value[i])) {
-                string subString = value.Substring(startIndex, i - startIndex);
-                
-                startIndex = i + 1;
-                
-                if (string.IsNullOrWhiteSpace(subString))
-                    continue;
-
-                if (!TryParseToken(subString, lineIndex, out var token)) {
-                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {subString}"));
-
-                    return false;
-                }
-                
-                tokens.Add(token);
-
-                continue;
-            }
-            
-            switch (value[i]) {
-                case '\"' when !TrySkipTo(value, ref i, '\"'):
-                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find closing quote"));
-
-                    return false;
-                case '{' when !TrySkipTo(value, ref i, '{', '}'):
-                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find closing brace"));
-
-                    return false;
-                case '(' when !TrySkipTo(value, ref i, '(', ')'):
-                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find closing parenthesis"));
-
-                    return false;
-                case '[' when !TrySkipTo(value, ref i, '[', ']'):
-                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find closing bracket"));
-
-                    return false;
-                case '}':
-                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find opening brace"));
-
-                    return false;
-                case ')':
-                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find opening parenthesis"));
-
-                    return false;
-                case ']':
-                    StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "Could not find opening bracket"));
-
-                    return false;
-            }
-        }
-
-        return true;
-    }
-
-    public static bool TryTokenizeAndFormat(string value, out List<Token> tokens, out string formatted) {
-        tokens = new List<Token>();
-        formatted = value;
+        formattedText = string.Empty;
         
         int length = value.Length;
         int startIndex = 0;
         var builder = new StringBuilder();
+        bool success = true;
 
         for (int i = 0; i <= length; i++) {
             if (i == length || char.IsWhiteSpace(value[i])) {
-                string subString = value.Substring(startIndex, i - startIndex);
+                var subString = value.Substring(startIndex, i - startIndex);
                 
                 startIndex = i + 1;
                 
-                if (string.IsNullOrWhiteSpace(subString)) {
-                    builder.Append(subString);
+                if (StringRange.IsNullOrWhiteSpace(subString)) {
+                    if (!format)
+                        continue;
                     
+                    builder.Append(subString);
+
                     if (i < length)
                         builder.Append(value[i]);
-                    
+
                     continue;
                 }
 
-                if (!TryParseAndFormatToken(subString, out var token, out string formattedToken))
-                    return false;
-
+                if (!TryParseToken(subString, lineIndex, logger, format, out var token)) {
+                    logger.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {subString}"));
+                    success = false;
+                }
+                
                 tokens.Add(token);
-                builder.Append(formattedToken);
+                
+                if (!format)
+                    continue;
+
+                builder.Append(token.FormattedText);
                 
                 if (i < length)
                     builder.Append(value[i]);
@@ -151,102 +100,117 @@ public static class Parser {
             
             switch (value[i]) {
                 case '\"' when !TrySkipTo(value, ref i, '\"'):
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing quote"));
+                    success = false;
+                    break;
                 case '{' when !TrySkipTo(value, ref i, '{', '}'):
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing brace"));
+                    success = false;
+                    break;
                 case '(' when !TrySkipTo(value, ref i, '(', ')'):
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing parenthesis"));
+                    success = false;
+                    break;
                 case '[' when !TrySkipTo(value, ref i, '[', ']'):
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing bracket"));
+                    success = false;
+                    break;
                 case '}':
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening brace"));
+                    success = false;
+                    break;
                 case ')':
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening parenthesis"));
+                    success = false;
+                    break;
                 case ']':
-                    return false;
+                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening bracket"));
+                    success = false;
+                    break;
             }
         }
 
-        formatted = builder.ToString();
+        if (format)
+            formattedText = builder.ToString();
 
-        return true;
+        return success;
     }
 
-    public static bool TryParseToken(string str, int lineIndex, out Token token) {
-        token = default;
-        
+    public static bool TryParseToken(StringRange str, int lineIndex, ILogger logger, bool format, out Token token) {
         if (str[0] == '\"' && str[str.Length - 1] == '\"') {
-            string subString = str.Substring(1, str.Length - 2);
+            var subString = str.Substring(1, str.Length - 2);
 
-            if (subString.Contains("\""))
-                return false;
+            if (subString.Contains('\"'))
+                token = new InvalidToken();
+            else {
+                token = new Constant(subString.ToString());
 
-            token = new Constant(subString);
+                if (format)
+                    token.FormattedText = $"<color=#D08080FF>{str}</color>";
+            }
         }
         else if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
-        else if (Enum.TryParse<Opcode>(str, true, out var opcode))
+        else if (Enum.TryParse<Opcode>(str.ToString(), true, out var opcode)) {
             token = new OpcodeT(opcode);
-        else if (Enum.TryParse<InterpType>(str, true, out var interpType))
+
+            if (format) {
+                switch (opcode) {
+                    case Opcode.Bind:
+                    case Opcode.Bundle:
+                    case Opcode.Curve:
+                    case Opcode.In:
+                    case Opcode.Inst:
+                    case Opcode.InstA:
+                    case Opcode.Load:
+                    case Opcode.Out:
+                    case Opcode.Post:
+                        token.FormattedText = $"<color=#FFFF00FF>{str}</color>";
+                        break;
+                    case Opcode.Call:
+                    case Opcode.Loop:
+                    case Opcode.Key:
+                        token.FormattedText = $"<color=#0080FFFF>{str}</color>";
+                        break;
+                    case Opcode.Proc:
+                        token.FormattedText = $"<color=#00FFFFFF>{str}</color>";
+                        break;
+                    case Opcode.Set:
+                    case Opcode.SetA:
+                    case Opcode.SetG:
+                        token.FormattedText = $"<color=#FF80FFFF>{str}</color>";
+                        break;
+                    default:
+                        token.FormattedText = str.ToString();
+                        break;
+                }
+            }
+        }
+        else if (Enum.TryParse<InterpType>(str.ToString(), true, out var interpType))
             token = new Constant(interpType);
-        else if (!TryParseArray(str, lineIndex, out token)
-                 && !TryParseFuncCall(str, lineIndex, out token)
-                 && !TryParseChain(str, lineIndex, out token))
+        else if (TryParseArray(str, lineIndex, logger, format, out token)
+                 || TryParseFuncCall(str, lineIndex, logger, format, out token)
+                 || TryParseChain(str, lineIndex, logger, format, out token)) { }
+        else
+            token = new InvalidToken();
+
+        if (!format)
+            return true;
+
+        token.Range = str;
+
+        if (token.Type == TokenType.Invalid) {
+            token.FormattedText = $"<color=#FF0000FF>{str}</color>";
+
             return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(token.FormattedText))
+            token.FormattedText = str.ToString();
 
         return true;
     }
     
-    public static bool TryParseAndFormatToken(string str, out Token token, out string formatted) {
-        token = null;
-        formatted = str;
-        
-        if (str[0] == '\"' && str[str.Length - 1] == '\"') {
-            string subString = str.Substring(1, str.Length - 2);
-
-            if (subString.Contains("\""))
-                return false;
-
-            token = new Constant(subString);
-            formatted = $"<color=#D08080FF>{str}</color>";
-        }
-        else if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
-        else if (Enum.TryParse<Opcode>(str, true, out var opcode)) {
-            token = new OpcodeT(opcode);
-
-            switch (opcode) {
-                case Opcode.Bind:
-                case Opcode.Bundle:
-                case Opcode.Curve:
-                case Opcode.In:
-                case Opcode.Inst:
-                case Opcode.InstA:
-                case Opcode.Load:
-                case Opcode.Out:
-                case Opcode.Post:
-                    formatted = $"<color=#FFFF00FF>{str}</color>";
-                    return true;
-                case Opcode.Call:
-                case Opcode.Loop:
-                case Opcode.Key:
-                    formatted = $"<color=#0080FFFF>{str}</color>";
-                    return true;
-                case Opcode.Proc:
-                    formatted = $"<color=#00FFFFFF>{str}</color>";
-                    return true;
-                case Opcode.Set:
-                case Opcode.SetA:
-                case Opcode.SetG:
-                    formatted = $"<color=#FF80FFFF>{str}</color>";
-                    return true;
-                default:
-                    return true;
-            }
-        }
-        else if (Enum.TryParse<InterpType>(str, true, out var interpType))
-            token = new Constant(interpType);
-        else if (!TryParseAndFormatArray(str, out token, out formatted)
-                 && !TryParseAndFormatFuncCall(str, out token, out formatted)
-                 && !TryParseAndFormatChain(str, out token, out formatted))
-            return false;
-
-        return true;
-    }
-    
-    public static bool TrySkipTo(string str, ref int index, char bounds) {
+    public static bool TrySkipTo(StringRange str, ref int index, char bounds) {
         while (true) {
             index++;
             
@@ -258,7 +222,7 @@ public static class Parser {
         }
     }
     
-    public static bool TrySkipTo(string str, ref int index, char start, char end) {
+    public static bool TrySkipTo(StringRange str, ref int index, char start, char end) {
         int depth = 0;
 
         while (index < str.Length) {
@@ -278,24 +242,24 @@ public static class Parser {
         return false;
     }
 
-    public static IEnumerable<string> Split(string value) {
+    public static IEnumerable<string> Split(StringRange value) {
         int length = value.Length;
         int startIndex = 0;
-        int commentIndex = value.IndexOf("//", StringComparison.Ordinal);
+        int commentIndex = value.IndexOf("//");
 
         for (int i = 0; i <= length; i++) {
             if (i == length || char.IsWhiteSpace(value[i]) || i == commentIndex) {
-                string subString = value.Substring(startIndex, i - startIndex);
+                var subString = value.Substring(startIndex, i - startIndex);
                 
                 startIndex = i + 1;
                 
-                if (!string.IsNullOrWhiteSpace(subString))
-                    yield return subString;
+                if (!StringRange.IsNullOrWhiteSpace(subString))
+                    yield return subString.ToString();
 
                 if (i != commentIndex)
                     continue;
 
-                yield return value.Substring(i, length - i);
+                yield return value.Substring(i, length - i).ToString();
                 yield break;
             }
             
@@ -320,7 +284,7 @@ public static class Parser {
         }
     }
 
-    private static bool TryParseTimestamp(string value, out Token timestamp) {
+    private static bool TryParseTimestamp(StringRange value, out Token timestamp) {
         float measures = 0f;
         float beats = 0f;
         float ticks = 0f;
@@ -348,7 +312,7 @@ public static class Parser {
                     floatVal = num / den;
                     break;
                 default:
-                    timestamp = default;
+                    timestamp = null;
                     return false;
             }
 
@@ -367,7 +331,6 @@ public static class Parser {
                     break;
                 default:
                     timestamp = null;
-
                     return false;
             }
 
@@ -385,12 +348,12 @@ public static class Parser {
         return true;
     }
 
-    private static bool TryParsePrimitive(string value, out Token primitive) {
-        if (bool.TryParse(value, out bool boolVal))
+    private static bool TryParsePrimitive(StringRange value, out Token primitive) {
+        if (bool.TryParse(value.ToString(), out bool boolVal))
             primitive = new Constant(boolVal);
-        else if (int.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out int intVal))
+        else if (int.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out int intVal))
             primitive = new Constant(intVal);
-        else if (float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out float floatVal))
+        else if (float.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out float floatVal))
             primitive = new Constant(floatVal);
         else {
             primitive = null;
@@ -401,13 +364,14 @@ public static class Parser {
         return true;
     }
 
-    private static bool TryParseArray(string value, int lineIndex, out Token array) {
-        if (value[0] != '{' || value[value.Length - 1] != '}' || !TryTokenize(value.Substring(1, value.Length - 2), lineIndex, out var tokens)) {
+    private static bool TryParseArray(StringRange value, int lineIndex, ILogger logger, bool format, out Token array) {
+        if (value[0] != '{' || value[value.Length - 1] != '}') {
             array = null;
 
             return false;
         }
 
+        bool success = TryTokenize(value.Substring(1, value.Length - 2), lineIndex, logger, format, out var tokens, out string formattedText);
         bool isConstant = true;
 
         foreach (var token in tokens) {
@@ -430,154 +394,117 @@ public static class Parser {
         else
             array = new ArrayT(tokens.ToArray());
 
+        array.Success = success;
+
+        if (format)
+            array.FormattedText = $"{{{formattedText}}}";
+
         return true;
     }
 
-    private static bool TryParseFuncCall(string value, int lineIndex, out Token funcCall) {
+    private static bool TryParseFuncCall(StringRange value, int lineIndex, ILogger logger, bool format, out Token funcCall) {
         var match = MATCH_FUNC_CALL.Match(value);
+        var groups = match.Groups;
 
-        if (match.Success && Enum.TryParse<FuncName>(match.Groups[1].Value, true, out var name) && TryTokenize(match.Groups[2].Value, lineIndex, out var tokens)) {
-            funcCall = new FuncCall(name, tokens.ToArray());
-
-            return true;
+        if (!match.Success || !Enum.TryParse<FuncName>(groups[1].Value, true, out var name)) {
+            funcCall = null;
+            
+            return false;
         }
 
-        funcCall = null;
+        bool success = TryTokenize(groups[2].ToStringRange(value), lineIndex, logger, format, out var tokens, out string formattedText);
 
-        return false;
+        funcCall = new FuncCall(name, tokens.ToArray());
+        funcCall.Success = success;
+
+        if (format)
+            funcCall.FormattedText = $"{name}({formattedText})";
+
+        return true;
     }
 
-    private static bool TryParseChain(string value, int lineIndex, out Token chain) {
-        chain = null;
+    private static bool TryParseChain(StringRange value, int lineIndex, ILogger logger, bool format, out Token chain) {
+        var split = value.Split('.');
 
-        string[] split = value.Split('.');
-
-        if (split.Length == 0)
+        if (split.Length == 0) {
+            chain = null;
+            
             return false;
+        }
 
         var chainList = new List<Token>();
+        bool success = true;
 
-        foreach (string s in split) {
-            if (string.IsNullOrWhiteSpace(s))
-                return false;
+        foreach (var s in split) {
+            if (StringRange.IsNullOrWhiteSpace(s)) {
+                chainList.Add(new InvalidToken());
+                success = false;
+                
+                continue;
+            }
 
             var match = MATCH_CHAIN_ELEMENT.Match(s);
 
-            if (!match.Success)
-                return false;
+            if (!match.Success) {
+                var invalid = new InvalidToken();
 
-            chainList.Add(new Name(match.Groups[1].Value));
-
-            string indexer = match.Groups[3].Value;
-
-            if (string.IsNullOrWhiteSpace(indexer))
+                if (format) {
+                    invalid.Range = s;
+                    invalid.FormattedText = $"<color=#FF0000FF>{s}</color>";
+                }
+                
+                chainList.Add(invalid);
+                success = false;
+                
                 continue;
+            }
+
+            var groups = match.Groups;
+            var name = new Name(groups[1].Value);
+
+            if (format) {
+                name.Range = groups[1].ToStringRange(s);
+                name.FormattedText = $"<color=#A0FFFFFF>{name}</color>";
+            }
+
+            chainList.Add(name);
+
+            var indexerRange = groups[3].ToStringRange(s);
+
+            if (StringRange.IsNullOrWhiteSpace(indexerRange))
+                continue;
+
+            if (!TryParseToken(indexerRange, lineIndex, logger, format, out var indexerToken))
+                success = false;
             
-            if (TryParseToken(indexer, lineIndex, out var indexerToken))
-                chainList.Add(new Indexer(indexerToken));
-            else
-                return false;
+            var indexer = new Indexer(indexerToken);
+
+            if (format) {
+                indexer.Range = indexerRange;
+                indexer.FormattedText = $"[{indexerToken.FormattedText}]";
+            }
+                
+            chainList.Add(indexer);
         }
         
         chain = new Chain(chainList.ToArray());
+        chain.Success = success;
 
-        return true;
-    }
-
-    private static bool TryParseAndFormatArray(string value, out Token array, out string formatted) {
-        if (value[0] != '{' || value[value.Length - 1] != '}' || !TryTokenizeAndFormat(value.Substring(1, value.Length - 2), out var tokens, out formatted)) {
-            array = null;
-            formatted = value;
-
-            return false;
-        }
-
-        formatted = $"{{{formatted}}}";
-
-        bool isConstant = true;
-
-        foreach (var token in tokens) {
-            if (token is Constant)
-                continue;
-
-            isConstant = false;
-
-            break;
-        }
-
-        if (isConstant) {
-            object[] objArr = new object[tokens.Count];
-
-            for (int i = 0; i < objArr.Length; i++)
-                objArr[i] = ((Constant) tokens[i]).Value;
-
-            array = new Constant(objArr);
-        }
-        else
-            array = new ArrayT(tokens.ToArray());
-
-        return true;
-    }
-
-    private static bool TryParseAndFormatFuncCall(string value, out Token funcCall, out string formatted) {
-        var match = MATCH_FUNC_CALL.Match(value);
-
-        if (match.Success && Enum.TryParse<FuncName>(match.Groups[1].Value, true, out var name) && TryTokenizeAndFormat(match.Groups[2].Value, out var tokens, out formatted)) {
-            funcCall = new FuncCall(name, tokens.ToArray());
-            formatted = $"{match.Groups[1]}({formatted})";
-
+        if (!format)
             return true;
-        }
 
-        funcCall = null;
-        formatted = value;
-
-        return false;
-    }
-
-    private static bool TryParseAndFormatChain(string value, out Token chain, out string formatted) {
-        chain = null;
-        formatted = value;
-
-        string[] split = value.Split('.');
-
-        if (split.Length == 0)
-            return false;
-
-        var chainList = new List<Token>();
         var builder = new StringBuilder();
 
-        foreach (string s in split) {
-            if (string.IsNullOrWhiteSpace(s))
-                return false;
-
-            var match = MATCH_CHAIN_ELEMENT.Match(s);
-
-            if (!match.Success)
-                return false;
-
-            chainList.Add(new Name(match.Groups[1].Value));
-
-            if (builder.Length > 0)
+        for (int i = 0; i < chainList.Count; i++) {
+            var token = chainList[i];
+            
+            if (i > 0 && token.Type != TokenType.Indexer)
                 builder.Append('.');
 
-            builder.Append($"<color=#A0FFFFFF>{match.Groups[1]}</color>");
-
-            string indexer = match.Groups[3].Value;
-
-            if (string.IsNullOrWhiteSpace(indexer))
-                continue;
-            
-            if (TryParseAndFormatToken(indexer, out var indexerToken, out string formattedToken)) {
-                chainList.Add(new Indexer(indexerToken));
-                builder.Append($"[{formattedToken}]");
-            }
-            else
-                return false;
+            builder.Append(token.FormattedText);
         }
-        
-        chain = new Chain(chainList.ToArray());
-        formatted = builder.ToString();
+
+        chain.FormattedText = builder.ToString();
 
         return true;
     }

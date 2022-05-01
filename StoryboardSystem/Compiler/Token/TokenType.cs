@@ -1,6 +1,7 @@
 ﻿namespace StoryboardSystem; 
 
 public enum TokenType {
+    Invalid,
     Array,
     Chain,
     Constant,

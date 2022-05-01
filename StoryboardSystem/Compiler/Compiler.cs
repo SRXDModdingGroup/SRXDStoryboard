@@ -595,6 +595,7 @@ internal static class Compiler {
                     
                 return false;
             }
+            case TokenType.Invalid:
             case TokenType.Indexer:
             case TokenType.Name:
             case TokenType.Opcode:

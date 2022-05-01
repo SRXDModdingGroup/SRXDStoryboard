@@ -83,21 +83,17 @@ public class EditorAnalysis {
                 }
 
                 Token token;
-                string formatted;
+                bool isError = false;
 
-                if (i < Cells.Rows && j < Cells.Columns && value == Cells[i, j].Text) {
-                    var cell = Cells[i, j];
-                    
-                    token = cell.Token;
-                    formatted = cell.FormattedText;
-                }
-                else if (!Parser.TryParseAndFormatToken(value, out token, out formatted))
-                    token = null;
+                if (i < Cells.Rows && j < Cells.Columns && value == Cells[i, j].Text)
+                    token = Cells[i, j].Token;
+                else if (!Parser.TryParseToken(new StringRange(value), i, new DummyLogger(), true, out token))
+                    isError = true;
 
                 if (token == null)
                     newCells[i, j] = new CellAnalysis(value, $"<color=#FF0000FF>{value}</color>", null, true);
                 else
-                    newCells[i, j] = new CellAnalysis(value, formatted, token, false);
+                    newCells[i, j] = new CellAnalysis(value, token.FormattedText, token, isError);
             }
         }
         
