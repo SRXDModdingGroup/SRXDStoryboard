@@ -71,7 +71,6 @@ copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\Storyboa
         <Compile Include="Compiler\Opcode.cs" />
         <Compile Include="Compiler\Parser.cs" />
         <Compile Include="Compiler\Procedure.cs" />
-        <Compile Include="Compiler\StringRange.cs" />
         <Compile Include="Compiler\Timestamp.cs" />
         <Compile Include="Compiler\Token\ArrayT.cs" />
         <Compile Include="Compiler\Token\Chain.cs" />
@@ -127,6 +126,7 @@ copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\Storyboa
         <Compile Include="Utility\MathUtility.cs" />
         <Compile Include="Utility\PooledList.cs" />
         <Compile Include="Utility\SerializationUtility.cs" />
+        <Compile Include="Utility\StringRange.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

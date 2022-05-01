@@ -146,7 +146,7 @@ public class EditorSelection {
             }
         }
 
-        return 0;
+        return -1;
     }
 
     public int GetBottomOfSelection() {
@@ -157,7 +157,38 @@ public class EditorSelection {
             }
         }
 
-        return 0;
+        return -1;
+    }
+
+    public int GetLeftOfSelection() {
+        for (int i = 0; i < selection.Columns; i++) {
+            for (int j = 0; j < selection.Rows; j++) {
+                if (IsInSelection(j, i))
+                    return j;
+            }
+        }
+
+        return -1;
+    }
+    
+    public int GetRightOfSelection() {
+        for (int i = selection.Columns; i >= 0; i--) {
+            for (int j = 0; j < selection.Rows; j++) {
+                if (IsInSelection(j, i))
+                    return j;
+            }
+        }
+
+        return -1;
+    }
+
+    public RectInt GetSelectionBounds() {
+        int top = GetTopOfSelection();
+        int bottom = GetBottomOfSelection();
+        int left = GetLeftOfSelection();
+        int right = GetRightOfSelection();
+
+        return new RectInt(top, left, bottom - top + 1, right - left + 1);
     }
     
     public IEnumerable<int> GetSelectedRows() {

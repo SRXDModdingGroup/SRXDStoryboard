@@ -6,7 +6,7 @@ public class VariableInfo {
     
     public Vector2Int Declaration { get; }
 
-    public List<Vector2Int> Usages { get; } = new();
+    public List<VariableUsage> Usages { get; } = new();
 
     public VariableInfo(string name, Vector2Int declaration) {
         Name = name;

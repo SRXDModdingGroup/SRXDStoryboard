@@ -16,9 +16,14 @@ public static class StoryboardDocument {
             }
 
             if (anyInColumn) {
-                if (i == document.Columns - 1)
-                    document.AddColumn();
+                if (i < document.Columns - 1)
+                    return;
                 
+                document.AddColumn();
+
+                for (int j = 0; j < document.Rows; j++)
+                    document[j, document.Columns - 1] = string.Empty;
+
                 return;
             }
             
@@ -49,7 +54,14 @@ public static class StoryboardDocument {
         }
     }
 
-    public static Table<string> CreateNew(int rowCount) => new(rowCount, 1);
+    public static Table<string> CreateNew(int rowCount) {
+        var document = new Table<string>(rowCount, 1);
+
+        for (int i = 0; i < rowCount; i++)
+            document[i, 0] = string.Empty;
+
+        return document;
+    }
 
     public static bool TryOpenFile(string path, out Table<string> document) {
         if (!File.Exists(path)) {

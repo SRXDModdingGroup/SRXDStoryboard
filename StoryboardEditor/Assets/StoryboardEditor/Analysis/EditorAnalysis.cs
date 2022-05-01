@@ -59,18 +59,48 @@ public class EditorAnalysis {
     }
 
     private void AnalyzeAsync(Table<string> document, Action callback, CancellationToken ct) {
+        if (!FillCells(document, ct))
+            return;
+
+        var proceduresDict = new Dictionary<string, ProcedureInfo>();
+
+        if (!FillVariablesAndProcedures(proceduresDict, ct)
+            || !ValidateCells(proceduresDict, ct)
+            || ct.IsCancellationRequested)
+            return;
+        
+        lock (Lock) {
+            (Cells, newCells) = (newCells, Cells);
+            (Procedures, newProcedures) = (newProcedures, Procedures);
+            (Globals, newGlobals) = (newGlobals, Globals);
+        }
+
+        callback?.Invoke();
+    }
+
+    private bool FillCells(Table<string> document, CancellationToken ct) {
         newCells.SetSize(document.Rows, document.Columns);
 
         for (int i = 0; i < document.Rows; i++) {
             if (ct.IsCancellationRequested)
-                return;
-            
+                return false;
+
             for (int j = 0; j < document.Columns; j++) {
                 string value = document[i, j];
 
+                if (i < Cells.Rows && j < Cells.Columns) {
+                    var oldCell = Cells[i, j];
+
+                    if (oldCell != null && value == oldCell.Text) {
+                        newCells[i, j] = oldCell;
+
+                        continue;
+                    }
+                }
+
                 if (string.IsNullOrWhiteSpace(value)) {
                     newCells[i, j] = new CellAnalysis(string.Empty, string.Empty, null, false);
-                        
+
                     continue;
                 }
 
@@ -78,42 +108,77 @@ public class EditorAnalysis {
 
                 if (value.StartsWith("//")) {
                     newCells[i, j] = new CellAnalysis(value, $"<color=#00FF00FF>{value}</color>", null, false);
-                        
+
                     continue;
                 }
 
-                Token token;
-                bool isError = false;
+                bool isError = !Parser.TryParseToken(new StringRange(value), i, new DummyLogger(), true, out var token);
 
-                if (i < Cells.Rows && j < Cells.Columns && value == Cells[i, j].Text)
-                    token = Cells[i, j].Token;
-                else if (!Parser.TryParseToken(new StringRange(value), i, new DummyLogger(), true, out token))
-                    isError = true;
-
-                if (token == null)
+                if (token == null) {
                     newCells[i, j] = new CellAnalysis(value, $"<color=#FF0000FF>{value}</color>", null, true);
-                else
-                    newCells[i, j] = new CellAnalysis(value, token.FormattedText, token, isError);
+
+                    continue;
+                }
+
+                var cell = new CellAnalysis(value, token.FormattedText, token, isError);
+
+                Traverse(token);
+                newCells[i, j] = cell;
+
+                void Traverse(Token token) {
+                    cell.Tokens.Add(token);
+
+                    switch (token.Type) {
+                        case TokenType.Array:
+                            foreach (var subToken in (ArrayT) token)
+                                Traverse(subToken);
+
+                            return;
+                        case TokenType.Chain:
+                            foreach (var subToken in (Chain) token)
+                                Traverse(subToken);
+
+                            return;
+                        case TokenType.FuncCall:
+                            foreach (var argument in ((FuncCall) token).Arguments)
+                                Traverse(argument);
+
+                            return;
+                        case TokenType.Indexer:
+                            Traverse(((Indexer) token).Token);
+
+                            return;
+                        case TokenType.Invalid:
+                        case TokenType.Constant:
+                        case TokenType.Name:
+                        case TokenType.Opcode:
+                        default:
+                            return;
+                    }
+                }
             }
         }
-        
-        newProcedures.Clear();
-        newGlobals.Clear();
 
-        var proceduresDict = new Dictionary<string, ProcedureInfo>();
+        return true;
+    }
+
+    private bool FillVariablesAndProcedures(Dictionary<string, ProcedureInfo> proceduresDict, CancellationToken ct) {
         int currentProcedureIndex = -1;
         string currentProcedureName = string.Empty;
         var currentProcedureArgNames = new List<string>();
         var currentProcedureLocals = new Dictionary<string, VariableInfo>();
+        
+        newProcedures.Clear();
+        newGlobals.Clear();
 
         for (int i = 0; i < newCells.Rows; i++) {
             if (ct.IsCancellationRequested)
-                return;
+                return false;
 
             var cell = newCells[i, 0];
             var token = cell.Token;
-            
-            if (token is not {Type: TokenType.Opcode} || newCells.Columns < 2) {
+
+            if (token is not { Type: TokenType.Opcode } || newCells.Columns < 2) {
                 for (int j = 1; j < newCells.Columns; j++) {
                     if (newCells[i, j].Token == null)
                         continue;
@@ -122,7 +187,7 @@ public class EditorAnalysis {
 
                     break;
                 }
-                
+
                 continue;
             }
 
@@ -138,14 +203,14 @@ public class EditorAnalysis {
 
                     currentProcedureIndex = i;
                     currentProcedureArgNames = new List<string>();
-                    currentProcedureLocals = new Dictionary<string, VariableInfo>() {{ "count", new VariableInfo("count", new Vector2Int(i, -1)) }, { "iter", new VariableInfo("iter", new Vector2Int(i, -1)) }};
+                    currentProcedureLocals = new Dictionary<string, VariableInfo>() { { "count", new VariableInfo("count", new Vector2Int(i, -1)) }, { "iter", new VariableInfo("iter", new Vector2Int(i, -1)) } };
 
                     cell = newCells[i, 1];
 
                     if (!TryGetName(cell.Token, out currentProcedureName) || proceduresDict.ContainsKey(currentProcedureName)) {
                         cell.IsError = true;
                         currentProcedureIndex = -1;
-                        
+
                         continue;
                     }
 
@@ -191,7 +256,7 @@ public class EditorAnalysis {
 
                         continue;
                     }
-                    
+
                     newGlobals.Add(globalName, new VariableInfo(globalName, new Vector2Int(i, 1)));
 
                     continue;
@@ -204,7 +269,7 @@ public class EditorAnalysis {
 
                         continue;
                     }
-                    
+
                     if (!currentProcedureLocals.ContainsKey(localName))
                         currentProcedureLocals.Add(localName, new VariableInfo(localName, new Vector2Int(i, 1)));
 
@@ -220,7 +285,7 @@ public class EditorAnalysis {
                     continue;
             }
         }
-        
+
         if (currentProcedureIndex >= 0) {
             var info = new ProcedureInfo(currentProcedureIndex, currentProcedureName, currentProcedureArgNames, currentProcedureLocals);
 
@@ -228,15 +293,18 @@ public class EditorAnalysis {
             newGlobals.Add(currentProcedureName, new VariableInfo(currentProcedureName, new Vector2Int(currentProcedureIndex, 1)));
             proceduresDict.Add(currentProcedureName, info);
         }
-        
+
+        return true;
+    }
+
+    private bool ValidateCells(Dictionary<string, ProcedureInfo> proceduresDict, CancellationToken ct) {
         string[] argNames = new string[newCells.Columns];
         var currentProcedure = new ProcedureInfo(-1, null, null, null);
-        
-        currentProcedureIndex = -1;
+        int currentProcedureIndex = -1;
 
         for (int i = 0; i < newCells.Rows; i++) {
             if (ct.IsCancellationRequested)
-                return;
+                return false;
 
             if (currentProcedureIndex + 1 < newProcedures.Count && i >= newProcedures[currentProcedureIndex + 1].Index) {
                 var nextProcedure = newProcedures[currentProcedureIndex + 1];
@@ -246,18 +314,18 @@ public class EditorAnalysis {
                     currentProcedure = nextProcedure;
                 }
             }
-            
+
             int lastFilled = -1;
 
             for (int j = newCells.Columns - 1; j >= 0; j--) {
                 if (string.IsNullOrWhiteSpace(newCells[i, j].Text) || newCells[i, j].Token == null)
                     continue;
-                
+
                 lastFilled = j;
 
                 break;
             }
-            
+
             if (lastFilled < 0)
                 continue;
 
@@ -266,7 +334,7 @@ public class EditorAnalysis {
 
             if (token is not { Type: TokenType.Opcode }) {
                 cell.IsError = true;
-                
+
                 continue;
             }
 
@@ -278,7 +346,7 @@ public class EditorAnalysis {
 
             for (int j = 1, k = 0; j < newCells.Columns; j++, k++) {
                 cell = newCells[i, j];
-                
+
                 bool empty = string.IsNullOrWhiteSpace(cell.Text);
 
                 if ((k < expectedLength && empty) || (k >= expectedLength && !empty && !unlimited)) {
@@ -286,55 +354,51 @@ public class EditorAnalysis {
                         cell.FormattedText = $"<color=#FFFFFF40>{argNames[k]}</color>";
 
                     cell.IsError = true;
-                    
+
                     continue;
                 }
 
-                if (!empty && !ValidateToken(cell.Token))
+                if (empty)
+                    continue;
+
+                for (int l = 0; l < cell.Tokens.Count; l++) {
+                    var cellToken = cell.Tokens[l];
+
+                    if (ValidateToken(cellToken, l))
+                        continue;
+
                     cell.IsError = true;
 
-                bool ValidateToken(Token token) {
+                    break;
+                }
+
+                bool ValidateToken(Token token, int index) {
                     switch (token.Type) {
-                        case TokenType.Array:
-                            var array = (ArrayT) token;
-
-                            for (int l = 0; l < array.Length; l++) {
-                                if (!ValidateToken(array[l]))
-                                    return false;
-                            }
-
-                            return true;
                         case TokenType.Chain:
                             var chain = (Chain) token;
 
                             if (chain.Length == 0 || chain[0].Type != TokenType.Name)
                                 return false;
-                            
+
                             string name = ((Name) chain[0]).ToString();
-                            
-                            if (!newGlobals.ContainsKey(name)
-                                && (currentProcedure.Index < 0 || !currentProcedure.Locals.TryGetValue(name, out var localInfo) || i < localInfo.Declaration.x))
+
+                            if (!newGlobals.TryGetValue(name, out var info)
+                                && (currentProcedure.Index < 0
+                                    || !currentProcedure.Locals.TryGetValue(name, out info)
+                                    || i < info.Declaration.x
+                                    || i == info.Declaration.x && j != info.Declaration.y))
                                 return false;
 
-                            for (int l = 0; l < chain.Length; l++) {
-                                if (!ValidateToken(chain[l]))
-                                    return false;
-                            }
+                            info.Usages.Add(new VariableUsage(i, j, index + 1));
 
                             return true;
+                        case TokenType.Array:
                         case TokenType.Constant:
-                            return true;
                         case TokenType.FuncCall:
-                            foreach (var argToken in ((FuncCall) token).Arguments) {
-                                if (!ValidateToken(argToken))
-                                    return false;
-                            }
-
-                            return true;
                         case TokenType.Indexer:
-                            return ValidateToken(((Indexer) token).Token);
                         case TokenType.Name:
-                            return !string.IsNullOrWhiteSpace(((Name) token).ToString());
+                            return true;
+                        case TokenType.Invalid:
                         case TokenType.Opcode:
                         default:
                             return false;
@@ -344,17 +408,17 @@ public class EditorAnalysis {
 
             if (opcode is not (Opcode.Call or Opcode.Loop))
                 continue;
-            
+
             int shift;
 
             if (opcode == Opcode.Call)
                 shift = 3;
             else
                 shift = 5;
-            
+
             if (shift >= newCells.Columns || !TryGetName(newCells[i, 2].Token, out string name) || !proceduresDict.TryGetValue(name, out var procedure))
                 continue;
-                
+
             var procArgNames = procedure.ArgNames;
 
             for (int j = 0, k = shift; j < procArgNames.Count && k < newCells.Columns; j++, k++) {
@@ -364,17 +428,8 @@ public class EditorAnalysis {
                     cell.FormattedText = $"<color=#FFFFFF40>{procArgNames[j]}</color>";
             }
         }
-        
-        if (ct.IsCancellationRequested)
-            return;
-        
-        lock (Lock) {
-            (Cells, newCells) = (newCells, Cells);
-            (Procedures, newProcedures) = (newProcedures, Procedures);
-            (Globals, newGlobals) = (newGlobals, Globals);
-        }
 
-        callback?.Invoke();
+        return true;
     }
 
     private static bool TryGetName(Token token, out string name) {

@@ -1,6 +1,9 @@
-﻿namespace StoryboardSystem; 
+﻿using System.Collections;
+using System.Collections.Generic;
 
-public class Chain : Token {
+namespace StoryboardSystem; 
+
+public class Chain : Token, IEnumerable<Token> {
     public override TokenType Type => TokenType.Chain;
 
     public int Length => chain.Length;
@@ -10,4 +13,8 @@ public class Chain : Token {
     public Chain(Token[] chain) => this.chain = chain;
 
     public Token this[int index] => chain[index];
+
+    public IEnumerator<Token> GetEnumerator() => ((IEnumerable<Token>) chain).GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

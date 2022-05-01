@@ -16,6 +16,7 @@ public class StoryboardEditor : MonoBehaviour {
     private bool rowSelecting;
     private Table<string> document;
     private Table<CellVisualState> cellStates;
+    private string[,] clipboard;
     private EventSystem eventSystem;
     private EditorSettings settings;
     private EditorInput input;
@@ -404,16 +405,23 @@ public class StoryboardEditor : MonoBehaviour {
         undoRedo.AddSubAction(() => Undo(index), () => Do(index));
 
         void Do(int index) {
+            analysis.Cells.SetSize(document.Rows, document.Columns);
             document.InsertRow(index);
             cellStates.InsertRow(index);
+            analysis.Cells.InsertRow(index);
+
+            for (int i = 0; i < document.Columns; i++)
+                document[index, i] = string.Empty;
 
             for (int i = 0; i < cellStates.Columns; i++)
                 cellStates[index, i] = new CellVisualState();
         }
 
         void Undo(int index) {
+            analysis.Cells.SetSize(document.Rows, document.Columns);
             document.RemoveRow(index);
             cellStates.RemoveRow(index);
+            analysis.Cells.RemoveRow(index);
         }
     }
 
@@ -427,13 +435,17 @@ public class StoryboardEditor : MonoBehaviour {
         undoRedo.AddSubAction(() => Undo(oldContents, index), () => Do(index));
 
         void Do(int index) {
+            analysis.Cells.SetSize(document.Rows, document.Columns);
             document.RemoveRow(index);
             cellStates.RemoveRow(index);
+            analysis.Cells.RemoveRow(index);
         }
 
         void Undo(string[] oldContents, int index) {
+            analysis.Cells.SetSize(document.Rows, document.Columns);
             document.InsertRow(index);
             cellStates.InsertRow(index);
+            analysis.Cells.InsertRow(index);
 
             for (int i = 0; i < oldContents.Length; i++) {
                 string value = oldContents[i];
@@ -549,6 +561,20 @@ public class StoryboardEditor : MonoBehaviour {
             SetCellText(row, i, document[row, i + 1]);
         
         SetCellText(row, document.Columns - 1, string.Empty);
+    }
+
+    private void Copy() {
+        if (!selection.AnySelected)
+            return;
+
+        var bounds = selection.GetSelectionBounds();
+
+        clipboard = new string[bounds.width, bounds.height];
+
+        for (int i = 0; i < bounds.width; i++) {
+            for (int j = 0; j < bounds.height; j++)
+                clipboard[i, j] = document[bounds.x + i, bounds.y + j];
+        }
     }
     
     private bool AnyInRow(int row) {

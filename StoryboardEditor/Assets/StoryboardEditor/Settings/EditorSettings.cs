@@ -1,6 +1,8 @@
+using System.Collections.Generic;
+
 public class EditorSettings {
-    public Binding[] Bindings { get; } = {
-        new("Undo", BindableAction.Undo, "z", InputModifier.Control),
-        new("Redo", BindableAction.Redo, "y", InputModifier.Control)
+    public Dictionary<BindableAction, Binding> Bindings { get; } = new() {
+        { BindableAction.Undo, new Binding("Undo", "z", InputModifier.Control) },
+        { BindableAction.Redo, new Binding("Redo", "y", InputModifier.Control) }
     };
 }

@@ -42,7 +42,7 @@ public class StringRange : IEnumerable<char> {
         if (result < 0)
             return -1;
 
-        return result + Index;
+        return result - Index;
     }
 
     public StringRange Substring(int startIndex, int length) => new(String, Index + startIndex, length);

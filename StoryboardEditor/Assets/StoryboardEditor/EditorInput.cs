@@ -27,8 +27,8 @@ public class EditorInput {
         
         bindingsDict = new Dictionary<BindableAction, List<Action>>();
 
-        foreach (var binding in settings.Bindings)
-            bindingsDict.Add(binding.ActionId, new List<Action>());
+        foreach (var pair in settings.Bindings)
+            bindingsDict.Add(pair.Key, new List<Action>());
     }
 
     // ReSharper disable Unity.PerformanceAnalysis
@@ -81,8 +81,8 @@ public class EditorInput {
         if (modifiers.HasAnyModifiers(InputModifier.Control | InputModifier.Alt)) {
             inputString = inputString.ToLowerInvariant();
             
-            foreach (var binding in settings.Bindings) {
-                if (binding.InputString != inputString || !modifiers.HasExactModifiers(binding.Modifiers) || !bindingsDict.TryGetValue(binding.ActionId, out var actions))
+            foreach (var (bindableAction, binding) in settings.Bindings) {
+                if (binding.InputString != inputString || !modifiers.HasExactModifiers(binding.Modifiers) || !bindingsDict.TryGetValue(bindableAction, out var actions))
                     continue;
                 
                 foreach (var action in actions)

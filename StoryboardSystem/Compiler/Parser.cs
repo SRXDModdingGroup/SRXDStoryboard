@@ -80,12 +80,13 @@ public static class Parser {
                     continue;
                 }
 
-                if (!TryParseToken(subString, lineIndex, logger, format, out var token)) {
-                    logger.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {subString}"));
+                if (!TryParseToken(subString, lineIndex, logger, format, out var token))
                     success = false;
-                }
-                
+
                 tokens.Add(token);
+
+                if (!token.Success)
+                    success = false;
                 
                 if (!format)
                     continue;
@@ -190,11 +191,13 @@ public static class Parser {
         else if (TryParseArray(str, lineIndex, logger, format, out token)
                  || TryParseFuncCall(str, lineIndex, logger, format, out token)
                  || TryParseChain(str, lineIndex, logger, format, out token)) { }
-        else
+        else {
             token = new InvalidToken();
+            logger.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {str}"));
+        }
 
         if (!format)
-            return true;
+            return token.Success;
 
         token.Range = str;
 
@@ -207,7 +210,7 @@ public static class Parser {
         if (string.IsNullOrWhiteSpace(token.FormattedText))
             token.FormattedText = str.ToString();
 
-        return true;
+        return token.Success;
     }
     
     public static bool TrySkipTo(StringRange str, ref int index, char bounds) {

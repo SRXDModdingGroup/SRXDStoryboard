@@ -1,6 +1,9 @@
-﻿namespace StoryboardSystem; 
+﻿using System.Collections;
+using System.Collections.Generic;
 
-public class ArrayT : Token {
+namespace StoryboardSystem; 
+
+public class ArrayT : Token, IEnumerable<Token> {
     public override TokenType Type => TokenType.Array;
     
     public int Length => array.Length;
@@ -10,4 +13,8 @@ public class ArrayT : Token {
     public ArrayT(Token[] array) => this.array = array;
 
     public Token this[int index] => array[index];
+
+    public IEnumerator<Token> GetEnumerator() => ((IEnumerable<Token>) array).GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
