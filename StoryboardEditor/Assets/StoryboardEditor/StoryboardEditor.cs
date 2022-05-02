@@ -5,11 +5,14 @@ using StoryboardSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class StoryboardEditor : MonoBehaviour {
     [SerializeField] private int newDocumentRows;
     [SerializeField] private TMP_InputField textField;
     [SerializeField] private GridView gridView;
+    [SerializeField] private TopBarButton[] topBarButtons;
+    [SerializeField] private Button blocker;
 
     private bool contentNeedsUpdate;
     private bool editing;
@@ -49,6 +52,18 @@ public class StoryboardEditor : MonoBehaviour {
     }
 
     private void Start() {
+        foreach (var topBarButton in topBarButtons) {
+            var values = new List<string>(topBarButton.Actions.Length);
+
+            foreach (var bindableAction in topBarButton.Actions) {
+                var binding = settings.Bindings[bindableAction];
+                
+                values.Add(binding.Name);
+            }
+            
+            topBarButton.Init(values, input.Execute, blocker);
+        }
+        
         if (StoryboardDocument.TryOpenFile("C:/Users/domia/OneDrive/My Charts/Storyboards/We Could Get More Machinegun Psystyle!.txt", out document)) {
             SetDocument(document);
             StoryboardDocument.SaveToFile(document, "C:/Users/domia/OneDrive/My Charts/Storyboards/We Could Get More Machinegun Psystyle!.txt");
@@ -463,6 +478,7 @@ public class StoryboardEditor : MonoBehaviour {
         StoryboardDocument.MinimizeColumns(document);
         UpdateBounds();
         analysis.Analyze(document, () => contentNeedsUpdate = true);
+        gridView.UpdateView();
     }
     
     private void Redo() {
@@ -472,6 +488,7 @@ public class StoryboardEditor : MonoBehaviour {
         StoryboardDocument.MinimizeColumns(document);
         UpdateBounds();
         analysis.Analyze(document, () => contentNeedsUpdate = true);
+        gridView.UpdateView();
     }
 
     private void UpdateBounds() {

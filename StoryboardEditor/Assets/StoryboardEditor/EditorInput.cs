@@ -98,6 +98,13 @@ public class EditorInput {
             actions.Add(action);
     }
 
+    public void Execute(BindableAction actionId) {
+        var actions = bindingsDict[actionId];
+        
+        foreach (var action in actions)
+            action?.Invoke();
+    }
+
     public static InputModifier GetModifiers() {
         var modifiers = InputModifier.None;
         

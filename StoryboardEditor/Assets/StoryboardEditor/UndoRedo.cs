@@ -57,7 +57,7 @@ public class UndoRedo {
         
         var action = stack[currentStackIndex];
 
-        for (int i = 0; i < action.Count - 1; i++)
+        for (int i = 0; i < action.Count; i++)
             action[i].Redo();
 
         return true;
