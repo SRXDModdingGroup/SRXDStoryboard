@@ -4,12 +4,13 @@ using UnityEngine;
 public class VariableInfo {
     public string Name { get; }
     
-    public Vector2Int Declaration { get; }
+    public Vector2Int Declaration { get; set; }
 
-    public List<VariableUsage> Usages { get; } = new();
+    public List<VariableUsage> Usages { get; }
 
     public VariableInfo(string name, Vector2Int declaration) {
         Name = name;
         Declaration = declaration;
+        Usages = new List<VariableUsage>();
     }
 }

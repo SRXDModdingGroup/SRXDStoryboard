@@ -2,12 +2,20 @@ using System.IO;
 using StoryboardSystem;
 
 public static class StoryboardDocument {
-    public static void MinimizeColumns(Table<string> document) {
+    public static void Optimize(Table<string> document) {
         for (int i = document.Columns - 1; i >= 0; i--) {
             bool anyInColumn = false;
 
             for (int j = 0; j < document.Rows; j++) {
-                if (string.IsNullOrWhiteSpace(document[j, i]))
+                string value = document[i, j];
+
+                if (value == null) {
+                    document[i, j] = string.Empty;
+                    
+                    continue;
+                }
+                
+                if (string.IsNullOrWhiteSpace(value))
                     continue;
                 
                 anyInColumn = true;
@@ -15,19 +23,10 @@ public static class StoryboardDocument {
                 break;
             }
 
-            if (anyInColumn) {
-                if (i < document.Columns - 1)
-                    return;
-                
-                document.AddColumn();
-
-                for (int j = 0; j < document.Rows; j++)
-                    document[j, document.Columns - 1] = string.Empty;
-
+            if (anyInColumn)
                 return;
-            }
-            
-            if (i < document.Columns - 1)
+
+            if (document.Columns > i + 1)
                 document.RemoveLastColumn();
         }
     }

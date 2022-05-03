@@ -18,8 +18,8 @@ public class StoryboardEditor : MonoBehaviour {
     private bool editing;
     private bool rowSelecting;
     private Table<string> document;
+    private Table<string> clipboard;
     private Table<CellVisualState> cellStates;
-    private string[,] clipboard;
     private EventSystem eventSystem;
     private EditorSettings settings;
     private EditorInput input;
@@ -34,7 +34,7 @@ public class StoryboardEditor : MonoBehaviour {
         gridView.Deselected += OnGridDeselected;
         eventSystem = EventSystem.current;
         settings = new EditorSettings();
-        input = new EditorInput(settings);
+        input = new EditorInput();
         selection = new EditorSelection();
         analysis = new EditorAnalysis();
         undoRedo = new UndoRedo();
@@ -49,16 +49,31 @@ public class StoryboardEditor : MonoBehaviour {
         input.Character += OnCharacter;
         input.Bind(BindableAction.Undo, Undo);
         input.Bind(BindableAction.Redo, Redo);
+        input.Bind(BindableAction.Copy, Copy);
+        input.Bind(BindableAction.Paste, () => Paste(false));
+        input.Bind(BindableAction.PasteAndInsert, () => Paste(true));
     }
 
     private void Start() {
         foreach (var topBarButton in topBarButtons) {
-            var values = new List<string>(topBarButton.Actions.Length);
+            var values = new List<ContextMenu.StringPair>(topBarButton.Actions.Length);
 
             foreach (var bindableAction in topBarButton.Actions) {
                 var binding = settings.Bindings[bindableAction];
+                var builder = new StringBuilder();
+                var modifiers = binding.Modifiers;
+
+                if (modifiers.HasAnyModifiers(InputModifier.Control))
+                    builder.Append("Ctrl+");
                 
-                values.Add(binding.Name);
+                if (modifiers.HasAnyModifiers(InputModifier.Alt))
+                    builder.Append("Alt+");
+                
+                if (modifiers.HasAnyModifiers(InputModifier.Shift))
+                    builder.Append("Shift+");
+
+                builder.Append(binding.InputString);
+                values.Add(new ContextMenu.StringPair(binding.Name, builder.ToString()));
             }
             
             topBarButton.Init(values, input.Execute, blocker);
@@ -78,7 +93,7 @@ public class StoryboardEditor : MonoBehaviour {
     }
 
     private void Update() {
-        input.UpdateInput();
+        input.UpdateInput(settings);
         
         if (contentNeedsUpdate)
             UpdateContent();
@@ -371,6 +386,7 @@ public class StoryboardEditor : MonoBehaviour {
 
     private void SetDocument(Table<string> document) {
         this.document = document;
+        StoryboardDocument.Optimize(document);
         cellStates = new Table<CellVisualState>(document.Rows, document.Columns);
 
         for (int i = 0; i < cellStates.Rows; i++) {
@@ -396,7 +412,7 @@ public class StoryboardEditor : MonoBehaviour {
             return;
 
         editing = false;
-        StoryboardDocument.MinimizeColumns(document);
+        StoryboardDocument.Optimize(document);
         UpdateBounds();
         analysis.Analyze(document, () => contentNeedsUpdate = true);
         undoRedo.CompleteAction();
@@ -472,20 +488,24 @@ public class StoryboardEditor : MonoBehaviour {
     }
 
     private void Undo() {
-        if (!undoRedo.TryUndo())
+        if (!undoRedo.CanUndo())
             return;
         
-        StoryboardDocument.MinimizeColumns(document);
+        analysis.Cancel();
+        undoRedo.Undo();
+        StoryboardDocument.Optimize(document);
         UpdateBounds();
         analysis.Analyze(document, () => contentNeedsUpdate = true);
         gridView.UpdateView();
     }
     
     private void Redo() {
-        if (!undoRedo.TryRedo())
+        if (!undoRedo.CanRedo())
             return;
         
-        StoryboardDocument.MinimizeColumns(document);
+        analysis.Cancel();
+        undoRedo.Redo();
+        StoryboardDocument.Optimize(document);
         UpdateBounds();
         analysis.Analyze(document, () => contentNeedsUpdate = true);
         gridView.UpdateView();
@@ -586,12 +606,49 @@ public class StoryboardEditor : MonoBehaviour {
 
         var bounds = selection.GetSelectionBounds();
 
-        clipboard = new string[bounds.width, bounds.height];
+        if (clipboard == null)
+            clipboard = new Table<string>(bounds.width, bounds.height);
+        else
+            clipboard.SetSize(bounds.width, bounds.height);
 
         for (int i = 0; i < bounds.width; i++) {
-            for (int j = 0; j < bounds.height; j++)
-                clipboard[i, j] = document[bounds.x + i, bounds.y + j];
+            int currentRow = bounds.x + i;
+            
+            for (int j = 0; j < bounds.height; j++) {
+                int currentColumn = bounds.y + j;
+                
+                if (selection.IsInSelection(currentRow, currentColumn))
+                    clipboard[i, j] = document[currentRow, currentColumn];
+                else
+                    clipboard[i, j] = null;
+            }
         }
+    }
+
+    private void Paste(bool insert) {
+        if (clipboard == null || !selection.AnyBoxSelection)
+            return;
+        
+        BeginEdit();
+
+        int row = selection.BoxSelectionStart.x;
+        int column = selection.BoxSelectionStart.y;
+
+        for (int i = 0; i < clipboard.Rows; i++) {
+            int currentRow = row + i;
+            
+            if (insert)
+                InsertRow(currentRow);
+            
+            for (int j = 0; j < clipboard.Columns; j++) {
+                string value = clipboard[i, j];
+
+                if (value != null)
+                    SetCellText(currentRow, column + j, value);
+            }
+        }
+        
+        EndEdit();
     }
     
     private bool AnyInRow(int row) {

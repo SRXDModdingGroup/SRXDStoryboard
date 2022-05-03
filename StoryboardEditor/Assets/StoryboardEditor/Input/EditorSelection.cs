@@ -164,7 +164,7 @@ public class EditorSelection {
         for (int i = 0; i < selection.Columns; i++) {
             for (int j = 0; j < selection.Rows; j++) {
                 if (IsInSelection(j, i))
-                    return j;
+                    return i;
             }
         }
 
@@ -175,7 +175,7 @@ public class EditorSelection {
         for (int i = selection.Columns; i >= 0; i--) {
             for (int j = 0; j < selection.Rows; j++) {
                 if (IsInSelection(j, i))
-                    return j;
+                    return i;
             }
         }
 

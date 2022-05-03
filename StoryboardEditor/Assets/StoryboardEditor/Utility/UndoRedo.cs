@@ -35,9 +35,9 @@ public class UndoRedo {
         stack.Clear();
     }
 
-    public bool TryUndo() {
+    public void Undo() {
         if (currentStackIndex < 0)
-            return false;
+            return;
 
         var action = stack[currentStackIndex];
 
@@ -46,12 +46,12 @@ public class UndoRedo {
 
         currentStackIndex--;
 
-        return true;
+        return;
     }
 
-    public bool TryRedo() {
+    public void Redo() {
         if (currentStackIndex >= stack.Count - 1)
-            return false;
+            return;
 
         currentStackIndex++;
         
@@ -60,6 +60,10 @@ public class UndoRedo {
         for (int i = 0; i < action.Count; i++)
             action[i].Redo();
 
-        return true;
+        return;
     }
+
+    public bool CanUndo() => currentStackIndex >= 0;
+
+    public bool CanRedo() => currentStackIndex < stack.Count - 1;
 }

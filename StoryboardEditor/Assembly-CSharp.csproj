@@ -42,26 +42,26 @@
   </PropertyGroup>
   <ItemGroup>
      <Compile Include="Assets\StoryboardEditor\Settings\EditorSettings.cs" />
-     <Compile Include="Assets\StoryboardEditor\Table.cs" />
-     <Compile Include="Assets\StoryboardEditor\EditorSelection.cs" />
+     <Compile Include="Assets\StoryboardEditor\Utility\Table.cs" />
+     <Compile Include="Assets\StoryboardEditor\Input\EditorSelection.cs" />
      <Compile Include="Assets\StoryboardEditor\Analysis\VariableInfo.cs" />
      <Compile Include="Assets\StoryboardEditor\StoryboardEditor.cs" />
      <Compile Include="Assets\StoryboardEditor\Analysis\ProcedureInfo.cs" />
-     <Compile Include="Assets\StoryboardEditor\StoryboardDocument.cs" />
+     <Compile Include="Assets\StoryboardEditor\Utility\StoryboardDocument.cs" />
      <Compile Include="Assets\StoryboardEditor\GridView\CellVisualState.cs" />
      <Compile Include="Assets\StoryboardEditor\GridView\GridView.cs" />
-     <Compile Include="Assets\StoryboardEditor\InputModifier.cs" />
-     <Compile Include="Assets\StoryboardEditor\UndoRedo.cs" />
+     <Compile Include="Assets\StoryboardEditor\Input\InputModifier.cs" />
+     <Compile Include="Assets\StoryboardEditor\Utility\UndoRedo.cs" />
      <Compile Include="Assets\StoryboardEditor\Settings\Binding.cs" />
-     <Compile Include="Assets\StoryboardEditor\EditorInput.cs" />
+     <Compile Include="Assets\StoryboardEditor\Input\EditorInput.cs" />
+     <Compile Include="Assets\StoryboardEditor\UI\ContextMenu.cs" />
      <Compile Include="Assets\StoryboardEditor\Analysis\EditorAnalysis.cs" />
      <Compile Include="Assets\StoryboardEditor\Settings\BindableAction.cs" />
      <Compile Include="Assets\StoryboardEditor\GridView\GridCell.cs" />
      <Compile Include="Assets\StoryboardEditor\Analysis\CellAnalysis.cs" />
-     <Compile Include="Assets\StoryboardEditor\DummyLogger.cs" />
+     <Compile Include="Assets\StoryboardEditor\Utility\DummyLogger.cs" />
      <Compile Include="Assets\StoryboardEditor\Analysis\VariableUsage.cs" />
-     <Compile Include="Assets\StoryboardEditor\ContextMenu.cs" />
-     <Compile Include="Assets\StoryboardEditor\TopBarButton.cs" />
+     <Compile Include="Assets\StoryboardEditor\UI\TopBarButton.cs" />
      <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />

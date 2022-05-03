@@ -4,7 +4,7 @@ public class ProcedureInfo {
     public int Index { get; }
         
     public string Name { get; }
-        
+    
     public List<string> ArgNames { get; }
     
     public Dictionary<string, VariableInfo> Locals { get; }

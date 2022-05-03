@@ -19,20 +19,17 @@ public class EditorInput {
 
     public event Action<string, InputModifier> Character;
 
-    private EditorSettings settings;
     private Dictionary<BindableAction, List<Action>> bindingsDict { get; }
 
-    public EditorInput(EditorSettings settings) {
-        this.settings = settings;
-        
+    public EditorInput() {
         bindingsDict = new Dictionary<BindableAction, List<Action>>();
 
-        foreach (var pair in settings.Bindings)
-            bindingsDict.Add(pair.Key, new List<Action>());
+        foreach (BindableAction value in Enum.GetValues(typeof(BindableAction)))
+            bindingsDict.Add(value, new List<Action>());
     }
 
     // ReSharper disable Unity.PerformanceAnalysis
-    public void UpdateInput() {
+    public void UpdateInput(EditorSettings settings) {
         if (!Input.anyKeyDown)
             return;
         

@@ -12,7 +12,7 @@ public class TopBarButton : MonoBehaviour {
 
     private Action<BindableAction> callback;
 
-    public void Init(List<string> values, Action<BindableAction> callback, Button blocker) {
+    public void Init(List<ContextMenu.StringPair> values, Action<BindableAction> callback, Button blocker) {
         contextMenu.SetValues(values);
         contextMenu.Init(blocker);
         this.callback = callback;

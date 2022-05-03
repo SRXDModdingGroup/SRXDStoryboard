@@ -65,7 +65,7 @@ public class EditorAnalysis {
         var proceduresDict = new Dictionary<string, ProcedureInfo>();
 
         if (!FillVariablesAndProcedures(proceduresDict, ct)
-            || !ValidateCells(proceduresDict, ct)
+            || !FillUsagesAndValidateCells(proceduresDict, ct)
             || ct.IsCancellationRequested)
             return;
         
@@ -178,28 +178,13 @@ public class EditorAnalysis {
             var cell = newCells[i, 0];
             var token = cell.Token;
 
-            if (token is not { Type: TokenType.Opcode } || newCells.Columns < 2) {
-                for (int j = 1; j < newCells.Columns; j++) {
-                    if (newCells[i, j].Token == null)
-                        continue;
-
-                    cell.IsError = true;
-
-                    break;
-                }
-
+            if (token is not { Type: TokenType.Opcode } || newCells.Columns < 2)
                 continue;
-            }
 
             switch (((OpcodeT) token).Opcode) {
                 case Opcode.Proc: {
-                    if (currentProcedureIndex >= 0) {
-                        var info = new ProcedureInfo(currentProcedureIndex, currentProcedureName, currentProcedureArgNames, currentProcedureLocals);
-
-                        newProcedures.Add(info);
-                        newGlobals.Add(currentProcedureName, new VariableInfo(currentProcedureName, new Vector2Int(currentProcedureIndex, 1)));
-                        proceduresDict.Add(currentProcedureName, info);
-                    }
+                    if (currentProcedureIndex >= 0)
+                        PopProcedure();
 
                     currentProcedureIndex = i;
                     currentProcedureArgNames = new List<string>();
@@ -230,8 +215,7 @@ public class EditorAnalysis {
 
                         if (!TryGetName(cell.Token, out string argName)) {
                             cell.IsError = true;
-                            currentProcedureIndex = -1;
-
+                            
                             continue;
                         }
 
@@ -256,8 +240,9 @@ public class EditorAnalysis {
 
                         continue;
                     }
-
-                    newGlobals.Add(globalName, new VariableInfo(globalName, new Vector2Int(i, 1)));
+                    
+                    if (!newGlobals.ContainsKey(globalName))
+                        newGlobals.Add(globalName, new VariableInfo(globalName, new Vector2Int(i, 1)));
 
                     continue;
                 }
@@ -286,18 +271,26 @@ public class EditorAnalysis {
             }
         }
 
-        if (currentProcedureIndex >= 0) {
+        if (currentProcedureIndex >= 0)
+            PopProcedure();
+
+        return true;
+
+        void PopProcedure() {
             var info = new ProcedureInfo(currentProcedureIndex, currentProcedureName, currentProcedureArgNames, currentProcedureLocals);
 
             newProcedures.Add(info);
-            newGlobals.Add(currentProcedureName, new VariableInfo(currentProcedureName, new Vector2Int(currentProcedureIndex, 1)));
+
+            if (newGlobals.TryGetValue(currentProcedureName, out var globalInfo))
+                globalInfo.Declaration = new Vector2Int(currentProcedureIndex, 1);
+            else
+                newGlobals.Add(currentProcedureName, new VariableInfo(currentProcedureName, new Vector2Int(currentProcedureIndex, 1)));
+
             proceduresDict.Add(currentProcedureName, info);
         }
-
-        return true;
     }
 
-    private bool ValidateCells(Dictionary<string, ProcedureInfo> proceduresDict, CancellationToken ct) {
+    private bool FillUsagesAndValidateCells(Dictionary<string, ProcedureInfo> proceduresDict, CancellationToken ct) {
         string[] argNames = new string[newCells.Columns];
         var currentProcedure = new ProcedureInfo(-1, null, null, null);
         int currentProcedureIndex = -1;

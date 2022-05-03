@@ -6,7 +6,18 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class ContextMenu : MonoBehaviour {
-    [SerializeField] private List<string> values;
+    [Serializable]
+    public struct StringPair {
+        public string left;
+        public string right;
+
+        public StringPair(string left, string right) {
+            this.left = left;
+            this.right = right;
+        }
+    }
+    
+    [SerializeField] private List<StringPair> values;
     [SerializeField] private GameObject template;
     [SerializeField] private RectTransform layout;
     
@@ -18,7 +29,7 @@ public class ContextMenu : MonoBehaviour {
 
     public void Init(Button blocker) => this.blocker = blocker;
 
-    public void SetValues(List<string> values) {
+    public void SetValues(List<StringPair> values) {
         this.values = values;
         
         while (buttons.Count > 0) {
@@ -27,13 +38,15 @@ public class ContextMenu : MonoBehaviour {
         }
 
         for (int i = 0; i < values.Count; i++) {
-            string value = values[i];
             var go = Instantiate(template, layout);
             var button = go.GetComponent<Button>();
             int j = i;
+            var pair = values[i];
+            var texts = go.GetComponentsInChildren<TMP_Text>();
 
             go.SetActive(true);
-            go.GetComponentInChildren<TMP_Text>().SetText(value);
+            texts[0].SetText(pair.left);
+            texts[1].SetText(pair.right);
             go.transform.SetSiblingIndex(i);
             buttons.Add(button);
             button.onClick.AddListener(() => OnButtonClicked(j));

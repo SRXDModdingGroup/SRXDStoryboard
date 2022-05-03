@@ -1,4 +1,7 @@
 ﻿public enum BindableAction {
     Undo,
-    Redo
+    Redo,
+    Copy,
+    Paste,
+    PasteAndInsert
 }
