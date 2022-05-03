@@ -227,7 +227,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                 var cellState = cellStates[i, k];
                 
                 cell.gameObject.SetActive(true);
-                cell.SetText(cellState.FormattedText);
+                cell.SetState(cellState);
             
                 if (selection.IsInSelection(i, k)) {
                     cell.SetSelected(true, selection.AnyBoxSelection && i == selection.BoxSelectionStart.x && k == selection.BoxSelectionStart.y,
@@ -238,8 +238,6 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
                 }
                 else
                     cell.SetSelected(false, false, false, false, false, false);
-                
-                cell.SetIsError(cellState.IsError);
             }
         }
 

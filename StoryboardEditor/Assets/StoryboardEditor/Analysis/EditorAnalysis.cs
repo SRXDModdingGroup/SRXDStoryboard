@@ -377,11 +377,11 @@ public class EditorAnalysis {
 
                             string name = ((Name) chain[0]).ToString();
 
-                            if (!newGlobals.TryGetValue(name, out var info)
-                                && (currentProcedure.Index < 0
-                                    || !currentProcedure.Locals.TryGetValue(name, out info)
+                            if ((currentProcedure.Index < 0
+                                    || !currentProcedure.Locals.TryGetValue(name, out var info)
                                     || i < info.Declaration.x
-                                    || i == info.Declaration.x && j != info.Declaration.y))
+                                    || i == info.Declaration.x && j != info.Declaration.y)
+                                && !newGlobals.TryGetValue(name, out info))
                                 return false;
 
                             info.Usages.Add(new VariableUsage(i, j, index));

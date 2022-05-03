@@ -6,12 +6,19 @@ public class GridCell : MonoBehaviour {
     [SerializeField] private Color normalSelectedColor;
     [SerializeField] private Color startSelectedColor;
     [SerializeField] private Sprite[] highlightSlices;
+    [SerializeField] private Image backing;
     [SerializeField] private Image selectionBorder;
     [SerializeField] private Image selectionHighlight;
+    [SerializeField] private GameObject procedureBorder;
     [SerializeField] private GameObject errorHighlight;
     [SerializeField] private TMP_Text text;
 
-    public void SetText(string value) => text.SetText(value);
+    public void SetState(CellVisualState state) {
+        text.SetText(state.FormattedText);
+        backing.color = state.Color;
+        procedureBorder.SetActive(state.IsProcedureBorder);
+        errorHighlight.SetActive(state.IsError);
+    }
     
     public void SetSelected(bool thisSelected, bool isSelectionStart, bool left, bool right, bool above, bool below) {
         if (!thisSelected) {
@@ -52,6 +59,4 @@ public class GridCell : MonoBehaviour {
 
         selectionBorder.sprite = highlightSlices[index - 1];
     }
-
-    public void SetIsError(bool isError) => errorHighlight.SetActive(isError);
 }

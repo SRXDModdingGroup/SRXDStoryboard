@@ -5,10 +5,14 @@ using StoryboardSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class StoryboardEditor : MonoBehaviour {
     [SerializeField] private int newDocumentRows;
+    [SerializeField] private Color cellColor1;
+    [SerializeField] private Color cellColor2;
     [SerializeField] private TMP_InputField textField;
+    [SerializeField] private TMP_Dropdown proceduresDropdown;
     [SerializeField] private GridView gridView;
     [SerializeField] private TopBarButton[] topBarButtons;
     [SerializeField] private TextInputPopup textInputPopup;
@@ -32,6 +36,7 @@ public class StoryboardEditor : MonoBehaviour {
         gridView.DragUpdate += OnGridDragUpdate;
         gridView.DragEnd += OnGridDragEnd;
         gridView.Deselected += OnGridDeselected;
+        proceduresDropdown.onValueChanged.AddListener(OnProcedureDropdownItemSelected);
         eventSystem = EventSystem.current;
         settings = new EditorSettings();
         input = new EditorInput();
@@ -382,6 +387,14 @@ public class StoryboardEditor : MonoBehaviour {
         rowSelecting = false;
     }
 
+    private void OnProcedureDropdownItemSelected(int index) {
+        if (index > 0)
+            index = analysis.Procedures[index - 1].Index;
+
+        selection.SetBoxSelectionStartAndEnd(index, 0);
+        gridView.SetScroll(index);
+    }
+
     #endregion
 
     #region Logic
@@ -393,7 +406,7 @@ public class StoryboardEditor : MonoBehaviour {
 
         for (int i = 0; i < cellStates.Rows; i++) {
             for (int j = 0; j < cellStates.Columns; j++)
-                cellStates[i, j] = new CellVisualState();
+                cellStates[i, j] = new CellVisualState(cellColor1);
         }
         
         gridView.Init(cellStates, selection);
@@ -429,7 +442,7 @@ public class StoryboardEditor : MonoBehaviour {
 
         void Do(int row, int column, string value) {
             document.SetValueSafe(row, column, value);
-            cellStates.SetValueSafe(row, column, new CellVisualState(value));
+            cellStates.SetValueSafe(row, column, new CellVisualState(value, cellColor1));
         }
     }
 
@@ -447,7 +460,7 @@ public class StoryboardEditor : MonoBehaviour {
                 document[index, i] = string.Empty;
 
             for (int i = 0; i < cellStates.Columns; i++)
-                cellStates[index, i] = new CellVisualState();
+                cellStates[index, i] = new CellVisualState(cellColor1);
         }
 
         void Undo(int index) {
@@ -484,7 +497,7 @@ public class StoryboardEditor : MonoBehaviour {
                 string value = oldContents[i];
 
                 document.SetValueSafe(index, i, value);
-                cellStates.SetValueSafe(index, i, new CellVisualState(value));
+                cellStates.SetValueSafe(index, i, new CellVisualState(value, cellColor1));
             }
         }
     }
@@ -519,7 +532,7 @@ public class StoryboardEditor : MonoBehaviour {
 
         for (int i = 0; i < cellStates.Rows; i++) {
             for (int j = 0; j < cellStates.Columns; j++)
-                cellStates[i, j] ??= new CellVisualState();
+                cellStates[i, j] ??= new CellVisualState(cellColor1);
         }
     }
 
@@ -531,8 +544,35 @@ public class StoryboardEditor : MonoBehaviour {
         
         lock (analysis.Lock) {
             var info = analysis.Cells;
+            var procedures = analysis.Procedures;
+            int currentProcedureIndex = 0;
+            int nextProcedureRow;
+            var currentColor = cellColor1;
+
+            if (procedures.Count > 0)
+                nextProcedureRow = procedures[0].Index;
+            else
+                nextProcedureRow = int.MaxValue;
 
             for (int i = 0; i < cellStates.Rows; i++) {
+                bool isProcedureBorder = false;
+                
+                if (i >= nextProcedureRow) {
+                    currentProcedureIndex++;
+
+                    if (currentProcedureIndex < procedures.Count)
+                        nextProcedureRow = procedures[currentProcedureIndex].Index;
+                    else
+                        nextProcedureRow = int.MaxValue;
+
+                    if (currentProcedureIndex % 2 == 0)
+                        currentColor = cellColor1;
+                    else
+                        currentColor = cellColor2;
+
+                    isProcedureBorder = true;
+                }
+                
                 for (int j = 0; j < cellStates.Columns; j++) {
                     var cell = cellStates[i, j];
 
@@ -550,9 +590,20 @@ public class StoryboardEditor : MonoBehaviour {
                     else
                         cell.FormattedText = infoCell.FormattedText;
 
+                    cell.Color = currentColor;
                     cell.IsError = infoCell.IsError;
+                    cell.IsProcedureBorder = isProcedureBorder;
                 }
             }
+            
+            proceduresDropdown.ClearOptions();
+
+            var options = new List<string>() { "Top" };
+
+            foreach (var procedure in analysis.Procedures)
+                options.Add(procedure.Name);
+            
+            proceduresDropdown.AddOptions(options);
         }
 
         if (selection.AnyBoxSelection)
@@ -569,6 +620,24 @@ public class StoryboardEditor : MonoBehaviour {
                 textField.SetTextWithoutNotify(document[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y]);
             
             textField.interactable = true;
+
+            var procedures = analysis.Procedures;
+            int index = selection.BoxSelectionStart.x;
+
+            for (int i = procedures.Count - 1; i >= -1; i--) {
+                if (i == -1) {
+                    proceduresDropdown.SetValueWithoutNotify(0);
+
+                    break;
+                }
+                
+                if (index < procedures[i].Index)
+                    continue;
+                
+                proceduresDropdown.SetValueWithoutNotify(i + 1);
+
+                break;
+            }
         }
         else {
             textField.SetTextWithoutNotify(string.Empty);
@@ -579,7 +648,7 @@ public class StoryboardEditor : MonoBehaviour {
                 || eventSystem.currentSelectedGameObject == gridView.gameObject)
                 eventSystem.SetSelectedGameObject(null);
         }
-        
+
         gridView.UpdateView();
     }
 
