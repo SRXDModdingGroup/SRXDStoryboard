@@ -57,27 +57,28 @@ public class StoryboardEditor : MonoBehaviour {
 
     private void Start() {
         foreach (var topBarButton in topBarButtons) {
-            var values = new List<ContextMenu.StringPair>(topBarButton.Actions.Length);
+            topBarButton.Init(GetTopBarButtonValues(topBarButton), input.Execute, blocker);
 
-            foreach (var bindableAction in topBarButton.Actions) {
-                var binding = settings.Bindings[bindableAction];
-                var builder = new StringBuilder();
-                var modifiers = binding.Modifiers;
+            IEnumerable<ContextMenu.ItemValue> GetTopBarButtonValues(TopBarButton topBarButton) {
+                foreach (var bindableAction in topBarButton.Actions) {
+                    var binding = settings.Bindings[bindableAction];
+                    var builder = new StringBuilder();
+                    var modifiers = binding.Modifiers;
 
-                if (modifiers.HasAnyModifiers(InputModifier.Control))
-                    builder.Append("Ctrl+");
+                    if (modifiers.HasAnyModifiers(InputModifier.Control))
+                        builder.Append("Ctrl+");
                 
-                if (modifiers.HasAnyModifiers(InputModifier.Alt))
-                    builder.Append("Alt+");
+                    if (modifiers.HasAnyModifiers(InputModifier.Alt))
+                        builder.Append("Alt+");
                 
-                if (modifiers.HasAnyModifiers(InputModifier.Shift))
-                    builder.Append("Shift+");
+                    if (modifiers.HasAnyModifiers(InputModifier.Shift))
+                        builder.Append("Shift+");
 
-                builder.Append(binding.InputString);
-                values.Add(new ContextMenu.StringPair(binding.Name, builder.ToString()));
+                    builder.Append(binding.InputString);
+
+                    yield return new ContextMenu.ItemValue(binding.Name, builder.ToString(), CanExecuteAction(bindableAction));
+                }
             }
-            
-            topBarButton.Init(values, input.Execute, blocker);
         }
         
         if (StoryboardDocument.TryOpenFile("C:/Users/domia/OneDrive/My Charts/Storyboards/We Could Get More Machinegun Psystyle!.txt", out document)) {
@@ -688,7 +689,17 @@ public class StoryboardEditor : MonoBehaviour {
             EndEdit();
         }
     }
-    
+
+    private bool CanExecuteAction(BindableAction action) => action switch {
+        BindableAction.Undo => undoRedo.CanUndo(),
+        BindableAction.Redo => undoRedo.CanRedo(),
+        BindableAction.Copy => selection.AnySelected,
+        BindableAction.Paste => clipboard != null && selection.AnyBoxSelection,
+        BindableAction.PasteAndInsert => clipboard != null && selection.AnyBoxSelection,
+        BindableAction.Rename => selection.AnyBoxSelection && analysis.Cells[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y].VariablesUsed.Count > 0,
+        _ => false
+    };
+
     private bool AnyInRow(int row) {
         for (int i = 0; i < document.Columns; i++) {
             if (!string.IsNullOrWhiteSpace(document[row, i]))
