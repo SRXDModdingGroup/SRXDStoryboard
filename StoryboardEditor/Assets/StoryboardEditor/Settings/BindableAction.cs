@@ -3,5 +3,6 @@
     Redo,
     Copy,
     Paste,
-    PasteAndInsert
+    PasteAndInsert,
+    Rename
 }

@@ -10,13 +10,19 @@ public class CellAnalysis {
     
     public List<Token> Tokens { get; }
     
+    public bool IsTokenError { get; }
+    
     public bool IsError { get; set; }
+    
+    public List<VariableInfo> VariablesUsed { get; }
 
-    public CellAnalysis(string text, string formattedText, Token token, bool isError) {
+    public CellAnalysis(string text, string formattedText, Token token, bool isTokenError) {
         Text = text;
         FormattedText = formattedText;
         Token = token;
         Tokens = new List<Token>();
-        IsError = isError;
+        IsTokenError = isTokenError;
+        IsError = isTokenError;
+        VariablesUsed = new List<VariableInfo>();
     }
 }

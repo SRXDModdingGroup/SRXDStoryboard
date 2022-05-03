@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class ContextMenu : MonoBehaviour {
+public class ContextMenu : Popup {
     [Serializable]
     public struct StringPair {
         public string left;
@@ -20,14 +19,12 @@ public class ContextMenu : MonoBehaviour {
     [SerializeField] private List<StringPair> values;
     [SerializeField] private GameObject template;
     [SerializeField] private RectTransform layout;
+
+    public event Action<int> OptionSelected;
     
     private List<Button> buttons = new();
-    private Action<int> callback;
-    private Button blocker;
 
     private void Awake() => SetValues(values);
-
-    public void Init(Button blocker) => this.blocker = blocker;
 
     public void SetValues(List<StringPair> values) {
         this.values = values;
@@ -52,28 +49,9 @@ public class ContextMenu : MonoBehaviour {
             button.onClick.AddListener(() => OnButtonClicked(j));
         }
     }
-
-    public void Show(Action<int> callback) {
-        this.callback = callback;
-        gameObject.SetActive(true);
-        EventSystem.current.SetSelectedGameObject(gameObject);
-        blocker.gameObject.SetActive(true);
-        blocker.onClick.AddListener(Hide);
-    }
-
-    public void Hide() {
-        callback = null;
-        gameObject.SetActive(false);
-
-        if (EventSystem.current.gameObject == gameObject)
-            EventSystem.current.SetSelectedGameObject(null);
-        
-        blocker.gameObject.SetActive(false);
-        blocker.onClick.RemoveListener(Hide);
-    }
     
     private void OnButtonClicked(int index) {
-        callback(index);
+        OptionSelected?.Invoke(index);
         Hide();
     }
 }

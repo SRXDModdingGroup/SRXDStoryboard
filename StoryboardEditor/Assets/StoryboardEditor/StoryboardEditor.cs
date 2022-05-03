@@ -5,14 +5,14 @@ using StoryboardSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 public class StoryboardEditor : MonoBehaviour {
     [SerializeField] private int newDocumentRows;
     [SerializeField] private TMP_InputField textField;
     [SerializeField] private GridView gridView;
     [SerializeField] private TopBarButton[] topBarButtons;
-    [SerializeField] private Button blocker;
+    [SerializeField] private TextInputPopup textInputPopup;
+    [SerializeField] private InputBlocker blocker;
 
     private bool contentNeedsUpdate;
     private bool editing;
@@ -52,6 +52,7 @@ public class StoryboardEditor : MonoBehaviour {
         input.Bind(BindableAction.Copy, Copy);
         input.Bind(BindableAction.Paste, () => Paste(false));
         input.Bind(BindableAction.PasteAndInsert, () => Paste(true));
+        input.Bind(BindableAction.Rename, Rename);
     }
 
     private void Start() {
@@ -649,6 +650,43 @@ public class StoryboardEditor : MonoBehaviour {
         }
         
         EndEdit();
+    }
+
+    private void Rename() {
+        if (!selection.AnyBoxSelection)
+            return;
+
+        var variables = analysis.Cells[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y].VariablesUsed;
+
+        if (variables.Count == 0)
+            return;
+
+        var first = variables[0];
+        var usages = first.Usages;
+        
+        textInputPopup.Show($"Enter new name for variable {first.Name}", first.Name, value => Do(usages, value), blocker);
+
+        void Do(List<VariableUsage> usages, string value) {
+            if (string.IsNullOrWhiteSpace(value)
+                || !Parser.TryParseToken(new StringRange(value), 0, null, false, out var token)
+                || token.Type != TokenType.Chain)
+                return;
+
+            var chain = (Chain) token;
+            
+            if (chain.Length != 1 || chain[0].Type != TokenType.Name)
+                return;
+            
+            BeginEdit();
+            
+            foreach (var usage in usages) {
+                var range = analysis.Cells[usage.Row, usage.Column].Tokens[usage.TokenIndex].Range;
+                
+                SetCellText(usage.Row, usage.Column, range.String.Remove(range.Index, range.Length).Insert(range.Index, value));
+            }
+            
+            EndEdit();
+        }
     }
     
     private bool AnyInRow(int row) {

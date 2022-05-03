@@ -11,16 +11,18 @@ public class TopBarButton : MonoBehaviour {
     public BindableAction[] Actions => actions;
 
     private Action<BindableAction> callback;
+    private InputBlocker blocker;
 
-    public void Init(List<ContextMenu.StringPair> values, Action<BindableAction> callback, Button blocker) {
+    public void Init(List<ContextMenu.StringPair> values, Action<BindableAction> callback, InputBlocker blocker) {
         contextMenu.SetValues(values);
-        contextMenu.Init(blocker);
+        contextMenu.OptionSelected += OnContextMenuOptionSelected;
         this.callback = callback;
+        this.blocker = blocker;
     }
     
     private void Awake() => button.onClick.AddListener(OnButtonClick);
 
-    private void OnButtonClick() => contextMenu.Show(OnContextMenuOptionSelected);
+    private void OnButtonClick() => contextMenu.Show(blocker);
 
     private void OnContextMenuOptionSelected(int index) => callback(actions[index]);
 }

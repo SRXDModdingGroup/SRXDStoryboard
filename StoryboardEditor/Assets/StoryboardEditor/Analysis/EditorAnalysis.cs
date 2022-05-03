@@ -92,6 +92,8 @@ public class EditorAnalysis {
                     var oldCell = Cells[i, j];
 
                     if (oldCell != null && value == oldCell.Text) {
+                        oldCell.IsError = oldCell.IsTokenError;
+                        oldCell.VariablesUsed.Clear();
                         newCells[i, j] = oldCell;
 
                         continue;
@@ -382,7 +384,8 @@ public class EditorAnalysis {
                                     || i == info.Declaration.x && j != info.Declaration.y))
                                 return false;
 
-                            info.Usages.Add(new VariableUsage(i, j, index + 1));
+                            info.Usages.Add(new VariableUsage(i, j, index));
+                            cell.VariablesUsed.Add(info);
 
                             return true;
                         case TokenType.Array:

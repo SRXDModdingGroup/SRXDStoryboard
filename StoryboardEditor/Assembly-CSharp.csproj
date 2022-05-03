@@ -62,6 +62,9 @@
      <Compile Include="Assets\StoryboardEditor\Utility\DummyLogger.cs" />
      <Compile Include="Assets\StoryboardEditor\Analysis\VariableUsage.cs" />
      <Compile Include="Assets\StoryboardEditor\UI\TopBarButton.cs" />
+     <Compile Include="Assets\StoryboardEditor\UI\Popup.cs" />
+     <Compile Include="Assets\StoryboardEditor\UI\TextInputPopup.cs" />
+     <Compile Include="Assets\StoryboardEditor\UI\InputBlocker.cs" />
      <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />

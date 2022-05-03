@@ -101,31 +101,31 @@ public static class Parser {
             
             switch (value[i]) {
                 case '\"' when !TrySkipTo(value, ref i, '\"'):
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing quote"));
+                    logger?.LogWarning(GetParseError(lineIndex, "Could not find closing quote"));
                     success = false;
                     break;
                 case '{' when !TrySkipTo(value, ref i, '{', '}'):
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing brace"));
+                    logger?.LogWarning(GetParseError(lineIndex, "Could not find closing brace"));
                     success = false;
                     break;
                 case '(' when !TrySkipTo(value, ref i, '(', ')'):
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing parenthesis"));
+                    logger?.LogWarning(GetParseError(lineIndex, "Could not find closing parenthesis"));
                     success = false;
                     break;
                 case '[' when !TrySkipTo(value, ref i, '[', ']'):
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find closing bracket"));
+                    logger?.LogWarning(GetParseError(lineIndex, "Could not find closing bracket"));
                     success = false;
                     break;
                 case '}':
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening brace"));
+                    logger?.LogWarning(GetParseError(lineIndex, "Could not find opening brace"));
                     success = false;
                     break;
                 case ')':
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening parenthesis"));
+                    logger?.LogWarning(GetParseError(lineIndex, "Could not find opening parenthesis"));
                     success = false;
                     break;
                 case ']':
-                    logger.LogWarning(GetParseError(lineIndex, "Could not find opening bracket"));
+                    logger?.LogWarning(GetParseError(lineIndex, "Could not find opening bracket"));
                     success = false;
                     break;
             }
@@ -193,7 +193,7 @@ public static class Parser {
                  || TryParseChain(str, lineIndex, logger, format, out token)) { }
         else {
             token = new InvalidToken();
-            logger.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {str}"));
+            logger?.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {str}"));
         }
 
         if (!format)
