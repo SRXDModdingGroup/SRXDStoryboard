@@ -29,7 +29,7 @@ public class ContextMenu : Popup {
         this.values = values;
         
         while (buttons.Count > values.Count) {
-            Destroy(buttons[buttons.Count - 1].gameObject);
+            Destroy(buttons[^1].gameObject);
             buttons.RemoveAt(buttons.Count - 1);
         }
 

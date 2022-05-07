@@ -4,5 +4,7 @@
     Copy,
     Paste,
     PasteAndInsert,
+    Duplicate,
+    DuplicateAndInsert,
     Rename
 }

@@ -57,6 +57,8 @@ public class StoryboardEditor : MonoBehaviour {
         input.Bind(BindableAction.Copy, Copy);
         input.Bind(BindableAction.Paste, () => Paste(false));
         input.Bind(BindableAction.PasteAndInsert, () => Paste(true));
+        input.Bind(BindableAction.Duplicate, () => Duplicate(false));
+        input.Bind(BindableAction.DuplicateAndInsert, () => Duplicate(true));
         input.Bind(BindableAction.Rename, Rename);
     }
 
@@ -149,6 +151,7 @@ public class StoryboardEditor : MonoBehaviour {
 
         selection.SetBoxSelectionStartAndEnd(selection.BoxSelectionStart.x, selection.GetLeftmostSelectedInRow(selection.BoxSelectionStart.x));
         UpdateSelection();
+        gridView.FocusSelectionStart();
     }
 
     private void OnTab(InputModifier modifiers) {
@@ -195,6 +198,7 @@ public class StoryboardEditor : MonoBehaviour {
 
         selection.SetBoxSelectionStartAndEnd(selection.BoxSelectionStart.x, selection.GetRightmostSelectedInRow(selection.BoxSelectionStart.x));
         UpdateSelection();
+        gridView.FocusSelectionStart();
         
         eventSystem.SetSelectedGameObject(gridView.gameObject);
     }
@@ -220,6 +224,7 @@ public class StoryboardEditor : MonoBehaviour {
         
         if (!insertNew && selected == gridView.gameObject) {
             FocusTextField();
+            gridView.FocusSelectionStart();
 
             return;
         }
@@ -242,6 +247,7 @@ public class StoryboardEditor : MonoBehaviour {
         selection.ClearSelection();
         selection.SetBoxSelectionStartAndEnd(row, Math.Min(selection.BoxSelectionStart.y, GetRightmostFilledInRow(row) + 1));
         UpdateSelection();
+        gridView.FocusSelectionStart();
         
         eventSystem.SetSelectedGameObject(gridView.gameObject);
     }
@@ -295,6 +301,7 @@ public class StoryboardEditor : MonoBehaviour {
         }
         
         UpdateSelection();
+        gridView.FocusSelectionStart();
     }
 
     private void OnDirection(Vector2Int direction, InputModifier modifiers) {
@@ -379,9 +386,7 @@ public class StoryboardEditor : MonoBehaviour {
         UpdateSelection();
     }
     
-    private void OnGridDragEnd(int row, int column, InputModifier modifiers) {
-        UpdateSelection();
-    }
+    private void OnGridDragEnd(int row, int column, InputModifier modifiers) => UpdateSelection();
 
     private void OnGridDeselected(InputModifier modifiers) {
         rowSelecting = false;
@@ -392,6 +397,7 @@ public class StoryboardEditor : MonoBehaviour {
             index = analysis.Procedures[index - 1].Index;
 
         selection.SetBoxSelectionStartAndEnd(index, 0);
+        UpdateSelection();
         gridView.SetScroll(index);
     }
 
@@ -720,6 +726,43 @@ public class StoryboardEditor : MonoBehaviour {
         }
         
         EndEdit();
+        
+        selection.ClearSelection();
+        selection.SetBoxSelectionStartAndEnd(row + clipboard.Rows, column);
+        UpdateSelection();
+    }
+
+    private void Duplicate(bool insert) {
+        if (!selection.AnySelected)
+            return;
+        
+        BeginEdit();
+        
+        var bounds = selection.GetSelectionBounds();
+        int fromRow = bounds.x;
+        int toRow = bounds.xMax;
+        int column = bounds.y;
+
+        for (int i = 0; i < bounds.width; i++) {
+            int currentFromRow = fromRow + i;
+            int currentToRow = toRow + i;
+            
+            if (insert)
+                InsertRow(currentToRow);
+            
+            for (int j = 0; j < bounds.height; j++) {
+                int currentColumn = column + j;
+
+                SetCellText(currentToRow, currentColumn, document[currentFromRow, currentColumn]);
+            }
+        }
+        
+        EndEdit();
+        
+        selection.ClearSelection();
+        selection.SetBoxSelectionStart(toRow, column);
+        selection.SetBoxSelectionEnd(toRow + bounds.width - 1, bounds.yMax - 1);
+        UpdateSelection();
     }
 
     private void Rename() {
@@ -765,6 +808,8 @@ public class StoryboardEditor : MonoBehaviour {
         BindableAction.Copy => selection.AnySelected,
         BindableAction.Paste => clipboard != null && selection.AnyBoxSelection,
         BindableAction.PasteAndInsert => clipboard != null && selection.AnyBoxSelection,
+        BindableAction.Duplicate => selection.AnySelected,
+        BindableAction.DuplicateAndInsert => selection.AnySelected,
         BindableAction.Rename => selection.AnyBoxSelection && analysis.Cells[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y].VariablesUsed.Count > 0,
         _ => false
     };

@@ -351,6 +351,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   scrollSpacePerRow: 0.001
+  defaultColumnWidth: 150
   viewport: {fileID: 2703232270113401678}
   grid: {fileID: 1303050033926446300}
   numberColumn: {fileID: 3117330167002731995}

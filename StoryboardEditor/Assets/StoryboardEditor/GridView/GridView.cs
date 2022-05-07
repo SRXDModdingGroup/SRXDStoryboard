@@ -10,25 +10,37 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         public int RowIndex { get; set; }
         
         public List<GridCell> Cells { get; }
+        
+        public TMP_Text NumberText { get; }
 
-        public Row(int rowIndex, List<GridCell> cells) {
+        public Row(int rowIndex, List<GridCell> cells, TMP_Text numberText) {
             RowIndex = rowIndex;
             Cells = cells;
+            NumberText = numberText;
         }
     }
 
     private class Column {
-        public float Width { get; set; }
-        
+        private float width;
+        public float Width {
+            get => width;
+            set {
+                width = value;
+                Root.sizeDelta = new Vector2(value, Root.sizeDelta.y);
+            }
+        }
+
         public RectTransform Root { get; }
 
         public Column(float width, RectTransform root) {
-            Width = width;
+            this.width = width;
             Root = root;
+            Root.sizeDelta = new Vector2(width, Root.sizeDelta.y);
         }
     }
 
     [SerializeField] private float scrollSpacePerRow;
+    [SerializeField] private float defaultColumnWidth;
     [SerializeField] private RectTransform viewport;
     [SerializeField] private RectTransform grid;
     [SerializeField] private RectTransform numberColumn;
@@ -52,10 +64,8 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
     private int visibleRowCount;
     private float rowHeight;
     private float numberColumnWidth;
-    private float defaultColumnWidth;
     private List<Row> rows;
     private List<Column> columns;
-    private List<TMP_Text> numberTexts;
     private Table<CellVisualState> cellStates;
     private EditorSelection selection;
     private RectTransform rectTransform;
@@ -81,24 +91,14 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         if (!selection.AnyBoxSelection)
             return;
 
-        int row = selection.BoxSelectionStart.x;
-        
-        if (row < scroll)
-            SetScroll(row);
-        else if (row >= scroll + visibleRowCount)
-            SetScroll(row - visibleRowCount + 1);
+        FocusCell(selection.BoxSelectionStart);
     }
     
     public void FocusSelectionEnd() {
         if (!selection.AnyBoxSelection)
             return;
-
-        int row = selection.BoxSelectionEnd.x;
         
-        if (row < scroll)
-            SetScroll(row);
-        else if (row >= scroll + visibleRowCount)
-            SetScroll(row - visibleRowCount + 1);
+        FocusCell(selection.BoxSelectionEnd);
     }
 
     public void OnPointerDown(PointerEventData eventData) {
@@ -158,20 +158,16 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         rowHeight = cellPrefab.GetComponent<RectTransform>().rect.height;
         visibleRowCount = (int) (viewport.rect.height / rowHeight) + 1;
         rows = new List<Row>(visibleRowCount);
-        numberTexts = new List<TMP_Text>(visibleRowCount);
 
         for (int i = 0; i < visibleRowCount; i++) {
-            rows.Add(new Row(i, new List<GridCell>()));
-
             var numberText = Instantiate(numberCellPrefab, numberColumn).GetComponentInChildren<TMP_Text>();
             
             numberText.SetText((i + 1).ToString());
-            numberTexts.Add(numberText);
+            rows.Add(new Row(i, new List<GridCell>(), numberText));
         }
 
         columns = new List<Column>();
         numberColumnWidth = numberColumn.rect.width;
-        defaultColumnWidth = columnPrefab.GetComponent<RectTransform>().rect.width;
         scrollbar.onValueChanged.AddListener(value => SetScroll(Mathf.FloorToInt(value * maxScroll)));
     }
 
@@ -186,6 +182,26 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         }
         
         gameObject.SetActive(true);
+        visibleRowCount = (int) (viewport.rect.height / rowHeight) + 1;
+
+        while (rows.Count > visibleRowCount) {
+            var last = rows[^1];
+
+            foreach (var cell in last.Cells)
+                Destroy(cell.gameObject);
+            
+            Destroy(last.NumberText.gameObject);
+            rows.RemoveAt(rows.Count - 1);
+        }
+
+        while (rows.Count < visibleRowCount) {
+            int index = rows.Count;
+            var numberText = Instantiate(numberCellPrefab, numberColumn).GetComponentInChildren<TMP_Text>();
+            
+            numberText.SetText((index + 1).ToString());
+            rows.Add(new Row(index, new List<GridCell>(), numberText));
+        }
+        
         maxScroll = Math.Max(0, cellStates.Rows - visibleRowCount + 1);
         scroll = Math.Max(0, Math.Min(scroll, maxScroll));
         
@@ -198,9 +214,6 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             scrollbar.size = Mathf.Clamp01(1f - maxScroll * scrollSpacePerRow);
         }
 
-        for (int i = 0; i < numberTexts.Count; i++)
-            numberTexts[i].SetText((scroll + i + 1).ToString());
-
         while (columns.Count < cellStates.Columns)
             columns.Add(new Column(defaultColumnWidth, Instantiate(columnPrefab, grid).GetComponent<RectTransform>()));
 
@@ -209,6 +222,7 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
             var cells = row.Cells;
 
             row.RowIndex = i;
+            row.NumberText.SetText((scroll + i + 1).ToString());
             
             while (cells.Count < columns.Count)
                 cells.Add(Instantiate(cellPrefab, columns[cells.Count].Root).GetComponent<GridCell>());
@@ -242,6 +256,15 @@ public class GridView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, I
         }
 
         viewNeedsUpdate = false;
+    }
+
+    private void FocusCell(Vector2Int index) {
+        int row = index.x;
+        
+        if (row < scroll)
+            SetScroll(row);
+        else if (row >= scroll + visibleRowCount)
+            SetScroll(row - visibleRowCount + 1);
     }
 
     private bool IsInBounds(int row, int column) => row >= 0 && row < cellStates.Rows && column >= 0 && column < cellStates.Columns;
