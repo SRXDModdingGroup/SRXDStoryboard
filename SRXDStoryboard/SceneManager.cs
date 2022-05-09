@@ -10,9 +10,13 @@ namespace SRXDStoryboard;
 public class SceneManager : ISceneManager {
     private string customAssetBundlePath;
     private Dictionary<PostProcessingInfo, PostProcessingInstance> postProcessingInstances = new();
+    private float[] beatArray;
+    private TimeSignatureSegment[] segments;
 
-    public SceneManager(string customAssetBundlePath) {
+    public SceneManager(string customAssetBundlePath, PlayableTrackData trackData) {
         this.customAssetBundlePath = customAssetBundlePath;
+        beatArray = trackData.BeatArray;
+        segments = trackData.TimeSignatureSegments;
     }
 
     public void Update(float time, bool triggerEvents) { }
@@ -83,4 +87,47 @@ public class SceneManager : ISceneManager {
 
     public bool TryGetAssetBundle(string bundleName, out AssetBundle bundle)
         => AssetBundleUtility.TryGetAssetBundle(customAssetBundlePath, bundleName, out bundle);
+    
+    public bool TryGetExternalObject(string name, out object externalObject) {
+        switch (name) {
+            case "StaticRoot":
+                externalObject = Track.Instance.cameraContainerTransform.Find("StaticRoot");
+                return true;
+            case "CameraRoot":
+                externalObject = MainCamera.Instance.transform;
+                return true;
+            case "CameraManipulator":
+                externalObject = Track.Instance.cameraContainerTransform.Find("Manipulator");
+                return true;
+            case "ForegroundCamera":
+                externalObject = MainCamera.Instance.GetComponent<Camera>();
+                return true;
+            case "BackgroundCamera":
+                externalObject = MainCamera.Instance.backgroundCamera;
+                return true;
+            default:
+                externalObject = null;
+                return false;
+        }
+    }
+
+    public float Convert(float measures, float beats, float ticks, float seconds) {
+        float beat = beats + 0.125f * ticks;
+        
+        if (segments.Length > 0) {
+            int index0 = 0;
+
+            while (index0 < segments.Length - 1 && segments[index0 + 1].startingBar <= measures)
+                index0++;
+
+            var segment = segments[index0];
+            
+            beat += segments[index0].startingBeat + (measures - segment.startingBar) * segment.ticksPerBar * segment.beatsPerTick;
+        }
+         
+        int index1 = Mathf.Clamp(Mathf.FloorToInt(beat), 0, beatArray.Length - 2);
+        float time = Mathf.LerpUnclamped(beatArray[index1], beatArray[index1 + 1], beat - index1) + seconds;
+        
+        return time;
+    }
 }

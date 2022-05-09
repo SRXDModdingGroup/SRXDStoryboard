@@ -21,7 +21,7 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
         instance = null;
     }
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, IStoryboardParams sParams) {
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, ISceneManager sceneManager) {
         if (!Binder.TryResolveIdentifier(template, objectReferences, out object obj))
             return false;
         
@@ -40,7 +40,7 @@ internal class LoadedPostProcessingReference : LoadedObjectReference {
             return false;
         }
 
-        instance = new PostProcessingInstance(StoryboardManager.Instance.SceneManager, Object.Instantiate(material), uCamera);
+        instance = new PostProcessingInstance(sceneManager, Object.Instantiate(material), uCamera);
         instance.Add();
 
         return true;

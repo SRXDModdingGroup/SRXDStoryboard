@@ -18,4 +18,8 @@ public interface ISceneManager {
     void UnloadAssetBundle(string bundleName);
     
     bool TryGetAssetBundle(string bundleName, out AssetBundle bundle);
+    
+    bool TryGetExternalObject(string name, out object externalObject);
+    
+    float Convert(float measures, float beats, float ticks, float seconds);
 }

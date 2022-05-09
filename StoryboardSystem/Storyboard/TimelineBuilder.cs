@@ -29,10 +29,10 @@ internal class TimelineBuilder {
     public void AddKey(Timestamp time, object value, InterpType interpType)
         => keyframeBuilders.Add(new KeyframeBuilder(time, value, interpType));
 
-    public bool TryCreateController(Property property, IStoryboardParams sParams, out Controller controller)
-        => property.TryCreateTimeline(this, sParams, out controller);
+    public bool TryCreateController(Property property, ISceneManager sceneManager, out Controller controller)
+        => property.TryCreateTimeline(this, sceneManager, out controller);
 
-    public bool TryCreateController<T>(Property<T> property, IStoryboardParams sParams, out Controller controller) {
+    public bool TryCreateController<T>(Property<T> property, ISceneManager sceneManager, out Controller controller) {
         var keyframes = new Keyframe<T>[keyframeBuilders.Count];
 
         for (int i = 0; i < keyframeBuilders.Count; i++) {
@@ -44,7 +44,7 @@ internal class TimelineBuilder {
                 return false;
             }
             
-            keyframes[i] = new Keyframe<T>(sParams.Convert((float) builder.Time.Measures, (float) builder.Time.Beats, (float) builder.Time.Ticks, (float) builder.Time.Seconds), converted, builder.InterpType, i);
+            keyframes[i] = new Keyframe<T>(sceneManager.Convert((float) builder.Time.Measures, (float) builder.Time.Beats, (float) builder.Time.Ticks, (float) builder.Time.Seconds), converted, builder.InterpType, i);
         }
 
         if (keyframes.Length > 1) {

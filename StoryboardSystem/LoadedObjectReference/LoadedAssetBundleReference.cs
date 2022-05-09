@@ -17,8 +17,8 @@ internal class LoadedAssetBundleReference : LoadedObjectReference {
         bundle = null;
     }
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, IStoryboardParams sParams) {
-        if (StoryboardManager.Instance.SceneManager.TryGetAssetBundle(bundleName, out bundle))
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, ISceneManager sceneManager) {
+        if (sceneManager.TryGetAssetBundle(bundleName, out bundle))
             return true;
 
         bundle = null;

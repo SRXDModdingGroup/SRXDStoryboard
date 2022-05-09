@@ -11,7 +11,7 @@ internal abstract class LoadedObjectReference {
     public abstract bool TryLoad(
         List<LoadedObjectReference> objectReferences,
         Dictionary<Identifier, List<Identifier>> bindings,
-        IStoryboardParams storyboardParams);
+        ISceneManager sceneManager);
     
     public abstract bool TrySerialize(BinaryWriter writer);
 

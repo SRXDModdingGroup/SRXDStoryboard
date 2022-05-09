@@ -82,14 +82,13 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="SRTBStoryboardData.cs" />
         <Compile Include="Logger.cs" />
         <Compile Include="Patches.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="PostProcessingInfo.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="SceneManager.cs" />
-        <Compile Include="StoryboardExtension.cs" />
-        <Compile Include="StoryboardParams.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\StoryboardSystem\StoryboardSystem.csproj">

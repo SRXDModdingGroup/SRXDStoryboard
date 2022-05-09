@@ -39,15 +39,12 @@ internal class LoadedExternalObjectReference : LoadedObjectReference {
         externalObject = null;
     }
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, IStoryboardParams sParams) {
-        if (StoryboardManager.Instance.Extensions.TryGetValue(key, out var extension)) {
-            externalObject = extension.GetExternalObject(name);
-            
-            if (externalObject != null)
-                return true;
-        }
-        
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, ISceneManager sceneManager) {
+        if (sceneManager.TryGetExternalObject(name, out externalObject))
+            return true;
+
         StoryboardManager.Instance.Logger.LogWarning($"Failed to get reference to external object {name}");
+        externalObject = null;
 
         return false;
     }

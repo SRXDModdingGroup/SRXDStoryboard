@@ -6,20 +6,25 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using SMU.Utilities;
+using SpinCore.Utility;
 using StoryboardSystem;
 using UnityEngine;
 
 namespace SRXDStoryboard; 
 
 public static class Patches {
+    private static Storyboard currentStoryboard;
+    
     private static BackgroundAssetReference OverrideBackgroundIfStoryboardHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
         var info = handle.Setup.TrackDataSegments[0].trackInfoRef;
 
         if (!Plugin.EnableStoryboards.Value
             || !info.IsCustomFile
-            || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), info.customFile.FileNameNoExtension, out var storyboard))
+            || !CustomChartUtility.GetModData(info.customFile).TryGetValue("StoryboardData", out SRTBStoryboardData storyboardData)
+            || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), storyboardData.StoryboardFileName, out var storyboard)) {
             return defaultBackground;
-        
+        }
+
         if (storyboard.TryGetOutParam("DisableBaseBackground", out bool value) && value)
             return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
 
@@ -33,8 +38,12 @@ public static class Patches {
         if (!Directory.Exists(customAssetBundlePath))
             Directory.CreateDirectory(customAssetBundlePath);
         
-        StoryboardManager.Instance.Initialize(new SceneManager(customAssetBundlePath), new Logger(Plugin.Logger));
-        StoryboardManager.Instance.TryAddExtension(string.Empty, new StoryboardExtension());
+        string storyboardsPath = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards");
+
+        if (!Directory.Exists(storyboardsPath))
+            Directory.CreateDirectory(storyboardsPath);
+        
+        StoryboardManager.Instance.SetLogger(new Logger(Plugin.Logger));
 
         var freeRootTransform = new GameObject("Manipulator").transform;
         var staticRootTransform = new GameObject("StaticRoot").transform;
@@ -54,31 +63,52 @@ public static class Patches {
     private static void Track_PlayTrack_Postfix(Track __instance) {
         var data = __instance.playStateFirst.trackData;
         var info = data.TrackInfoRef;
-        var storyboardManager = StoryboardManager.Instance;
 
+        if (currentStoryboard != null) {
+            currentStoryboard.Close();
+            currentStoryboard = null;
+        }
+        
         if (!Plugin.EnableStoryboards.Value
             || !info.IsCustomFile
-            || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), info.customFile.FileNameNoExtension, out var storyboard)) {
-            storyboardManager.SetCurrentStoryboard(null, null);
-            
+            || !CustomChartUtility.GetModData(info.customFile).TryGetValue("StoryboardData", out SRTBStoryboardData storyboardData)
+            || !StoryboardManager.Instance.TryGetOrCreateStoryboard(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Storyboards"), storyboardData.StoryboardFileName, out var storyboard))
             return;
-        }
 
-        storyboardManager.SetCurrentStoryboard(storyboard, new StoryboardParams(data));
-        storyboardManager.Play();
+        currentStoryboard = storyboard;
+        currentStoryboard.Open(new SceneManager(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles"), data));
+        currentStoryboard.Play();
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
     private static void Track_ReturnToPickTrack_Postfix() {
-        StoryboardManager.Instance.SetCurrentStoryboard(null, null);
+        if (currentStoryboard == null)
+            return;
+        
+        currentStoryboard.Close();
+        currentStoryboard = null;
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
     private static void Track_Update_Postfix(Track __instance) {
-        if (Input.GetKeyDown(KeyCode.F1))
-            StoryboardManager.Instance.RecompileCurrentStoryboard(new StoryboardParams(__instance.playStateFirst.trackData));
+        if (Input.GetKeyDown(KeyCode.F2) && __instance.IsInEditMode) {
+            var customFile = __instance.playStateFirst.TrackInfoRef.customFile;
+            var modData = CustomChartUtility.GetModData(customFile);
+            
+            modData.SetValue("StoryboardData", new SRTBStoryboardData(customFile.FileNameNoExtension));
+            CustomChartUtility.SetModData(customFile, modData);
+        }
+        
+        if (currentStoryboard == null)
+            return;
+        
+        if (Input.GetKeyDown(KeyCode.F1)) {
+            currentStoryboard.Close();
+            currentStoryboard.Recompile();
+            currentStoryboard.Open(new SceneManager(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles"), __instance.PlayHandle.Data));
+        }
 
-        StoryboardManager.Instance.SetTime(__instance.currentRenderingTrackTime, true);
+        currentStoryboard.Evaluate(__instance.currentRenderingTrackTime, true);
     }
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]

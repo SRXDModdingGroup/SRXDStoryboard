@@ -17,11 +17,11 @@ internal class LoadedTimelineReference : LoadedObjectReference {
 
     public override void Unload(ISceneManager sceneManager) => controller = null;
 
-    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, IStoryboardParams storyboardParams) {
+    public override bool TryLoad(List<LoadedObjectReference> objectReferences, Dictionary<Identifier, List<Identifier>> bindings, ISceneManager sceneManager) {
         if (bindings.TryGetValue(identifier, out var properties)
             && Binder.TryResolveIdentifier(properties[0], objectReferences, out object obj)
             && obj is Property property
-            && builder.TryCreateController(property, storyboardParams, out controller))
+            && builder.TryCreateController(property, sceneManager, out controller))
             return true;
         
         StoryboardManager.Instance.Logger.LogWarning($"Could not create timeline for {builder.Name}");

@@ -57,10 +57,7 @@ copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\Storyboa
         <Compile Include="API\IStoryboardObject.cs" />
         <Compile Include="API\ILogger.cs" />
         <Compile Include="API\ISceneManager.cs" />
-        <Compile Include="API\IStoryboardExtension.cs" />
-        <Compile Include="API\IStoryboardParams.cs" />
         <Compile Include="API\Property.cs" />
-        <Compile Include="API\StoryboardManager.cs" />
         <Compile Include="Compiler\Compiler.cs" />
         <Compile Include="Compiler\FuncName.cs" />
         <Compile Include="Compiler\Conversion.cs" />
@@ -116,6 +113,7 @@ copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\Storyboa
         <Compile Include="Storyboard\PostProcessingInstance.cs" />
         <Compile Include="Storyboard\Storyboard.cs" />
         <Compile Include="Storyboard\StoryboardData.cs" />
+        <Compile Include="Storyboard\StoryboardManager.cs" />
         <Compile Include="Storyboard\TimelineController.cs" />
         <Compile Include="Storyboard\TimelineBuilder.cs" />
         <Compile Include="Utility\DefaultLogger.cs" />
