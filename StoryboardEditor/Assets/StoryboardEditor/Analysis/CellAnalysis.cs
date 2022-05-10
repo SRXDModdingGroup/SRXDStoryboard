@@ -16,9 +16,9 @@ public class CellAnalysis {
     
     public List<VariableInfo> VariablesUsed { get; }
 
-    public CellAnalysis(string text, string formattedText, Token token, bool isTokenError) {
+    public CellAnalysis(string text, Token token, bool isTokenError) {
         Text = text;
-        FormattedText = formattedText;
+        FormattedText = text;
         Token = token;
         Tokens = new List<Token>();
         IsTokenError = isTokenError;

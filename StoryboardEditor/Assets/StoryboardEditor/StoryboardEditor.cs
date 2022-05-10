@@ -783,7 +783,7 @@ public class StoryboardEditor : MonoBehaviour {
 
         void Do(List<VariableUsage> usages, string newName) {
             if (string.IsNullOrWhiteSpace(newName)
-                || !Parser.TryParseToken(new StringRange(newName), 0, null, false, out var token)
+                || !Parser.TryParseToken(new StringRange(newName), 0, null, out var token)
                 || token.Type != TokenType.Chain)
                 return;
 
@@ -852,7 +852,7 @@ public class StoryboardEditor : MonoBehaviour {
 
         void Do(ProcedureInfo procedureInfo, int startRow, int endRow, string newName) {
             if (string.IsNullOrWhiteSpace(newName)
-                || !Parser.TryParseToken(new StringRange(newName), 0, null, false, out var token)
+                || !Parser.TryParseToken(new StringRange(newName), 0, null, out var token)
                 || token.Type != TokenType.Chain)
                 return;
             
@@ -885,6 +885,10 @@ public class StoryboardEditor : MonoBehaviour {
             
             SetCellText(endRow, 1, newName);
             EndEdit();
+            
+            selection.ClearSelection();
+            selection.ClearBoxSelection();
+            UpdateSelection();
         }
     }
 

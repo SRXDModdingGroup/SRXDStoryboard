@@ -5,7 +5,5 @@ public abstract class Token {
 
     public bool Success { get; set; } = true;
 
-    public string FormattedText { get; set; } = string.Empty;
-
     public StringRange Range { get; set; } = new(string.Empty);
 }

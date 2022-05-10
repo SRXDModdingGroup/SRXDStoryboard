@@ -34,7 +34,7 @@ public static class Parser {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            if (!TryTokenize(new StringRange(line), lineIndex, StoryboardManager.Instance.Logger, false, out var tokens, out _))
+            if (!TryTokenize(new StringRange(line), lineIndex, StoryboardManager.Instance.Logger, out var tokens))
                 success = false;
             else if (tokens[0] is not OpcodeT opcode) {
                 StoryboardManager.Instance.Logger.LogWarning(GetParseError(lineIndex, "First argument must be an opcode"));
@@ -53,13 +53,11 @@ public static class Parser {
         return success;
     }
 
-    public static bool TryTokenize(StringRange value, int lineIndex, ILogger logger, bool format, out List<Token> tokens, out string formattedText) {
+    public static bool TryTokenize(StringRange value, int lineIndex, ILogger logger, out List<Token> tokens) {
         tokens = new List<Token>();
-        formattedText = string.Empty;
-        
+
         int length = value.Length;
         int startIndex = 0;
-        var builder = new StringBuilder();
         bool success = true;
 
         for (int i = 0; i <= length; i++) {
@@ -68,33 +66,16 @@ public static class Parser {
                 
                 startIndex = i + 1;
                 
-                if (StringRange.IsNullOrWhiteSpace(subString)) {
-                    if (!format)
-                        continue;
-                    
-                    builder.Append(subString);
-
-                    if (i < length)
-                        builder.Append(value[i]);
-
+                if (StringRange.IsNullOrWhiteSpace(subString))
                     continue;
-                }
 
-                if (!TryParseToken(subString, lineIndex, logger, format, out var token))
+                if (!TryParseToken(subString, lineIndex, logger, out var token))
                     success = false;
 
                 tokens.Add(token);
 
                 if (!token.Success)
                     success = false;
-                
-                if (!format)
-                    continue;
-
-                builder.Append(token.FormattedText);
-                
-                if (i < length)
-                    builder.Append(value[i]);
 
                 continue;
             }
@@ -131,84 +112,32 @@ public static class Parser {
             }
         }
 
-        if (format)
-            formattedText = builder.ToString();
-
         return success;
     }
 
-    public static bool TryParseToken(StringRange str, int lineIndex, ILogger logger, bool format, out Token token) {
+    public static bool TryParseToken(StringRange str, int lineIndex, ILogger logger, out Token token) {
         if (str[0] == '\"' && str[str.Length - 1] == '\"') {
             var subString = str.Substring(1, str.Length - 2);
 
             if (subString.Contains('\"'))
                 token = new InvalidToken();
-            else {
+            else
                 token = new Constant(subString.ToString());
-
-                if (format)
-                    token.FormattedText = $"<color=#D08080FF>{str}</color>";
-            }
         }
         else if (TryParseTimestamp(str, out token) || TryParsePrimitive(str, out token)) { }
-        else if (Enum.TryParse<Opcode>(str.ToString(), true, out var opcode)) {
+        else if (Enum.TryParse<Opcode>(str.ToString(), true, out var opcode))
             token = new OpcodeT(opcode);
-
-            if (format) {
-                switch (opcode) {
-                    case Opcode.Bind:
-                    case Opcode.Bundle:
-                    case Opcode.Curve:
-                    case Opcode.In:
-                    case Opcode.Inst:
-                    case Opcode.InstA:
-                    case Opcode.Load:
-                    case Opcode.Out:
-                    case Opcode.Post:
-                        token.FormattedText = $"<color=#FFFF00FF>{str}</color>";
-                        break;
-                    case Opcode.Call:
-                    case Opcode.Loop:
-                    case Opcode.Key:
-                        token.FormattedText = $"<color=#0080FFFF>{str}</color>";
-                        break;
-                    case Opcode.Proc:
-                        token.FormattedText = $"<color=#00FFFFFF>{str}</color>";
-                        break;
-                    case Opcode.Set:
-                    case Opcode.SetA:
-                    case Opcode.SetG:
-                        token.FormattedText = $"<color=#FF80FFFF>{str}</color>";
-                        break;
-                    default:
-                        token.FormattedText = str.ToString();
-                        break;
-                }
-            }
-        }
         else if (Enum.TryParse<InterpType>(str.ToString(), true, out var interpType))
             token = new Constant(interpType);
-        else if (TryParseArray(str, lineIndex, logger, format, out token)
-                 || TryParseFuncCall(str, lineIndex, logger, format, out token)
-                 || TryParseChain(str, lineIndex, logger, format, out token)) { }
+        else if (TryParseArray(str, lineIndex, logger, out token)
+                 || TryParseFuncCall(str, lineIndex, logger, out token)
+                 || TryParseChain(str, lineIndex, logger, out token)) { }
         else {
             token = new InvalidToken();
             logger?.LogWarning(GetParseError(lineIndex, $"Incorrectly formatted token: {str}"));
         }
-
-        if (!format)
-            return token.Success;
-
+        
         token.Range = str;
-
-        if (token.Type == TokenType.Invalid) {
-            token.FormattedText = $"<color=#FF0000FF>{str}</color>";
-
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(token.FormattedText))
-            token.FormattedText = str.ToString();
 
         return token.Success;
     }
@@ -367,14 +296,14 @@ public static class Parser {
         return true;
     }
 
-    private static bool TryParseArray(StringRange value, int lineIndex, ILogger logger, bool format, out Token array) {
+    private static bool TryParseArray(StringRange value, int lineIndex, ILogger logger, out Token array) {
         if (value[0] != '{' || value[value.Length - 1] != '}') {
             array = null;
 
             return false;
         }
 
-        bool success = TryTokenize(value.Substring(1, value.Length - 2), lineIndex, logger, format, out var tokens, out string formattedText);
+        bool success = TryTokenize(value.Substring(1, value.Length - 2), lineIndex, logger, out var tokens);
         bool isConstant = true;
 
         foreach (var token in tokens) {
@@ -399,13 +328,10 @@ public static class Parser {
 
         array.Success = success;
 
-        if (format)
-            array.FormattedText = $"{{{formattedText}}}";
-
         return true;
     }
 
-    private static bool TryParseFuncCall(StringRange value, int lineIndex, ILogger logger, bool format, out Token funcCall) {
+    private static bool TryParseFuncCall(StringRange value, int lineIndex, ILogger logger, out Token funcCall) {
         var match = MATCH_FUNC_CALL.Match(value);
         var groups = match.Groups;
 
@@ -415,18 +341,15 @@ public static class Parser {
             return false;
         }
 
-        bool success = TryTokenize(groups[2].ToStringRange(value), lineIndex, logger, format, out var tokens, out string formattedText);
+        bool success = TryTokenize(groups[2].ToStringRange(value), lineIndex, logger, out var tokens);
 
         funcCall = new FuncCall(name, tokens.ToArray());
         funcCall.Success = success;
 
-        if (format)
-            funcCall.FormattedText = $"{name}({formattedText})";
-
         return true;
     }
 
-    private static bool TryParseChain(StringRange value, int lineIndex, ILogger logger, bool format, out Token chain) {
+    private static bool TryParseChain(StringRange value, int lineIndex, ILogger logger, out Token chain) {
         var split = value.Split('.');
 
         if (split.Length == 0) {
@@ -449,13 +372,8 @@ public static class Parser {
             var match = MATCH_CHAIN_ELEMENT.Match(s);
 
             if (!match.Success) {
-                var invalid = new InvalidToken();
+                var invalid = new InvalidToken { Range = s };
 
-                if (format) {
-                    invalid.Range = s;
-                    invalid.FormattedText = $"<color=#FF0000FF>{s}</color>";
-                }
-                
                 chainList.Add(invalid);
                 success = false;
                 
@@ -463,12 +381,7 @@ public static class Parser {
             }
 
             var groups = match.Groups;
-            var name = new Name(groups[1].Value);
-
-            if (format) {
-                name.Range = groups[1].ToStringRange(s);
-                name.FormattedText = $"<color=#A0FFFFFF>{name}</color>";
-            }
+            var name = new Name(groups[1].Value) { Range = groups[1].ToStringRange(s) };
 
             chainList.Add(name);
 
@@ -477,37 +390,16 @@ public static class Parser {
             if (StringRange.IsNullOrWhiteSpace(indexerRange))
                 continue;
 
-            if (!TryParseToken(indexerRange, lineIndex, logger, format, out var indexerToken))
+            if (!TryParseToken(indexerRange, lineIndex, logger, out var indexerToken))
                 success = false;
             
-            var indexer = new Indexer(indexerToken);
+            var indexer = new Indexer(indexerToken) { Range = indexerRange };
 
-            if (format) {
-                indexer.Range = indexerRange;
-                indexer.FormattedText = $"[{indexerToken.FormattedText}]";
-            }
-                
             chainList.Add(indexer);
         }
         
         chain = new Chain(chainList.ToArray());
         chain.Success = success;
-
-        if (!format)
-            return true;
-
-        var builder = new StringBuilder();
-
-        for (int i = 0; i < chainList.Count; i++) {
-            var token = chainList[i];
-            
-            if (i > 0 && token.Type != TokenType.Indexer)
-                builder.Append('.');
-
-            builder.Append(token.FormattedText);
-        }
-
-        chain.FormattedText = builder.ToString();
 
         return true;
     }

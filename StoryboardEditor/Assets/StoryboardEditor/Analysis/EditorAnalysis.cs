@@ -1,11 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using StoryboardSystem;
 using UnityEngine;
 
 public class EditorAnalysis {
+    private static readonly string INVALID_TOKEN_COLOR = "#FF0000FF";
+    private static readonly string STRING_COLOR = "#D08080FF";
+    private static readonly string DATA_OPCODE_COLOR = "#FFFF00FF";
+    private static readonly string TIMELINE_OPCODE_COLOR = "#0080FFFF";
+    private static readonly string PROC_OPCODE_COLOR = "#00FFFFFF";
+    private static readonly string VARIABLE_OPCODE_COLOR = "#FF80FFFF";
+    private static readonly string NAME_COLOR = "#A0FFFFFF";
+    private static readonly string HINT_COLOR = "#FFFFFF40";
+    private static readonly string COMMENT_COLOR = "#00FF00FF";
     private static readonly string[] BIND_2 = { "controller", "property" };
     private static readonly string[] BUNDLE_2 = { "name", "fileName" };
     private static readonly string[] CALL_2 = { "time", "procedure" };
@@ -101,7 +111,7 @@ public class EditorAnalysis {
                 }
 
                 if (string.IsNullOrWhiteSpace(value)) {
-                    newCells[i, j] = new CellAnalysis(string.Empty, string.Empty, null, false);
+                    newCells[i, j] = new CellAnalysis(string.Empty, null, false);
 
                     continue;
                 }
@@ -109,22 +119,23 @@ public class EditorAnalysis {
                 value = value.Trim();
 
                 if (value.StartsWith("//")) {
-                    newCells[i, j] = new CellAnalysis(value, $"<color=#00FF00FF>{value}</color>", null, false);
+                    newCells[i, j] = new CellAnalysis(value, null, false) { FormattedText = $"<color={COMMENT_COLOR}>{value}</color>" } ;
 
                     continue;
                 }
 
-                bool isError = !Parser.TryParseToken(new StringRange(value), i, new DummyLogger(), true, out var token);
+                bool isError = !Parser.TryParseToken(new StringRange(value), i, new DummyLogger(), out var token);
 
                 if (token == null) {
-                    newCells[i, j] = new CellAnalysis(value, $"<color=#FF0000FF>{value}</color>", null, true);
+                    newCells[i, j] = new CellAnalysis(value, null, true) { FormattedText = $"<color={INVALID_TOKEN_COLOR}>{value}</color>" };
 
                     continue;
                 }
 
-                var cell = new CellAnalysis(value, token.FormattedText, token, isError);
+                var cell = new CellAnalysis(value, token, isError);
 
                 Traverse(token);
+                cell.FormattedText = GetFormattedString(cell.Text, cell.Tokens);
                 newCells[i, j] = cell;
 
                 void Traverse(Token token) {
@@ -348,7 +359,7 @@ public class EditorAnalysis {
 
                 if ((k < expectedLength && empty) || (k >= expectedLength && !empty && !unlimited)) {
                     if (empty)
-                        cell.FormattedText = $"<color=#FFFFFF40>{argNames[k]}</color>";
+                        cell.FormattedText = $"<color={HINT_COLOR}>{argNames[k]}</color>";
 
                     cell.IsError = true;
 
@@ -423,7 +434,7 @@ public class EditorAnalysis {
                 cell = newCells[i, k];
 
                 if (string.IsNullOrWhiteSpace(cell.Text))
-                    cell.FormattedText = $"<color=#FFFFFF40>{procArgNames[j]}</color>";
+                    cell.FormattedText = $"<color={HINT_COLOR}>{procArgNames[j]}</color>";
             }
         }
 
@@ -527,6 +538,81 @@ public class EditorAnalysis {
                 return 2;
             default:
                 throw new ArgumentOutOfRangeException(nameof(opcode), opcode, null);
+        }
+    }
+
+    private static string GetFormattedString(string str, List<Token> tokens) {
+        var insertions = new List<(int index, string value)>();
+
+        foreach (var token in tokens) {
+            var range = token.Range;
+            
+            switch (token.Type) {
+                case TokenType.Invalid:
+                    AddColorInsertion(range, INVALID_TOKEN_COLOR);
+                    continue;
+                case TokenType.Constant:
+                    if (((Constant) token).Value is string)
+                        AddColorInsertion(range, STRING_COLOR);
+                    
+                    continue;
+                case TokenType.Name:
+                    AddColorInsertion(range, NAME_COLOR);
+                    continue;
+                case TokenType.Opcode:
+                    switch (((OpcodeT) token).Opcode) {
+                        case Opcode.Bind:
+                        case Opcode.Bundle:
+                        case Opcode.Curve:
+                        case Opcode.In:
+                        case Opcode.Inst:
+                        case Opcode.InstA:
+                        case Opcode.Load:
+                        case Opcode.Out:
+                        case Opcode.Post:
+                            AddColorInsertion(range, DATA_OPCODE_COLOR);
+                            continue;
+                        case Opcode.Call:
+                        case Opcode.Loop:
+                        case Opcode.Key:
+                            AddColorInsertion(range, TIMELINE_OPCODE_COLOR);
+                            continue;
+                        case Opcode.Proc:
+                            AddColorInsertion(range, PROC_OPCODE_COLOR);
+                            continue;
+                        case Opcode.Set:
+                        case Opcode.SetA:
+                        case Opcode.SetG:
+                            AddColorInsertion(range, VARIABLE_OPCODE_COLOR);
+                            continue;
+                        default:
+                            continue;
+                    }
+                case TokenType.Array:
+                case TokenType.Chain:
+                case TokenType.FuncCall:
+                case TokenType.Indexer:
+                default:
+                    continue;
+            }
+        }
+
+        var builder = new StringBuilder();
+        
+        for (int i = 0; i < str.Length; i++) {
+            foreach (var insertion in insertions) {
+                if (insertion.index == i)
+                    builder.Append(insertion.value);
+            }
+
+            builder.Append(str[i]);
+        }
+
+        return builder.ToString();
+
+        void AddColorInsertion(StringRange range, string color) {
+            insertions.Add((range.Index, $"<color={color}>"));
+            insertions.Add((range.Index + range.Length, "</color>"));
         }
     }
 }
