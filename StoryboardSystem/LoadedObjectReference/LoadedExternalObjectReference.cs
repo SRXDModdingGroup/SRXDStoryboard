@@ -6,31 +6,10 @@ namespace StoryboardSystem;
 internal class LoadedExternalObjectReference : LoadedObjectReference {
     public override object LoadedObject => externalObject;
 
-    private string key;
     private string name;
     private object externalObject;
     
-    public LoadedExternalObjectReference(string name) {
-        string[] split = name.Split('.');
-
-        switch (split.Length) {
-            case 1:
-                key = string.Empty;
-                this.name = split[0];
-
-                return;
-            case 2:
-                key = split[0];
-                this.name = split[1];
-            
-                return;
-            default:
-                key = string.Empty;
-                this.name = name;
-
-                return;
-        }
-    }
+    public LoadedExternalObjectReference(string name) => this.name = name;
 
     public override void Unload(ISceneManager sceneManager) {
         if (externalObject is IStoryboardObject customObject)

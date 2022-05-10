@@ -7,6 +7,8 @@ public class VariableInfo {
     public Vector2Int Declaration { get; set; }
 
     public List<VariableUsage> Usages { get; }
+    
+    public ProcedureInfo ProcedureInfo { get; set; }
 
     public VariableInfo(string name, Vector2Int declaration) {
         Name = name;

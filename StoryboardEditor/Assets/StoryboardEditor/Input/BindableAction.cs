@@ -6,5 +6,6 @@
     PasteAndInsert,
     Duplicate,
     DuplicateAndInsert,
-    Rename
+    Rename,
+    CreateProcedureVariant
 }

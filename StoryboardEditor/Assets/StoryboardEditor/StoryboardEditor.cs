@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using StoryboardSystem;
 using TMPro;
 using UnityEngine;
@@ -60,6 +61,7 @@ public class StoryboardEditor : MonoBehaviour {
         input.Bind(BindableAction.Duplicate, () => Duplicate(false));
         input.Bind(BindableAction.DuplicateAndInsert, () => Duplicate(true));
         input.Bind(BindableAction.Rename, Rename);
+        input.Bind(BindableAction.CreateProcedureVariant, CreateProcedureVariant);
     }
 
     private void Start() {
@@ -604,7 +606,7 @@ public class StoryboardEditor : MonoBehaviour {
             
             proceduresDropdown.ClearOptions();
 
-            var options = new List<string>() { "Top" };
+            var options = new List<string> { "Top" };
 
             foreach (var procedure in analysis.Procedures)
                 options.Add(procedure.Name);
@@ -779,9 +781,9 @@ public class StoryboardEditor : MonoBehaviour {
         
         textInputPopup.Show($"Enter new name for variable {first.Name}", first.Name, value => Do(usages, value), blocker);
 
-        void Do(List<VariableUsage> usages, string value) {
-            if (string.IsNullOrWhiteSpace(value)
-                || !Parser.TryParseToken(new StringRange(value), 0, null, false, out var token)
+        void Do(List<VariableUsage> usages, string newName) {
+            if (string.IsNullOrWhiteSpace(newName)
+                || !Parser.TryParseToken(new StringRange(newName), 0, null, false, out var token)
                 || token.Type != TokenType.Chain)
                 return;
 
@@ -795,24 +797,129 @@ public class StoryboardEditor : MonoBehaviour {
             foreach (var usage in usages) {
                 var range = analysis.Cells[usage.Row, usage.Column].Tokens[usage.TokenIndex].Range;
                 
-                SetCellText(usage.Row, usage.Column, range.String.Remove(range.Index, range.Length).Insert(range.Index, value));
+                SetCellText(usage.Row, usage.Column, range.String.Remove(range.Index, range.Length).Insert(range.Index, newName));
             }
             
             EndEdit();
         }
     }
 
-    private bool CanExecuteAction(BindableAction action) => action switch {
-        BindableAction.Undo => undoRedo.CanUndo(),
-        BindableAction.Redo => undoRedo.CanRedo(),
-        BindableAction.Copy => selection.AnySelected,
-        BindableAction.Paste => clipboard != null && selection.AnyBoxSelection,
-        BindableAction.PasteAndInsert => clipboard != null && selection.AnyBoxSelection,
-        BindableAction.Duplicate => selection.AnySelected,
-        BindableAction.DuplicateAndInsert => selection.AnySelected,
-        BindableAction.Rename => selection.AnyBoxSelection && analysis.Cells[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y].VariablesUsed.Count > 0,
-        _ => false
-    };
+    private void CreateProcedureVariant() {
+        if (!selection.AnyBoxSelection)
+            return;
+
+        var variables = analysis.Cells[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y].VariablesUsed;
+
+        if (variables.Count != 1)
+            return;
+
+        var procedureInfo = variables[0].ProcedureInfo;
+        
+        if (procedureInfo == null)
+            return;
+
+        string trimmedName = Regex.Match(procedureInfo.Name, @"^(\w*?)(_\d*)?$").Groups[1].Value;
+        string defaultName;
+        bool nameExists;
+        int i = 0;
+
+        do {
+            defaultName = $"{trimmedName}_{i}";
+            nameExists = false;
+
+            foreach (var procedure in analysis.Procedures) {
+                if (defaultName != procedure.Name)
+                    continue;
+
+                nameExists = true;
+
+                break;
+            }
+
+            i++;
+        } while (nameExists);
+
+        int startRow = procedureInfo.Index;
+        int endRow;
+        int procedureIndex = analysis.Procedures.IndexOf(procedureInfo);
+
+        if (procedureIndex == analysis.Procedures.Count - 1)
+            endRow = document.Rows;
+        else
+            endRow = analysis.Procedures[procedureIndex + 1].Index;
+        
+        textInputPopup.Show($"Enter name for variant of procedure {procedureInfo.Name}", defaultName, value => Do(procedureInfo, startRow, endRow, value), blocker);
+
+        void Do(ProcedureInfo procedureInfo, int startRow, int endRow, string newName) {
+            if (string.IsNullOrWhiteSpace(newName)
+                || !Parser.TryParseToken(new StringRange(newName), 0, null, false, out var token)
+                || token.Type != TokenType.Chain)
+                return;
+            
+            var chain = (Chain) token;
+            
+            if (chain.Length != 1 || chain[0].Type != TokenType.Name)
+                return;
+            
+            BeginEdit();
+
+            var selectedCells = new List<Vector2Int>(selection.GetSelectedCells());
+
+            foreach (var usage in procedureInfo.VariableInfo.Usages) {
+                var cell = new Vector2Int(usage.Row, usage.Column);
+                
+                if (cell == procedureInfo.VariableInfo.Declaration || !selectedCells.Contains(cell))
+                    continue;
+                
+                var range = analysis.Cells[usage.Row, usage.Column].Tokens[usage.TokenIndex].Range;
+                
+                SetCellText(usage.Row, usage.Column, range.String.Remove(range.Index, range.Length).Insert(range.Index, newName));
+            }
+
+            for (int i = startRow, j = endRow; i < endRow; i++, j++) {
+                InsertRow(j);
+            
+                for (int k = 0; k < document.Columns; k++)
+                    SetCellText(j, k, document[i, k]);
+            }
+            
+            SetCellText(endRow, 1, newName);
+            EndEdit();
+        }
+    }
+
+    private bool CanExecuteAction(BindableAction action) {
+        switch (action) {
+            case BindableAction.Undo:
+                return undoRedo.CanUndo();
+            case BindableAction.Redo:
+                return undoRedo.CanRedo();
+            case BindableAction.Copy:
+                return selection.AnySelected;
+            case BindableAction.Paste:
+            case BindableAction.PasteAndInsert:
+                return clipboard != null && selection.AnyBoxSelection;
+            case BindableAction.Duplicate:
+            case BindableAction.DuplicateAndInsert:
+                return selection.AnySelected;
+            case BindableAction.Rename:
+                return selection.AnyBoxSelection && analysis.Cells[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y].VariablesUsed.Count > 0;
+            case BindableAction.CreateProcedureVariant:
+                if (!selection.AnyBoxSelection)
+                    return false;
+
+                var variables = analysis.Cells[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y].VariablesUsed;
+
+                if (variables.Count != 1)
+                    return false;
+
+                var procedureInfo = variables[0].ProcedureInfo;
+        
+                return procedureInfo != null;
+            default:
+                return false;
+        }
+    }
 
     private bool AnyInRow(int row) {
         for (int i = 0; i < document.Columns; i++) {

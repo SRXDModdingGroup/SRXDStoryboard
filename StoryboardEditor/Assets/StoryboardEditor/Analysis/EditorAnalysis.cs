@@ -190,7 +190,7 @@ public class EditorAnalysis {
 
                     currentProcedureIndex = i;
                     currentProcedureArgNames = new List<string>();
-                    currentProcedureLocals = new Dictionary<string, VariableInfo>() { { "count", new VariableInfo("count", new Vector2Int(i, -1)) }, { "iter", new VariableInfo("iter", new Vector2Int(i, -1)) } };
+                    currentProcedureLocals = new Dictionary<string, VariableInfo> { { "count", new VariableInfo("count", new Vector2Int(i, -1)) }, { "iter", new VariableInfo("iter", new Vector2Int(i, -1)) } };
 
                     cell = newCells[i, 1];
 
@@ -279,22 +279,24 @@ public class EditorAnalysis {
         return true;
 
         void PopProcedure() {
-            var info = new ProcedureInfo(currentProcedureIndex, currentProcedureName, currentProcedureArgNames, currentProcedureLocals);
+            var variableInfo = new VariableInfo(currentProcedureName, new Vector2Int(currentProcedureIndex, 1));
+            var procedureInfo = new ProcedureInfo(currentProcedureIndex, currentProcedureName, currentProcedureArgNames, currentProcedureLocals, variableInfo);
 
-            newProcedures.Add(info);
+            variableInfo.ProcedureInfo = procedureInfo;
+            newProcedures.Add(procedureInfo);
 
             if (newGlobals.TryGetValue(currentProcedureName, out var globalInfo))
                 globalInfo.Declaration = new Vector2Int(currentProcedureIndex, 1);
             else
-                newGlobals.Add(currentProcedureName, new VariableInfo(currentProcedureName, new Vector2Int(currentProcedureIndex, 1)));
+                newGlobals.Add(currentProcedureName, variableInfo);
 
-            proceduresDict.Add(currentProcedureName, info);
+            proceduresDict.Add(currentProcedureName, procedureInfo);
         }
     }
 
     private bool FillUsagesAndValidateCells(Dictionary<string, ProcedureInfo> proceduresDict, CancellationToken ct) {
         string[] argNames = new string[newCells.Columns];
-        var currentProcedure = new ProcedureInfo(-1, null, null, null);
+        var currentProcedure = new ProcedureInfo(-1, null, null, null, null);
         int currentProcedureIndex = -1;
 
         for (int i = 0; i < newCells.Rows; i++) {

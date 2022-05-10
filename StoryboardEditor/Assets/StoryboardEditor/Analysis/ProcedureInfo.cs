@@ -8,11 +8,14 @@ public class ProcedureInfo {
     public List<string> ArgNames { get; }
     
     public Dictionary<string, VariableInfo> Locals { get; }
+    
+    public VariableInfo VariableInfo { get; }
 
-    public ProcedureInfo(int index, string name, List<string> argNames, Dictionary<string, VariableInfo> locals) {
+    public ProcedureInfo(int index, string name, List<string> argNames, Dictionary<string, VariableInfo> locals, VariableInfo variableInfo) {
         Index = index;
         Name = name;
         ArgNames = argNames;
         Locals = locals;
+        VariableInfo = variableInfo;
     }
 }
