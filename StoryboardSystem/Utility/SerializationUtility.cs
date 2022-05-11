@@ -3,6 +3,8 @@
 namespace StoryboardSystem; 
 
 internal static class SerializationUtility {
+    private const int VERY_SHORT_ARRAY_LENGTH = 64;
+    
     private enum SerializableType {
         Null,
         False,
@@ -14,11 +16,8 @@ internal static class SerializationUtility {
         Int,
         Float,
         String,
-        Array0,
-        Array1,
-        Array2,
-        Array3,
-        Array4,
+        VeryShortArray,
+        ShortArray = VeryShortArray + VERY_SHORT_ARRAY_LENGTH,
         Array
     }
 
@@ -67,13 +66,24 @@ internal static class SerializationUtility {
                 return true;
             case object[] arr:
                 int length = arr.Length;
+                
+                switch (length) {
+                    case < VERY_SHORT_ARRAY_LENGTH:
+                        writer.Write((byte) (SerializableType.VeryShortArray + length));
+                        break;
+                    case <= byte.MaxValue:
+                        writer.Write((byte) SerializableType.ShortArray);
+                        writer.Write((byte) arr.Length);
+                        break;
+                    case <= ushort.MaxValue:
+                        writer.Write((byte) SerializableType.Array);
+                        writer.Write((ushort) arr.Length);
+                        break;
+                    default:
+                        StoryboardManager.Instance.Logger.LogWarning($"Max array length is {ushort.MaxValue}");
 
-                if (length > 4) {
-                    writer.Write((byte) SerializableType.Array);
-                    writer.Write((ushort) arr.Length);
+                        return false;
                 }
-                else
-                    writer.Write((byte) (SerializableType.Array0 + length));
 
                 foreach (object val in arr) {
                     if (!writer.TryWrite(val))
@@ -122,19 +132,13 @@ internal static class SerializationUtility {
             case SerializableType.String:
                 obj = reader.ReadString();
                 return true;
-            case SerializableType.Array0:
-            case SerializableType.Array1:
-            case SerializableType.Array2:
-            case SerializableType.Array3:
-            case SerializableType.Array4:
-            case SerializableType.Array:
-                int length;
+            case <= SerializableType.Array:
+                int length = value switch {
+                    SerializableType.Array => reader.ReadUInt16(),
+                    SerializableType.ShortArray => reader.ReadByte(),
+                    _ => value - SerializableType.VeryShortArray
+                };
 
-                if (value == SerializableType.Array)
-                    length = reader.ReadUInt16();
-                else
-                    length = value - SerializableType.Array0;
-                
                 object[] arr = new object[length];
 
                 for (int i = 0; i < length; i++) {
