@@ -10,6 +10,7 @@ public class EditorSettings {
         { BindableAction.Duplicate, new Binding("Duplicate", "d", InputModifier.Control) },
         { BindableAction.DuplicateAndInsert, new Binding("Duplicate and Insert", "d", InputModifier.Control | InputModifier.Shift) },
         { BindableAction.Rename, new Binding("Rename", "r", InputModifier.Control) },
-        { BindableAction.CreateProcedureVariant, new Binding("Create Variant", "", InputModifier.None)}
+        { BindableAction.CreateProcedureVariant, new Binding("Create Variant", "", InputModifier.None)},
+        { BindableAction.CollapseToProcedure, new Binding("Collapse to Procedure", "", InputModifier.None) }
     };
 }

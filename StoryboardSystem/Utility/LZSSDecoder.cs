@@ -4,8 +4,8 @@ using System.IO;
 namespace StoryboardSystem; 
 
 internal class LZSSDecoder : Stream, IDisposable {
-    private const int OFFSET_BITS = 5;
-    private const int LENGTH_BITS = 3;
+    private const int OFFSET_BITS = 9;
+    private const int LENGTH_BITS = 7;
     private const int SEARCH_LENGTH = 1 << OFFSET_BITS;
     private const int LOOKAHEAD_LENGTH = (1 << LENGTH_BITS) - 1;
     private const int BUFFER_LENGTH = 4096;
@@ -69,8 +69,12 @@ internal class LZSSDecoder : Stream, IDisposable {
                 continue;
             }
 
-            runLength = (value >> (8 - LENGTH_BITS)) & LOOKAHEAD_LENGTH;
-            runOffset = value & (SEARCH_LENGTH - 1);
+            unchecked {
+                ushort pair = (ushort) ((value << 8) | InputByte());
+
+                runLength = (pair >> (16 - LENGTH_BITS)) & LOOKAHEAD_LENGTH;
+                runOffset = value & (SEARCH_LENGTH - 1);
+            }
         }
 
         return i - offset;

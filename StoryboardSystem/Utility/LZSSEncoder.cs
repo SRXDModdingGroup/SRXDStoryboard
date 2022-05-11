@@ -4,8 +4,8 @@ using System.IO;
 namespace StoryboardSystem; 
 
 internal class LZSSEncoder : Stream, IDisposable {
-    private const int OFFSET_BITS = 5;
-    private const int LENGTH_BITS = 3;
+    private const int OFFSET_BITS = 9;
+    private const int LENGTH_BITS = 7;
     private const int SEARCH_LENGTH = 1 << OFFSET_BITS;
     private const int LOOKAHEAD_LENGTH = (1 << LENGTH_BITS) - 1;
     private const int WINDOW_LENGTH = SEARCH_LENGTH + LOOKAHEAD_LENGTH;
@@ -103,16 +103,21 @@ internal class LZSSEncoder : Stream, IDisposable {
                 break;
         }
 
-        if (runLength > 0) {
-            OutputByte((byte) (runOffset | (runLength << (8 - LENGTH_BITS))));
-            readToPosition += runLength;
-                
+        if (runLength < 2) {
+            OutputByte(0);
+            OutputByte((byte) WindowGet(SEARCH_LENGTH));
+            readToPosition++;
+
             return;
         }
 
-        OutputByte(0);
-        OutputByte((byte) WindowGet(SEARCH_LENGTH));
-        readToPosition++;
+        unchecked {
+            ushort pair = (ushort) ((runLength << (16 - LENGTH_BITS)) | runOffset);
+
+            OutputByte((byte) (pair >> 8));
+            OutputByte((byte) pair);
+            readToPosition += runLength;
+        }
     }
 
     private void OutputByte(byte value) {

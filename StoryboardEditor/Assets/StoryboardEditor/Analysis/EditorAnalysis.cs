@@ -314,10 +314,10 @@ public class EditorAnalysis {
             if (ct.IsCancellationRequested)
                 return false;
 
-            if (currentProcedureIndex + 1 < newProcedures.Count && i >= newProcedures[currentProcedureIndex + 1].Index) {
+            if (currentProcedureIndex + 1 < newProcedures.Count && i >= newProcedures[currentProcedureIndex + 1].Row) {
                 var nextProcedure = newProcedures[currentProcedureIndex + 1];
 
-                if (i >= nextProcedure.Index) {
+                if (i >= nextProcedure.Row) {
                     currentProcedureIndex++;
                     currentProcedure = nextProcedure;
                 }
@@ -390,7 +390,7 @@ public class EditorAnalysis {
 
                             string name = ((Name) chain[0]).ToString();
 
-                            if ((currentProcedure.Index < 0
+                            if ((currentProcedure.Row < 0
                                     || !currentProcedure.Locals.TryGetValue(name, out var info)
                                     || i < info.Declaration.x
                                     || i == info.Declaration.x && j != info.Declaration.y)

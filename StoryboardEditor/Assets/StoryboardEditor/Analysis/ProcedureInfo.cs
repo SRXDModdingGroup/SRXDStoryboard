@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 public class ProcedureInfo {
-    public int Index { get; }
+    public int Row { get; }
         
     public string Name { get; }
     
@@ -11,8 +11,8 @@ public class ProcedureInfo {
     
     public VariableInfo VariableInfo { get; }
 
-    public ProcedureInfo(int index, string name, List<string> argNames, Dictionary<string, VariableInfo> locals, VariableInfo variableInfo) {
-        Index = index;
+    public ProcedureInfo(int row, string name, List<string> argNames, Dictionary<string, VariableInfo> locals, VariableInfo variableInfo) {
+        Row = row;
         Name = name;
         ArgNames = argNames;
         Locals = locals;

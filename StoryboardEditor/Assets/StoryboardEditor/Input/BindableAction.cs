@@ -7,5 +7,6 @@
     Duplicate,
     DuplicateAndInsert,
     Rename,
-    CreateProcedureVariant
+    CreateProcedureVariant,
+    CollapseToProcedure
 }

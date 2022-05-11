@@ -62,6 +62,7 @@ public class StoryboardEditor : MonoBehaviour {
         input.Bind(BindableAction.DuplicateAndInsert, () => Duplicate(true));
         input.Bind(BindableAction.Rename, Rename);
         input.Bind(BindableAction.CreateProcedureVariant, CreateProcedureVariant);
+        input.Bind(BindableAction.CollapseToProcedure, CollapseToProcedure);
     }
 
     private void Start() {
@@ -396,7 +397,7 @@ public class StoryboardEditor : MonoBehaviour {
 
     private void OnProcedureDropdownItemSelected(int index) {
         if (index > 0)
-            index = analysis.Procedures[index - 1].Index;
+            index = analysis.Procedures[index - 1].Row;
 
         selection.SetBoxSelectionStartAndEnd(index, 0);
         UpdateSelection();
@@ -558,7 +559,7 @@ public class StoryboardEditor : MonoBehaviour {
             var currentColor = cellColor1;
 
             if (procedures.Count > 0)
-                nextProcedureRow = procedures[0].Index;
+                nextProcedureRow = procedures[0].Row;
             else
                 nextProcedureRow = int.MaxValue;
 
@@ -569,7 +570,7 @@ public class StoryboardEditor : MonoBehaviour {
                     currentProcedureIndex++;
 
                     if (currentProcedureIndex < procedures.Count)
-                        nextProcedureRow = procedures[currentProcedureIndex].Index;
+                        nextProcedureRow = procedures[currentProcedureIndex].Row;
                     else
                         nextProcedureRow = int.MaxValue;
 
@@ -628,24 +629,7 @@ public class StoryboardEditor : MonoBehaviour {
                 textField.SetTextWithoutNotify(document[selection.BoxSelectionStart.x, selection.BoxSelectionStart.y]);
             
             textField.interactable = true;
-
-            var procedures = analysis.Procedures;
-            int index = selection.BoxSelectionStart.x;
-
-            for (int i = procedures.Count - 1; i >= -1; i--) {
-                if (i == -1) {
-                    proceduresDropdown.SetValueWithoutNotify(0);
-
-                    break;
-                }
-                
-                if (index < procedures[i].Index)
-                    continue;
-                
-                proceduresDropdown.SetValueWithoutNotify(i + 1);
-
-                break;
-            }
+            proceduresDropdown.SetValueWithoutNotify(GetProcedureAbove(selection.BoxSelectionStart.x) + 1);
         }
         else {
             textField.SetTextWithoutNotify(string.Empty);
@@ -839,18 +823,9 @@ public class StoryboardEditor : MonoBehaviour {
             i++;
         } while (nameExists);
 
-        int startRow = procedureInfo.Index;
-        int endRow;
-        int procedureIndex = analysis.Procedures.IndexOf(procedureInfo);
+        textInputPopup.Show($"Enter name for variant of procedure {procedureInfo.Name}", defaultName, value => Do(procedureInfo, value), blocker);
 
-        if (procedureIndex == analysis.Procedures.Count - 1)
-            endRow = document.Rows;
-        else
-            endRow = analysis.Procedures[procedureIndex + 1].Index;
-        
-        textInputPopup.Show($"Enter name for variant of procedure {procedureInfo.Name}", defaultName, value => Do(procedureInfo, startRow, endRow, value), blocker);
-
-        void Do(ProcedureInfo procedureInfo, int startRow, int endRow, string newName) {
+        void Do(ProcedureInfo procedureInfo, string newName) {
             if (string.IsNullOrWhiteSpace(newName)
                 || !Parser.TryParseToken(new StringRange(newName), 0, null, out var token)
                 || token.Type != TokenType.Chain)
@@ -860,6 +835,15 @@ public class StoryboardEditor : MonoBehaviour {
             
             if (chain.Length != 1 || chain[0].Type != TokenType.Name)
                 return;
+            
+            int startRow = procedureInfo.Row;
+            int endRow;
+            int procedureIndex = analysis.Procedures.IndexOf(procedureInfo);
+
+            if (procedureIndex == analysis.Procedures.Count - 1)
+                endRow = document.Rows;
+            else
+                endRow = analysis.Procedures[procedureIndex + 1].Row;
             
             BeginEdit();
 
@@ -884,6 +868,62 @@ public class StoryboardEditor : MonoBehaviour {
             }
             
             SetCellText(endRow, 1, newName);
+            EndEdit();
+            
+            selection.ClearSelection();
+            selection.ClearBoxSelection();
+            UpdateSelection();
+        }
+    }
+
+    private void CollapseToProcedure() {
+        if (!selection.AnyBoxSelection)
+            return;
+        
+        textInputPopup.Show("Enter name for new procedure", "", Do, blocker);
+
+        void Do(string newName) {
+            var selectedRows = new List<int>(selection.GetSelectedRows());
+            int toRow;
+            int procedureIndex = GetProcedureAbove(selectedRows[^1]) + 1;
+
+            if (procedureIndex == analysis.Procedures.Count)
+                toRow = document.Rows;
+            else
+                toRow = analysis.Procedures[procedureIndex].Row;
+            
+            BeginEdit();
+            
+            InsertRow(toRow);
+            InsertRow(toRow + 1);
+            SetCellText(toRow, 0, "proc");
+            SetCellText(toRow, 1, newName);
+            toRow += 2;
+
+            foreach (int fromRow in selectedRows) {
+                InsertRow(toRow);
+                
+                for (int i = 0; i < document.Columns; i++)
+                    SetCellText(toRow, i, document[fromRow, i]);
+
+                toRow++;
+            }
+            
+            InsertRow(toRow);
+            InsertRow(toRow + 1);
+
+            for (int i = selectedRows.Count - 1; i >= 1; i--)
+                RemoveRow(selectedRows[i]);
+
+            toRow = selectedRows[0];
+            
+            SetCellText(toRow, 0, "call");
+            SetCellText(toRow, 1, "0s");
+            SetCellText(toRow, 2, newName);
+
+            for (int i = 3; i < document.Columns; i++)
+                SetCellText(toRow, i, string.Empty);
+            
             EndEdit();
             
             selection.ClearSelection();
@@ -920,6 +960,8 @@ public class StoryboardEditor : MonoBehaviour {
                 var procedureInfo = variables[0].ProcedureInfo;
         
                 return procedureInfo != null;
+            case BindableAction.CollapseToProcedure:
+                return selection.AnySelected;
             default:
                 return false;
         }
@@ -947,6 +989,20 @@ public class StoryboardEditor : MonoBehaviour {
         for (int i = document.Columns - 1; i >= 0; i--) {
             if (!string.IsNullOrWhiteSpace(document[row, i]))
                 return i;
+        }
+
+        return -1;
+    }
+
+    private int GetProcedureAbove(int row) {
+        var procedures = analysis.Procedures;
+        int index = selection.BoxSelectionStart.x;
+
+        for (int i = procedures.Count - 1; i >= 0; i--) {
+            if (index < procedures[i].Row)
+                continue;
+
+            return i;
         }
 
         return -1;
