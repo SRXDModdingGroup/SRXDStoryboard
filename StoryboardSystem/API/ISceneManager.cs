@@ -21,5 +21,5 @@ public interface ISceneManager {
     
     bool TryGetExternalObject(string name, out object externalObject);
     
-    float Convert(float measures, float beats, float ticks, float seconds);
+    float Convert(float beats, float ticks, float seconds);
 }

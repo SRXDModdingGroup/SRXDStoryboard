@@ -44,7 +44,7 @@ internal class TimelineBuilder {
                 return false;
             }
             
-            keyframes[i] = new Keyframe<T>(sceneManager.Convert((float) builder.Time.Measures, (float) builder.Time.Beats, (float) builder.Time.Ticks, (float) builder.Time.Seconds), converted, builder.InterpType, i);
+            keyframes[i] = new Keyframe<T>(sceneManager.Convert((float) builder.Time.Beats, (float) builder.Time.Ticks, (float) builder.Time.Seconds), converted, builder.InterpType, i);
         }
 
         if (keyframes.Length > 1) {

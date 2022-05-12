@@ -60,9 +60,19 @@ internal readonly struct Fixed {
 
     public static Fixed operator /(Fixed a, float b) => a / (Fixed) b;
 
+    public static Fixed operator %(Fixed a, int b) => new(a.val % b);
+
     public static bool operator ==(Fixed a, Fixed b) => a.val == b.val;
     
     public static bool operator !=(Fixed a, Fixed b) => a.val != b.val;
+
+    public static bool operator >(Fixed a, Fixed b) => a.val > b.val;
+
+    public static bool operator >=(Fixed a, Fixed b) => a.val >= b.val;
+
+    public static bool operator <(Fixed a, Fixed b) => a.val < b.val;
+
+    public static bool operator <=(Fixed a, Fixed b) => a.val <= b.val;
 
     public static explicit operator int(Fixed f) => FloorToInt(f);
 

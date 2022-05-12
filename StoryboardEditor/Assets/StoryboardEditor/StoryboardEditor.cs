@@ -13,6 +13,8 @@ public class StoryboardEditor : MonoBehaviour {
     [SerializeField] private Color cellColor1;
     [SerializeField] private Color cellColor2;
     [SerializeField] private TMP_InputField textField;
+    [SerializeField] private TMP_InputField beatsPerMeasureField;
+    [SerializeField] private TMP_InputField ticksPerBeatField;
     [SerializeField] private TMP_Dropdown proceduresDropdown;
     [SerializeField] private GridView gridView;
     [SerializeField] private TopBarButton[] topBarButtons;
@@ -22,6 +24,8 @@ public class StoryboardEditor : MonoBehaviour {
     private bool contentNeedsUpdate;
     private bool editing;
     private bool rowSelecting;
+    private int beatsPerMeasure = 4;
+    private int ticksPerBeat = 8;
     private Table<string> document;
     private Table<string> clipboard;
     private Table<CellVisualState> cellStates;
@@ -37,6 +41,8 @@ public class StoryboardEditor : MonoBehaviour {
         gridView.DragUpdate += OnGridDragUpdate;
         gridView.DragEnd += OnGridDragEnd;
         gridView.Deselected += OnGridDeselected;
+        beatsPerMeasureField.onValueChanged.AddListener(OnBeatsPerMeasureChanged);
+        ticksPerBeatField.onValueChanged.AddListener(OnTicksPerBeatChanged);
         proceduresDropdown.onValueChanged.AddListener(OnProcedureDropdownItemSelected);
         eventSystem = EventSystem.current;
         settings = new EditorSettings();
@@ -393,6 +399,20 @@ public class StoryboardEditor : MonoBehaviour {
 
     private void OnGridDeselected(InputModifier modifiers) {
         rowSelecting = false;
+    }
+
+    private void OnBeatsPerMeasureChanged(string value) {
+        if (!int.TryParse(value, out beatsPerMeasure))
+            beatsPerMeasure = 0;
+        
+        beatsPerMeasureField.SetTextWithoutNotify(beatsPerMeasure.ToString());
+    }
+    
+    private void OnTicksPerBeatChanged(string value) {
+        if (!int.TryParse(value, out ticksPerBeat))
+            ticksPerBeat = 0;
+        
+        ticksPerBeatField.SetTextWithoutNotify(ticksPerBeat.ToString());
     }
 
     private void OnProcedureDropdownItemSelected(int index) {
@@ -996,10 +1016,9 @@ public class StoryboardEditor : MonoBehaviour {
 
     private int GetProcedureAbove(int row) {
         var procedures = analysis.Procedures;
-        int index = selection.BoxSelectionStart.x;
 
         for (int i = procedures.Count - 1; i >= 0; i--) {
-            if (index < procedures[i].Row)
+            if (row < procedures[i].Row)
                 continue;
 
             return i;

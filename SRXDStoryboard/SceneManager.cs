@@ -111,22 +111,10 @@ public class SceneManager : ISceneManager {
         }
     }
 
-    public float Convert(float measures, float beats, float ticks, float seconds) {
+    public float Convert(float beats, float ticks, float seconds) {
         float beat = beats + 0.125f * ticks;
-        
-        if (segments.Length > 0) {
-            int index0 = 0;
-
-            while (index0 < segments.Length - 1 && segments[index0 + 1].startingBar <= measures)
-                index0++;
-
-            var segment = segments[index0];
-            
-            beat += segments[index0].startingBeat + (measures - segment.startingBar) * segment.ticksPerBar * segment.beatsPerTick;
-        }
-         
-        int index1 = Mathf.Clamp(Mathf.FloorToInt(beat), 0, beatArray.Length - 2);
-        float time = Mathf.LerpUnclamped(beatArray[index1], beatArray[index1 + 1], beat - index1) + seconds;
+        int index = Mathf.Clamp(Mathf.FloorToInt(beat), 0, beatArray.Length - 2);
+        float time = Mathf.LerpUnclamped(beatArray[index], beatArray[index + 1], beat - index) + seconds;
         
         return time;
     }

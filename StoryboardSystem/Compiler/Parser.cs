@@ -217,7 +217,6 @@ public static class Parser {
     }
 
     private static bool TryParseTimestamp(StringRange value, out Token timestamp) {
-        float measures = 0f;
         float beats = 0f;
         float ticks = 0f;
         float seconds = 0f;
@@ -249,9 +248,6 @@ public static class Parser {
             }
 
             switch (c) {
-                case 'm':
-                    measures += floatVal;
-                    break;
                 case 'b':
                     beats += floatVal;
                     break;
@@ -275,7 +271,7 @@ public static class Parser {
             return false;
         }
 
-        timestamp = new Constant(new Timestamp((Fixed) measures, (Fixed) beats, (Fixed) ticks, (Fixed) seconds));
+        timestamp = new Constant(new Timestamp((Fixed) beats, (Fixed) ticks, (Fixed) seconds));
 
         return true;
     }
