@@ -3,17 +3,11 @@
 namespace StoryboardSystem.Core;
 
 public class StoryboardData {
-    public string AssetBundleName { get; }
+    public List<(string rigName, int rigIndex, string eventName, List<EventCall> eventCalls)> EventCalls { get; }
     
-    public string ScenePrefabName { get; }
-    
-    public List<(string rig, string property, List<EventCall> eventCalls)> EventCalls { get; }
-    
-    public List<(string rig, string property, List<Curve> curves)> Curves { get; }
+    public List<(string rigName, int rigIndex, string property, List<Curve> curves)> Curves { get; }
 
-    public StoryboardData(string assetBundleName, string scenePrefabName, List<(string rig, string property, List<EventCall>)> eventCalls, List<(string rig, string property, List<Curve>)> curves) {
-        AssetBundleName = assetBundleName;
-        ScenePrefabName = scenePrefabName;
+    public StoryboardData(List<(string rigName, int rigIndex, string eventName, List<EventCall>)> eventCalls, List<(string rigName, int rigIndex, string property, List<Curve>)> curves) {
         EventCalls = eventCalls;
         Curves = curves;
     }

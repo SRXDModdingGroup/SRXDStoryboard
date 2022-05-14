@@ -32,10 +32,6 @@
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
-    <PropertyGroup>
-      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\StoryboardSystem.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins"
-copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem\bin\Release\StoryboardSystem.dll" "C:\Users\domia\Git\SRXDStoryboard\StoryboardEditor\Assets\Libs"</PostBuildEvent>
-    </PropertyGroup>
     <ItemGroup>
         <Reference Include="System" />
         <Reference Include="System.Core" />
