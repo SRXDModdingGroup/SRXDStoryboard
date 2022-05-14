@@ -4,14 +4,35 @@ using UnityEngine;
 namespace StoryboardSystem.Rigging; 
 
 public class StoryboardScene : MonoBehaviour {
-    private Dictionary<string, StoryboardRig> rigs;
+    [SerializeField] private RigSettings[] rigs;
 
-    public bool TryGetRig(string name, out StoryboardRig rig) => rigs.TryGetValue(name, out rig);
+    private Dictionary<string, StoryboardRig[]> rigsDict;
 
     private void Awake() {
-        rigs = new Dictionary<string, StoryboardRig>();
-        
-        foreach (var rig in GetComponentsInChildren<StoryboardRig>())
-            rigs.Add(rig.name, rig);
+        rigsDict = new Dictionary<string, StoryboardRig[]>();
+
+        foreach (var settings in rigs) {
+            var rigArray = new StoryboardRig[settings.count];
+
+            for (int i = 0; i < settings.count; i++)
+                rigArray[i] = new StoryboardRig(settings);
+            
+            rigsDict.Add(settings.name, rigArray);
+        }
+
+        foreach (var rigTarget in GetComponentsInChildren<RigTarget>())
+            rigTarget.Bind(this);
+    }
+
+    public bool TryGetRig(string name, int index, out StoryboardRig rig) {
+        if (rigsDict.TryGetValue(name, out var rigArray) && index >= 0 && index < rigArray.Length) {
+            rig = rigArray[index];
+
+            return true;
+        }
+
+        rig = null;
+
+        return false;
     }
 }

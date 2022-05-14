@@ -3,7 +3,7 @@
 namespace StoryboardSystem.Rigging; 
 
 [Serializable]
-public class RiggedPropertyValue {
+public class RigPropertyValue {
     public int intX;
     public int intY;
     public int intZ;

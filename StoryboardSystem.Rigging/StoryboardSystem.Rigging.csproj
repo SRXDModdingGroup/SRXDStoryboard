@@ -114,15 +114,17 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="ArrayRig.cs" />
+        <Compile Include="EventBinding.cs" />
+        <Compile Include="PropertyBinding.cs" />
         <Compile Include="RigEvent.cs" />
         <Compile Include="RigProperty.cs" />
-        <Compile Include="RigEventValue.cs" />
-        <Compile Include="RiggedPropertyType.cs" />
-        <Compile Include="RiggedPropertyValue.cs" />
+        <Compile Include="RigEventParameter.cs" />
+        <Compile Include="RigPropertyType.cs" />
+        <Compile Include="RigPropertyValue.cs" />
         <Compile Include="RigTarget.cs" />
-        <Compile Include="StoryboardRig.cs" />
+        <Compile Include="RigSettings.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="StoryboardRig.cs" />
         <Compile Include="StoryboardScene.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

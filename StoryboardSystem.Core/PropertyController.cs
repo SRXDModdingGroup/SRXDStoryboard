@@ -1,19 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System.Collections.Generic;
 
 namespace StoryboardSystem.Core; 
 
-public class PropertyBinding {
-    public List<Action<Vector4>> Actions { get; }
+public class PropertyController {
+    public PropertyBinding Binding { get; }
     
     public List<Curve> Curves { get; }
 
     private int lastEvaluatedCurveIndex;
     private int lastEvaluatedKeyframeIndex;
 
-    public PropertyBinding(List<Action<Vector4>> actions, List<Curve> curves) {
-        Actions = actions;
+    public PropertyController(PropertyBinding binding, List<Curve> curves) {
+        Binding = binding;
         Curves = curves;
     }
 
@@ -43,8 +41,7 @@ public class PropertyBinding {
                 lastEvaluatedKeyframeIndex = 0;
             }
 
-            foreach (var action in Actions)
-                action(curve.Evaluate(time, lastEvaluatedKeyframeIndex));
+            Binding.Set(curve.Evaluate(time, lastEvaluatedKeyframeIndex));
 
             return;
         }

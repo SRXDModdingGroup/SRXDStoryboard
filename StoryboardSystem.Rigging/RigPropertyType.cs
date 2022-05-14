@@ -1,6 +1,7 @@
 ﻿namespace StoryboardSystem.Rigging; 
 
-public enum RiggedPropertyType {
+public enum RigPropertyType {
+    Bool,
     Int,
     Float,
     Vector2,

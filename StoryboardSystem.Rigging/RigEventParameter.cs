@@ -3,7 +3,7 @@
 namespace StoryboardSystem.Rigging; 
 
 [Serializable]
-public class RigProperty {
+public class RigEventParameter {
     public string name;
     public RigPropertyType type;
     public RigPropertyValue defaultValue;
@@ -11,5 +11,4 @@ public class RigProperty {
     public RigPropertyValue maxValue;
     public bool hardMin;
     public bool hardMax;
-    public bool modular;
 }

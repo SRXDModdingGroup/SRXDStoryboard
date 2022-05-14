@@ -1,18 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System.Collections.Generic;
 
 namespace StoryboardSystem.Core; 
 
-public class EventBinding {
-    public List<Action<List<Vector4>>> Actions { get; }
+public class EventController {
+    public EventBinding Binding { get; }
     
     public List<EventCall> Calls { get; }
 
     private int lastCallIndex;
 
-    public EventBinding(List<Action<List<Vector4>>> actions, List<EventCall> calls) {
-        Actions = actions;
+    public EventController(EventBinding binding, List<EventCall> calls) {
+        Binding = binding;
         Calls = calls;
     }
 
@@ -24,8 +22,7 @@ public class EventBinding {
                 if (!trigger)
                     continue;
                 
-                foreach (var action in Actions)
-                    action(Calls[lastCallIndex].Parameters);
+                Binding.Execute(Calls[lastCallIndex].Parameters);
             }
             else if (lastCallIndex >= 0 && time < Calls[lastCallIndex].Time)
                 lastCallIndex--;

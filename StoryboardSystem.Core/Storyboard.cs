@@ -14,15 +14,15 @@ public class Storyboard {
     private string binPath;
     private StoryboardData data;
     private StoryboardScene scene;
-    private List<EventBinding> eventBindings;
-    private List<PropertyBinding> propertyBindings;
+    private List<EventController> eventBindings;
+    private List<PropertyController> propertyBindings;
 
     public Storyboard(string name, string directory) {
         this.name = name;
         this.directory = directory;
         binPath = Path.Combine(directory, Path.ChangeExtension(name, ".bin"));
-        eventBindings = new List<EventBinding>();
-        propertyBindings = new List<PropertyBinding>();
+        eventBindings = new List<EventController>();
+        propertyBindings = new List<PropertyController>();
     }
 
     public void Play() {
@@ -49,32 +49,23 @@ public class Storyboard {
             binding.Evaluate(time, triggerEvents);
     }
 
-    public void Open(IAssetProvider assetProvider) {
-        Close();
+    public void OpenScene(IAssetProvider assetProvider) {
+        CloseScene();
         
         if (data == null || !assetProvider.TryGetAsset(data.AssetBundleName, data.ScenePrefabName, out var sceneAsset)
-            || sceneAsset is not GameObject sceneObject || !sceneObject.TryGetComponent(out scene))
+            || sceneAsset is not GameObject sceneObject || !sceneObject.HasComponent<StoryboardScene>())
             return;
 
-        foreach ((string rigName, string propertyName, var eventCalls) in data.EventCalls) {
-            if (scene.TryGetRig(rigName, out var rig) && rig.TryGetEventBinding(propertyName, out var actions))
-                eventBindings.Add(new EventBinding(actions, eventCalls));
-        }
-
-        foreach ((string rigName, string propertyName, var curves) in data.Curves) {
-            if (scene.TryGetRig(rigName, out var rig) && rig.TryGetValueBinding(propertyName, out var actions))
-                propertyBindings.Add(new PropertyBinding(actions, curves));
-        }
-
+        scene = ((GameObject) Object.Instantiate(sceneAsset)).GetComponent<StoryboardScene>();
         opened = true;
     }
 
-    public void Close() {
+    public void CloseScene() {
         if (!opened)
             return;
         
         opened = false;
-        Object.Destroy(scene);
+        Object.Destroy(scene.gameObject);
         scene = null;
         eventBindings.Clear();
         propertyBindings.Clear();
@@ -86,7 +77,7 @@ public class Storyboard {
     }
 
     private void ClearData() {
-        Close();
+        CloseScene();
         data = null;
     }
 }

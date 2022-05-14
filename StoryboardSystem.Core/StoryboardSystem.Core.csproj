@@ -115,12 +115,12 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Curve.cs" />
-        <Compile Include="EventBinding.cs" />
+        <Compile Include="EventController.cs" />
         <Compile Include="EventCall.cs" />
         <Compile Include="IAssetProvider.cs" />
         <Compile Include="InterpType.cs" />
         <Compile Include="Keyframe.cs" />
-        <Compile Include="PropertyBinding.cs" />
+        <Compile Include="PropertyController.cs" />
         <Compile Include="Storyboard.cs" />
         <Compile Include="StoryboardData.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />

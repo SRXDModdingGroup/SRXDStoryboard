@@ -1,46 +1,41 @@
 ﻿using System;
 using System.Collections.Generic;
+using StoryboardSystem.Core;
 using UnityEngine;
 
-namespace StoryboardSystem.Rigging;
+namespace StoryboardSystem.Rigging; 
 
-public class StoryboardRig : MonoBehaviour {
-    [SerializeField] private string name;
-    [SerializeField] private RigProperty[] properties;
-    [SerializeField] private RigEvent[] events;
+public class StoryboardRig {
+    private Dictionary<string, EventBinding> eventBindings;
+    private Dictionary<string, PropertyBinding> propertyBindings;
 
-    private Dictionary<string, List<Action<Vector4>>> valueBindings;
-    private Dictionary<string, List<Action<List<Vector4>>>> eventBindings;
+    public StoryboardRig(RigSettings settings) {
+        eventBindings = new Dictionary<string, EventBinding>();
+        propertyBindings = new Dictionary<string, PropertyBinding>();
 
-    public void BindProperty(string propertyName, Action<Vector4> action) {
-        if (valueBindings.TryGetValue(propertyName, out var actions))
-            actions.Add(action);
+        foreach (var eventSettings in settings.events)
+            eventBindings.Add(eventSettings.name, new EventBinding());
+
+        foreach (var propertySettings in settings.properties)
+            propertyBindings.Add(propertySettings.name, new PropertyBinding());
     }
 
-    public void BindEvent(string propertyName, Action<List<Vector4>> action) {
-        if (eventBindings.TryGetValue(propertyName, out var actions))
-            actions.Add(action);
+    public void BindEvent(string name, Action<List<Vector4>> action) {
+        if (eventBindings.TryGetValue(name, out var binding))
+            binding.Bind(action);
+    }
+    
+    public void BindProperty(string name, Action<Vector4> action) {
+        if (propertyBindings.TryGetValue(name, out var binding))
+            binding.Bind(action);
     }
 
-    public bool TryGetValueBinding(string propertyName, out List<Action<Vector4>> actions) => valueBindings.TryGetValue(propertyName, out actions);
-
-    public bool TryGetEventBinding(string propertyName, out List<Action<List<Vector4>>> actions) => eventBindings.TryGetValue(propertyName, out actions);
-
-    private void Awake() {
-        valueBindings = new Dictionary<string, List<Action<Vector4>>>();
-        eventBindings = new Dictionary<string, List<Action<List<Vector4>>>>();
-
-        foreach (var rigProperty in properties) {
-            if (!valueBindings.ContainsKey(rigProperty.name))
-                valueBindings.Add(rigProperty.name, new List<Action<Vector4>>());
-        }
-
-        foreach (var rigEvent in events) {
-            if (!eventBindings.ContainsKey(rigEvent.name))
-                eventBindings.Add(rigEvent.name, new List<Action<List<Vector4>>>());
-        }
-        
-        foreach (var rigTarget in GetComponentsInChildren<RigTarget>())
-            rigTarget.AssignRig(this);
+    public void ClearBindings() {
+        eventBindings.Clear();
+        propertyBindings.Clear();
     }
+
+    public bool TryGetEventBinding(string name, out EventBinding binding) => eventBindings.TryGetValue(name, out binding);
+
+    public bool TryGetPropertyBinding(string name, out PropertyBinding binding) => propertyBindings.TryGetValue(name, out binding);
 }
