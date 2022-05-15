@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using StoryboardSystem.Rigging;
 using UnityEngine;
 
@@ -35,11 +34,11 @@ public class StoryboardManager {
         if (!opened || !active)
             return;
 
-        foreach (var binding in propertyControllers)
-            binding.Evaluate(time);
+        foreach (var controller in propertyControllers)
+            controller.Evaluate(time);
 
-        foreach (var binding in eventControllers)
-            binding.Evaluate(time, triggerEvents);
+        foreach (var controller in eventControllers)
+            controller.Evaluate(time, triggerEvents);
     }
 
     public void OpenScene(GameObject prefab) {
