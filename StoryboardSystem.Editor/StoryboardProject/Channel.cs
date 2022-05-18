@@ -1,22 +1,30 @@
-﻿using StoryboardSystem.Rigging;
+﻿using System.Collections.Generic;
 
 namespace StoryboardSystem.Editor; 
 
 public class Channel {
-    public EventLaneGroup[] EventLaneGroups { get; }
+    public List<EventFrame>[] EventLanes { get; }
     
-    public PropertyLaneGroup[] PropertyLaneGroups { get; }
+    public List<PropertyFrame>[] PropertyLanes { get; }
 
-    public Channel(RigSettings settings) {
-        EventLaneGroups = new EventLaneGroup[settings.events.Length];
-        PropertyLaneGroups = new PropertyLaneGroup[settings.properties.Length];
-        
-        int subRigCount = settings.count;
+    private Channel(RigSetup setup) {
+        EventLanes = new List<EventFrame>[setup.Events.Length];
+        PropertyLanes = new List<PropertyFrame>[setup.Properties.Length];
 
-        for (int i = 0; i < EventLaneGroups.Length; i++)
-            EventLaneGroups[i] = new EventLaneGroup(subRigCount);
+        for (int i = 0; i < EventLanes.Length; i++)
+            EventLanes[i] = new List<EventFrame>();
 
-        for (int i = 0; i < PropertyLaneGroups.Length; i++)
-            PropertyLaneGroups[i] = new PropertyLaneGroup(subRigCount);
+        for (int i = 0; i < PropertyLanes.Length; i++)
+            PropertyLanes[i] = new List<PropertyFrame>();
+    }
+
+    public static Channel[] CreateChannelsFromSetup(ProjectSetup setup) {
+        var rigs = setup.Rigs;
+        var channels = new Channel[rigs.Length];
+
+        for (int i = 0; i < rigs.Length; i++)
+            channels[i] = new Channel(rigs[i]);
+
+        return channels;
     }
 }

@@ -43,21 +43,27 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="StoryboardProject\ArrayEventFrame.cs" />
-        <Compile Include="StoryboardProject\ArrayKeyframe.cs" />
+        <Compile Include="StoryboardEditor\StoryboardEditor.cs" />
+        <Compile Include="StoryboardEditor\UndoRedo.cs" />
+        <Compile Include="StoryboardProject\Frame\EventFrame.cs" />
+        <Compile Include="StoryboardProject\Frame\Frame.cs" />
+        <Compile Include="StoryboardProject\Frame\FrameData.cs" />
+        <Compile Include="StoryboardProject\Frame\InterpType.cs" />
         <Compile Include="StoryboardProject\Channel.cs" />
-        <Compile Include="StoryboardProject\EventFrame.cs" />
-        <Compile Include="StoryboardProject\EventLaneGroup.cs" />
-        <Compile Include="StoryboardProject\Frame.cs" />
-        <Compile Include="StoryboardProject\Keyframe.cs" />
+        <Compile Include="StoryboardProject\Frame\PropertyFrame.cs" />
+        <Compile Include="StoryboardProject\Frame\SequenceTimeType.cs" />
+        <Compile Include="StoryboardProject\Frame\ValueData.cs" />
+        <Compile Include="StoryboardProject\Frame\ValueDataType.cs" />
         <Compile Include="StoryboardProject\Pattern.cs" />
-        <Compile Include="StoryboardProject\PropertyLaneGroup.cs" />
+        <Compile Include="StoryboardProject\PatternInstance.cs" />
         <Compile Include="StoryboardProject\Setup\ProjectSetup.cs" />
         <Compile Include="StoryboardProject\Setup\RigEventParameterSetup.cs" />
         <Compile Include="StoryboardProject\Setup\RigEventSetup.cs" />
         <Compile Include="StoryboardProject\Setup\RigPropertySetup.cs" />
         <Compile Include="StoryboardProject\Setup\RigSetup.cs" />
         <Compile Include="StoryboardProject\StoryboardProject.cs" />
+        <Compile Include="StoryboardView\StoryboardView.cs" />
+        <Compile Include="StoryboardView\ViewInfo.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\StoryboardSystem.Rigging\StoryboardSystem.Rigging.csproj">
