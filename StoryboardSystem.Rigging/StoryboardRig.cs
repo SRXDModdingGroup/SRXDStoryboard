@@ -14,19 +14,19 @@ public class StoryboardRig {
         propertyBindings = new Dictionary<string, PropertyBinding>();
 
         foreach (var eventSettings in settings.events)
-            eventBindings.Add(eventSettings.name, new EventBinding());
+            eventBindings.Add(eventSettings.key, new EventBinding());
 
         foreach (var propertySettings in settings.properties)
-            propertyBindings.Add(propertySettings.name, new PropertyBinding());
+            propertyBindings.Add(propertySettings.key, new PropertyBinding());
     }
 
-    public void BindEvent(string name, Action<List<Vector4>> action) {
-        if (eventBindings.TryGetValue(name, out var binding))
+    public void BindEvent(string key, Action<List<Vector4>> action) {
+        if (eventBindings.TryGetValue(key, out var binding))
             binding.Bind(action);
     }
     
-    public void BindProperty(string name, Action<Vector4> action) {
-        if (propertyBindings.TryGetValue(name, out var binding))
+    public void BindProperty(string key, Action<Vector4> action) {
+        if (propertyBindings.TryGetValue(key, out var binding))
             binding.Bind(action);
     }
 
@@ -35,7 +35,7 @@ public class StoryboardRig {
         propertyBindings.Clear();
     }
 
-    public bool TryGetEventBinding(string name, out EventBinding binding) => eventBindings.TryGetValue(name, out binding);
+    public bool TryGetEventBinding(string key, out EventBinding binding) => eventBindings.TryGetValue(key, out binding);
 
-    public bool TryGetPropertyBinding(string name, out PropertyBinding binding) => propertyBindings.TryGetValue(name, out binding);
+    public bool TryGetPropertyBinding(string key, out PropertyBinding binding) => propertyBindings.TryGetValue(key, out binding);
 }

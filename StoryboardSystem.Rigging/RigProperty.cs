@@ -4,6 +4,7 @@ namespace StoryboardSystem.Rigging;
 
 [Serializable]
 public class RigProperty {
+    public string key;
     public string name;
     public RigPropertyType type;
     public RigPropertyValue defaultValue;

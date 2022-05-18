@@ -121,6 +121,7 @@
         <Compile Include="InterpType.cs" />
         <Compile Include="Keyframe.cs" />
         <Compile Include="PropertyController.cs" />
+        <Compile Include="RigReference.cs" />
         <Compile Include="StoryboardManager.cs" />
         <Compile Include="StoryboardData.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />

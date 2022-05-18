@@ -67,14 +67,14 @@ public class StoryboardManager {
         if (!opened)
             return;
 
-        foreach ((string rigName, int rigIndex, string eventName, var eventCalls) in data.EventCalls) {
-            if (scene.TryGetRig(rigName, rigIndex, out var rig) && rig.TryGetEventBinding(eventName, out var binding))
-                eventControllers.Add(new EventController(binding, eventCalls));
+        foreach (var reference in data.EventCalls) {
+            if (scene.TryGetRig(reference.RigKey, reference.RigIndex, out var rig) && rig.TryGetEventBinding(reference.PropertyKey, out var binding))
+                eventControllers.Add(new EventController(binding, reference.Value));
         }
         
-        foreach ((string rigName, int rigIndex, string propertyName, var curves) in data.Curves) {
-            if (scene.TryGetRig(rigName, rigIndex, out var rig) && rig.TryGetPropertyBinding(propertyName, out var binding))
-                propertyControllers.Add(new PropertyController(binding, curves));
+        foreach (var reference in data.Curves) {
+            if (scene.TryGetRig(reference.RigKey, reference.RigIndex, out var rig) && rig.TryGetPropertyBinding(reference.PropertyKey, out var binding))
+                propertyControllers.Add(new PropertyController(binding, reference.Value));
         }
     }
 

@@ -4,6 +4,7 @@ namespace StoryboardSystem.Rigging;
 
 [Serializable]
 public class RigPropertyValue {
+    public bool boolVal;
     public int intX;
     public int intY;
     public int intZ;

@@ -52,6 +52,11 @@
         <Compile Include="StoryboardProject\Keyframe.cs" />
         <Compile Include="StoryboardProject\Pattern.cs" />
         <Compile Include="StoryboardProject\PropertyLaneGroup.cs" />
+        <Compile Include="StoryboardProject\Setup\ProjectSetup.cs" />
+        <Compile Include="StoryboardProject\Setup\RigEventParameterSetup.cs" />
+        <Compile Include="StoryboardProject\Setup\RigEventSetup.cs" />
+        <Compile Include="StoryboardProject\Setup\RigPropertySetup.cs" />
+        <Compile Include="StoryboardProject\Setup\RigSetup.cs" />
         <Compile Include="StoryboardProject\StoryboardProject.cs" />
     </ItemGroup>
     <ItemGroup>

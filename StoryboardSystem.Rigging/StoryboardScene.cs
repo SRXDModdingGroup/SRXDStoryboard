@@ -17,15 +17,15 @@ public class StoryboardScene : MonoBehaviour {
             for (int i = 0; i < settings.count; i++)
                 rigArray[i] = new StoryboardRig(settings);
             
-            rigsDict.Add(settings.name, rigArray);
+            rigsDict.Add(settings.key, rigArray);
         }
 
         foreach (var rigTarget in GetComponentsInChildren<RigTarget>())
             rigTarget.Bind(this);
     }
 
-    public bool TryGetRig(string name, int index, out StoryboardRig rig) {
-        if (rigsDict.TryGetValue(name, out var rigArray) && index >= 0 && index < rigArray.Length) {
+    public bool TryGetRig(string key, int index, out StoryboardRig rig) {
+        if (rigsDict.TryGetValue(key, out var rigArray) && index >= 0 && index < rigArray.Length) {
             rig = rigArray[index];
 
             return true;
