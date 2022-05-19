@@ -3,8 +3,8 @@
 namespace StoryboardSystem.Rigging; 
 
 [Serializable]
-public class RigEvent {
+public class RigEventSettings {
     public string key;
     public string name;
-    public RigValue[] parameters;
+    public RigValueSettings[] parameters;
 }

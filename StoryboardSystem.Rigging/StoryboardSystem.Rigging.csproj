@@ -116,8 +116,8 @@
     <ItemGroup>
         <Compile Include="EventBinding.cs" />
         <Compile Include="PropertyBinding.cs" />
-        <Compile Include="RigEvent.cs" />
-        <Compile Include="RigValue.cs" />
+        <Compile Include="RigEventSettings.cs" />
+        <Compile Include="RigValueSettings.cs" />
         <Compile Include="RigValueType.cs" />
         <Compile Include="RigTarget.cs" />
         <Compile Include="RigSettings.cs" />

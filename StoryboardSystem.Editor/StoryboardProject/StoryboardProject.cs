@@ -4,15 +4,14 @@ namespace StoryboardSystem.Editor;
 
 public class StoryboardProject {
     public ProjectSetup Setup { get; }
-    
+
     public List<Pattern> Patterns { get; }
     
-    public double[] BeatArray { get; private set; }
+    public List<PatternInstance> PatternInstances { get; }
 
     public StoryboardProject(ProjectSetup setup) {
-        Patterns = new List<Pattern>();
         Setup = setup;
+        Patterns = new List<Pattern>();
+        PatternInstances = new List<PatternInstance>();
     }
-
-    public void AssignBeatArray(double[] beatArray) => BeatArray = beatArray;
 }

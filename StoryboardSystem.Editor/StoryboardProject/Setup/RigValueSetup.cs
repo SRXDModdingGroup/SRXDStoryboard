@@ -16,18 +16,18 @@ public class RigValueSetup {
     
     public Vector3 MaxValue { get; }
     
-    public bool HardMin { get; }
+    public bool HasMin { get; }
     
-    public bool HardMax { get; }
+    public bool HasMax { get; }
     
-    public RigValueSetup(RigValue settings) {
+    public RigValueSetup(RigValueSettings settings) {
         Key = settings.key;
         Name = settings.name;
         Type = settings.type;
         DefaultValue = settings.defaultValue;
         MinValue = settings.minValue;
         MaxValue = settings.maxValue;
-        HardMin = settings.hardMin;
-        HardMax = settings.hardMax;
+        HasMin = settings.hasMin;
+        HasMax = settings.hasMax;
     }
 }

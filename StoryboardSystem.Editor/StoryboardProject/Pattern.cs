@@ -1,13 +1,9 @@
-﻿using System.Collections.Generic;
-
-namespace StoryboardSystem.Editor; 
+﻿namespace StoryboardSystem.Editor; 
 
 public class Pattern {
-    public string Name { get; }
+    public string Name { get; set; }
     
     public Channel[] Channels { get; }
-    
-    public List<PatternInstance> Instances { get; }
 
     public Pattern(string name, ProjectSetup setup) {
         Name = name;
@@ -18,7 +14,27 @@ public class Pattern {
 
         for (int i = 0; i < rigs.Length; i++)
             Channels[i] = new Channel(rigs[i]);
+    }
 
-        Instances = new List<PatternInstance>();
+    public double GetLength() {
+        double length = 0d;
+
+        foreach (var channel in Channels) {
+            foreach (var frames in channel.EventLanes) {
+                double maxTime = Frame.GetMaxTime(frames);
+
+                if (maxTime > length)
+                    length = maxTime;
+            }
+            
+            foreach (var frames in channel.PropertyLanes) {
+                double maxTime = Frame.GetMaxTime(frames);
+
+                if (maxTime > length)
+                    length = maxTime;
+            }
+        }
+
+        return length;
     }
 }
