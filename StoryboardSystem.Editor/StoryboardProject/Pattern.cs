@@ -9,9 +9,16 @@ public class Pattern {
     
     public List<PatternInstance> Instances { get; }
 
-    public Pattern(string name, Channel[] channels, List<PatternInstance> instances) {
+    public Pattern(string name, ProjectSetup setup) {
         Name = name;
-        Channels = channels;
-        Instances = instances;
+        
+        var rigs = setup.Rigs;
+        
+        Channels = new Channel[rigs.Length];
+
+        for (int i = 0; i < rigs.Length; i++)
+            Channels[i] = new Channel(rigs[i]);
+
+        Instances = new List<PatternInstance>();
     }
 }

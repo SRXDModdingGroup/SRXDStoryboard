@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace StoryboardSystem.Editor; 
+﻿namespace StoryboardSystem.Editor; 
 
 public class PropertyFrame : Frame {
     public ValueData Value { get; set; }

@@ -7,14 +7,14 @@ public class RigEventSetup {
     
     public string Name { get; }
     
-    public RigEventParameterSetup[] Parameters { get; }
+    public RigValueSetup[] Parameters { get; }
     
     public RigEventSetup(RigEvent settings) {
         Key = settings.key;
         Name = settings.name;
-        Parameters = new RigEventParameterSetup[settings.parameters.Length];
+        Parameters = new RigValueSetup[settings.parameters.Length];
 
         for (int i = 0; i < Parameters.Length; i++)
-            Parameters[i] = new RigEventParameterSetup(settings.parameters[i]);
+            Parameters[i] = new RigValueSetup(settings.parameters[i]);
     }
 }

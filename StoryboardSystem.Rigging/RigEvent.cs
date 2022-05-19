@@ -6,5 +6,5 @@ namespace StoryboardSystem.Rigging;
 public class RigEvent {
     public string key;
     public string name;
-    public RigEventParameter[] parameters;
+    public RigValue[] parameters;
 }

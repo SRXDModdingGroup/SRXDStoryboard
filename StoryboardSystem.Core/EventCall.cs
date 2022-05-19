@@ -6,9 +6,9 @@ namespace StoryboardSystem.Core;
 public class EventCall {
     public double Time { get; }
     
-    public List<Vector4> Parameters { get; }
+    public List<Vector3> Parameters { get; }
 
-    public EventCall(double time, List<Vector4> parameters) {
+    public EventCall(double time, List<Vector3> parameters) {
         Time = time;
         Parameters = parameters;
     }

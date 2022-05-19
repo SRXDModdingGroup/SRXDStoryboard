@@ -117,10 +117,8 @@
         <Compile Include="EventBinding.cs" />
         <Compile Include="PropertyBinding.cs" />
         <Compile Include="RigEvent.cs" />
-        <Compile Include="RigProperty.cs" />
-        <Compile Include="RigEventParameter.cs" />
-        <Compile Include="RigPropertyType.cs" />
-        <Compile Include="RigPropertyValue.cs" />
+        <Compile Include="RigValue.cs" />
+        <Compile Include="RigValueType.cs" />
         <Compile Include="RigTarget.cs" />
         <Compile Include="RigSettings.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />

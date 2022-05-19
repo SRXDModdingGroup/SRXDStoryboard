@@ -63,7 +63,7 @@ public class StoryboardEditor : MonoBehaviour {
         undoRedo.AddSubAction(() => Undo(patternIndex), Do);
         EndEdit();
         
-        void Do() => project.Patterns.Add(new Pattern(patternName, Channel.CreateChannelsFromSetup(project.Setup), new List<PatternInstance>()));
+        void Do() => project.Patterns.Add(new Pattern(patternName, project.Setup));
         
         void Undo(int patternIndex) => project.Patterns.RemoveAt(patternIndex);
     }

@@ -14,6 +14,8 @@ public struct FrameData {
     public SequenceTimeType SequenceTimeType { get; set; }
     
     public double SequenceTime { get; set; }
+    
+    public int SequenceRepeat { get; set; }
 
     public FrameData() {
         First = 0;
@@ -23,9 +25,10 @@ public struct FrameData {
         SequenceStep = 1;
         SequenceTimeType = SequenceTimeType.Interval;
         SequenceTime = 0d;
+        SequenceRepeat = 1;
     }
 
-    public FrameData(int first, int clusterCount, int clusterStep, int sequenceCount, int sequenceStep, SequenceTimeType sequenceTimeType, double sequenceTime) {
+    public FrameData(int first, int clusterCount, int clusterStep, int sequenceCount, int sequenceStep, SequenceTimeType sequenceTimeType, double sequenceTime, int sequenceRepeat) {
         First = first;
         ClusterCount = clusterCount;
         ClusterStep = clusterStep;
@@ -33,5 +36,6 @@ public struct FrameData {
         SequenceStep = sequenceStep;
         SequenceTimeType = sequenceTimeType;
         SequenceTime = sequenceTime;
+        SequenceRepeat = sequenceRepeat;
     }
 }

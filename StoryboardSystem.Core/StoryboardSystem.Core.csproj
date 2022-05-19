@@ -117,7 +117,6 @@
         <Compile Include="Curve.cs" />
         <Compile Include="EventController.cs" />
         <Compile Include="EventCall.cs" />
-        <Compile Include="IAssetProvider.cs" />
         <Compile Include="InterpType.cs" />
         <Compile Include="Keyframe.cs" />
         <Compile Include="PropertyController.cs" />

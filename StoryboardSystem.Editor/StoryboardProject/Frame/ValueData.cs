@@ -3,19 +3,19 @@
 namespace StoryboardSystem.Editor; 
 
 public struct ValueData {
-    public Vector4 Start { get; set; }
+    public Vector3 Start { get; set; }
     
-    public Vector4 EndOrStep { get; set; }
+    public Vector3 EndOrStep { get; set; }
     
     public ValueDataType Type { get; set; }
 
     public ValueData() {
-        Start = Vector4.zero;
-        EndOrStep = Vector4.zero;
+        Start = Vector3.zero;
+        EndOrStep = Vector3.zero;
         Type = ValueDataType.Fixed;
     }
 
-    public ValueData(Vector4 start, Vector4 endOrStep, ValueDataType type) {
+    public ValueData(Vector3 start, Vector3 endOrStep, ValueDataType type) {
         Start = start;
         EndOrStep = endOrStep;
         Type = type;

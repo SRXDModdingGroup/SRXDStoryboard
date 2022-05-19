@@ -57,10 +57,9 @@
         <Compile Include="StoryboardProject\Pattern.cs" />
         <Compile Include="StoryboardProject\PatternInstance.cs" />
         <Compile Include="StoryboardProject\Setup\ProjectSetup.cs" />
-        <Compile Include="StoryboardProject\Setup\RigEventParameterSetup.cs" />
         <Compile Include="StoryboardProject\Setup\RigEventSetup.cs" />
-        <Compile Include="StoryboardProject\Setup\RigPropertySetup.cs" />
         <Compile Include="StoryboardProject\Setup\RigSetup.cs" />
+        <Compile Include="StoryboardProject\Setup\RigValueSetup.cs" />
         <Compile Include="StoryboardProject\StoryboardProject.cs" />
         <Compile Include="StoryboardView\StoryboardView.cs" />
         <Compile Include="StoryboardView\ViewInfo.cs" />

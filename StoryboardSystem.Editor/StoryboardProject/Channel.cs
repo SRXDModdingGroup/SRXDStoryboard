@@ -7,7 +7,7 @@ public class Channel {
     
     public List<PropertyFrame>[] PropertyLanes { get; }
 
-    private Channel(RigSetup setup) {
+    public Channel(RigSetup setup) {
         EventLanes = new List<EventFrame>[setup.Events.Length];
         PropertyLanes = new List<PropertyFrame>[setup.Properties.Length];
 
@@ -16,15 +16,5 @@ public class Channel {
 
         for (int i = 0; i < PropertyLanes.Length; i++)
             PropertyLanes[i] = new List<PropertyFrame>();
-    }
-
-    public static Channel[] CreateChannelsFromSetup(ProjectSetup setup) {
-        var rigs = setup.Rigs;
-        var channels = new Channel[rigs.Length];
-
-        for (int i = 0; i < rigs.Length; i++)
-            channels[i] = new Channel(rigs[i]);
-
-        return channels;
     }
 }

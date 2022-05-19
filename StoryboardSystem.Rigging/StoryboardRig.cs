@@ -20,12 +20,12 @@ public class StoryboardRig {
             propertyBindings.Add(propertySettings.key, new PropertyBinding());
     }
 
-    public void BindEvent(string key, Action<List<Vector4>> action) {
+    public void BindEvent(string key, Action<List<Vector3>> action) {
         if (eventBindings.TryGetValue(key, out var binding))
             binding.Bind(action);
     }
     
-    public void BindProperty(string key, Action<Vector4> action) {
+    public void BindProperty(string key, Action<Vector3> action) {
         if (propertyBindings.TryGetValue(key, out var binding))
             binding.Bind(action);
     }

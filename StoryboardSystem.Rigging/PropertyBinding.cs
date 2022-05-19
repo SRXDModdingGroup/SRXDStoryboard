@@ -5,11 +5,11 @@ using UnityEngine;
 namespace StoryboardSystem.Core; 
 
 public class PropertyBinding {
-    private List<Action<Vector4>> actions = new();
+    private List<Action<Vector3>> actions = new();
 
-    public void Bind(Action<Vector4> action) => actions.Add(action);
+    public void Bind(Action<Vector3> action) => actions.Add(action);
 
-    public void Set(Vector4 value) {
+    public void Set(Vector3 value) {
         foreach (var action in actions)
             action(value);
     }

@@ -16,7 +16,7 @@ public class Curve {
         Keyframes = keyframes;
     }
 
-    public Vector4 Evaluate(double time, int index) {
+    public Vector3 Evaluate(double time, int index) {
         if (index < 0)
             index = 0;
         else if (index >= Keyframes.Count - 1)
@@ -65,7 +65,7 @@ public class Curve {
                     break;
             }
 
-            return Vector4.LerpUnclamped(previous.Value, next.Value, interp);
+            return Vector3.LerpUnclamped(previous.Value, next.Value, interp);
         }
     }
 }
