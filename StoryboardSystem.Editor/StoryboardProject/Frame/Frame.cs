@@ -6,7 +6,7 @@ namespace StoryboardSystem.Editor;
 public abstract class Frame : IComparable<Frame> {
     public double Time { get; set; }
     
-    public FrameData Data { get; }
+    public FrameData Data { get; set; }
 
     protected Frame(double time, FrameData data) {
         Time = time;
