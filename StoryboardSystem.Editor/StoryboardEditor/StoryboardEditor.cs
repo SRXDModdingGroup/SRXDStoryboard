@@ -35,22 +35,13 @@ public class StoryboardEditor : MonoBehaviour {
         UpdateView();
     }
 
-    private void AddPattern(int patternIndex, Pattern pattern) {
-        Do(patternIndex, pattern);
-        undoRedo.AddSubAction(() => Undo(patternIndex), () => Do(patternIndex, pattern));
+    private void AddPattern(int index, Pattern pattern) {
+        Do(index, pattern);
+        undoRedo.AddSubAction(() => Undo(index), () => Do(index, pattern));
         
-        void Do(int patternIndex, Pattern pattern) => InsertPattern(patternIndex, pattern);
+        void Do(int index, Pattern pattern) => InsertPattern(index, pattern);
 
-        void Undo(int patternIndex) => RemovePattern(patternIndex);
-    }
-
-    private void RenamePattern(Pattern pattern, string newName) {
-        string oldName = pattern.Name;
-        
-        Do(pattern, newName);
-        undoRedo.AddSubAction(() => Do(pattern, oldName), () => Do(pattern, newName));
-
-        void Do(Pattern pattern, string newName) => pattern.Name = newName;
+        void Undo(int index) => RemovePattern(index);
     }
 
     private void DeletePattern(Pattern pattern) {
@@ -70,6 +61,17 @@ public class StoryboardEditor : MonoBehaviour {
         void Do(int patternIndex) => RemovePattern(patternIndex);
 
         void Undo(int patternIndex, Pattern pattern) => InsertPattern(patternIndex, pattern);
+    }
+
+    private void MovePattern(Pattern pattern, int index) => MoveElement(project.Patterns, project.Patterns.IndexOf(pattern), index);
+
+    private void RenamePattern(Pattern pattern, string newName) {
+        string oldName = pattern.Name;
+        
+        Do(pattern, newName);
+        undoRedo.AddSubAction(() => Do(pattern, oldName), () => Do(pattern, newName));
+
+        void Do(Pattern pattern, string newName) => pattern.Name = newName;
     }
 
     private void AddPatternInstance(PatternInstance instance) => AddSortedElement(project.PatternInstances, instance);
@@ -97,7 +99,7 @@ public class StoryboardEditor : MonoBehaviour {
         
         Do(instance, time, lane);
         undoRedo.AddSubAction(() => Do(instance, oldTime, oldLane), () => Do(instance, time, lane));
-        MoveElement(patternInstances, instance, fromIndex, toIndex);
+        MoveElement(patternInstances, fromIndex, toIndex);
 
         void Do(PatternInstance instance, double time, int lane) {
             instance.Time = time;
@@ -118,13 +120,29 @@ public class StoryboardEditor : MonoBehaviour {
         }
     }
 
-    private void AddEventFrame(List<EventFrame> lane, EventFrame frame) => AddSortedElement(lane, frame);
+    private void AddLane(Pattern pattern, int index, Lane lane) => AddElement(pattern.Lanes, index, lane);
 
-    private void RemoveEventFrame(List<EventFrame> lane, EventFrame frame) => RemoveElement(lane, frame);
-    
-    private void AddPropertyFrame(List<PropertyFrame> lane, PropertyFrame frame) => AddSortedElement(lane, frame);
+    private void RemoveLane(Pattern pattern, Lane lane) => RemoveElement(pattern.Lanes, lane);
 
-    private void RemovePropertyFrame(List<PropertyFrame> lane, PropertyFrame frame) => RemoveElement(lane, frame);
+    private void AddFrame(Lane lane, Frame frame) => AddSortedElement(lane.Frames, frame);
+
+    private void RemoveFrame(Lane lane, Frame frame) => RemoveElement(lane.Frames, frame);
+
+    private void MoveFrame(Lane lane, Frame frame, double time) {
+        double oldTime = frame.Time;
+        var frames = lane.Frames;
+        int fromIndex = frames.IndexOf(frame);
+        int toIndex = frames.BinarySearch(new Frame(time, new FrameData(), InterpType.Fixed, null));
+
+        if (toIndex < 0)
+            toIndex = ~toIndex;
+        
+        Do(frame, time);
+        undoRedo.AddSubAction(() => Do(frame, oldTime), () => Do(frame, time));
+        MoveElement(frames, fromIndex, toIndex);
+
+        void Do(Frame frame, double time) => frame.Time = time;
+    }
 
     private void ChangeFrameData(Frame frame, FrameData data) {
         var oldData = frame.Data;
@@ -134,32 +152,32 @@ public class StoryboardEditor : MonoBehaviour {
 
         void Do(Frame frame, FrameData data) => frame.Data = data;
     }
-
-    private void ChangeEventFrameValue(EventFrame frame, int valueIndex, ValueData value) {
-        var oldValue = frame.Values[valueIndex];
-        
-        Do(frame, valueIndex, value);
-        undoRedo.AddSubAction(() => Do(frame, valueIndex, oldValue), () => Do(frame, valueIndex, value));
-
-        void Do(EventFrame frame, int valueIndex, ValueData value) => frame.Values[valueIndex] = value;
-    }
     
-    private void ChangePropertyFrameValue(PropertyFrame frame, ValueData value) {
-        var oldValue = frame.Value;
-        
-        Do(frame, value);
-        undoRedo.AddSubAction(() => Do(frame, oldValue), () => Do(frame, value));
-
-        void Do(PropertyFrame frame, ValueData value) => frame.Value = value;
-    }
-    
-    private void ChangePropertyFrameInterpType(PropertyFrame frame, InterpType interpType) {
+    private void ChangeFrameInterpType(Frame frame, InterpType interpType) {
         var oldInterpType = frame.InterpType;
         
         Do(frame, interpType);
         undoRedo.AddSubAction(() => Do(frame, oldInterpType), () => Do(frame, interpType));
 
-        void Do(PropertyFrame frame, InterpType interpType) => frame.InterpType = interpType;
+        void Do(Frame frame, InterpType interpType) => frame.InterpType = interpType;
+    }
+
+    private void ChangeFrameValue(Frame frame, int valueIndex, ValueData value) {
+        var oldValue = frame.Values[valueIndex];
+        
+        Do(frame, valueIndex, value);
+        undoRedo.AddSubAction(() => Do(frame, valueIndex, oldValue), () => Do(frame, valueIndex, value));
+
+        void Do(Frame frame, int valueIndex, ValueData value) => frame.Values[valueIndex] = value;
+    }
+
+    private void AddElement<T>(List<T> list, int index, T element) {
+        Do(list, index, element);
+        undoRedo.AddSubAction(() => Undo(list, index), () => Do(list, index, element));
+
+        void Do(List<T> list, int index, T element) => list.Insert(index, element);
+
+        void Undo(List<T> list, int index) => list.RemoveAt(index);
     }
 
     private void AddSortedElement<T>(List<T> list, T element) where T : IComparable<T> {
@@ -168,12 +186,7 @@ public class StoryboardEditor : MonoBehaviour {
         if (index < 0)
             index = ~index;
         
-        Do(list, index, element);
-        undoRedo.AddSubAction(() => Undo(list, index), () => Do(list, index, element));
-
-        void Do(List<T> list, int index, T element) => list.Insert(index, element);
-
-        void Undo(List<T> list, int index) => list.RemoveAt(index);
+        AddElement(list, index, element);
     }
 
     private void RemoveElement<T>(List<T> list, T element) {
@@ -187,18 +200,18 @@ public class StoryboardEditor : MonoBehaviour {
         void Undo(List<T> list, int index, T element) => list.Insert(index, element);
     }
 
-    private void MoveElement<T>(List<T> list, T element, int fromIndex, int toIndex) where T : IComparable<T> {
-        Do(list, element, fromIndex, toIndex);
-        undoRedo.AddSubAction(() => Do(list, element, toIndex, fromIndex), () => Do(list, element, fromIndex, toIndex));
+    private void MoveElement<T>(List<T> list, int fromIndex, int toIndex) {
+        Do(list, fromIndex, toIndex);
+        undoRedo.AddSubAction(() => Do(list, toIndex, fromIndex), () => Do(list, fromIndex, toIndex));
         
-        void Do(List<T> list, T element, int fromIndex, int toIndex) {
+        void Do(List<T> list, int fromIndex, int toIndex) {
             if (toIndex > fromIndex) {
-                list.Insert(toIndex, element);
+                list.Insert(toIndex, list[fromIndex]);
                 list.RemoveAt(fromIndex);
             }
             else {
                 list.RemoveAt(fromIndex);
-                list.Insert(toIndex, element);
+                list.Insert(toIndex, list[fromIndex]);
             }
         }
     }

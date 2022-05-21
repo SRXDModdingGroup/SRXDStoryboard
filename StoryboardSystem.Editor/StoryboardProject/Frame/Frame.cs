@@ -3,26 +3,21 @@ using System.Collections.Generic;
 
 namespace StoryboardSystem.Editor; 
 
-public abstract class Frame : IComparable<Frame> {
+public class Frame : IComparable<Frame> {
     public double Time { get; set; }
     
     public FrameData Data { get; set; }
+    
+    public InterpType InterpType { get; set; }
+    
+    public List<ValueData> Values { get; }
 
-    protected Frame(double time, FrameData data) {
+    public Frame(double time, FrameData data, InterpType interpType, List<ValueData> values) {
         Time = time;
         Data = data;
+        InterpType = interpType;
+        Values = values;
     }
 
     public int CompareTo(Frame other) => Time.CompareTo(other.Time);
-
-    public static double GetMaxTime(IEnumerable<Frame> frames) {
-        double maxTime = 0d;
-        
-        foreach (var frame in frames) {
-            if (frame.Time > maxTime)
-                maxTime = frame.Time;
-        }
-
-        return maxTime;
-    }
 }
