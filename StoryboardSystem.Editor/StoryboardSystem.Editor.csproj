@@ -40,6 +40,12 @@
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.InputLegacyModule">
+          <HintPath>..\Libs\UnityEngine.InputLegacyModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.UI">
+          <HintPath>..\Libs\UnityEngine.UI.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Properties\AssemblyInfo.cs" />
@@ -47,7 +53,6 @@
         <Compile Include="StoryboardEditor\UndoRedo.cs" />
         <Compile Include="StoryboardProject\Frame\Frame.cs" />
         <Compile Include="StoryboardProject\Frame\FrameData.cs" />
-        <Compile Include="StoryboardProject\Frame\InterpType.cs" />
         <Compile Include="StoryboardProject\Frame\SequenceTimeType.cs" />
         <Compile Include="StoryboardProject\Frame\ValueData.cs" />
         <Compile Include="StoryboardProject\Frame\ValueDataType.cs" />
@@ -61,10 +66,19 @@
         <Compile Include="StoryboardProject\Setup\RigSetup.cs" />
         <Compile Include="StoryboardProject\Setup\RigValueSetup.cs" />
         <Compile Include="StoryboardProject\StoryboardProject.cs" />
+        <Compile Include="StoryboardView\InstancePool.cs" />
+        <Compile Include="StoryboardView\PatternView\LaneView\FrameView\FrameView.cs" />
+        <Compile Include="StoryboardView\PatternView\LaneView\LaneView.cs" />
+        <Compile Include="StoryboardView\PatternView\PatternGridView.cs" />
+        <Compile Include="StoryboardView\PatternView\PatternView.cs" />
         <Compile Include="StoryboardView\StoryboardView.cs" />
         <Compile Include="StoryboardView\ViewInfo.cs" />
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\StoryboardSystem.Core\StoryboardSystem.Core.csproj">
+        <Project>{eb695cf1-788b-4552-9188-301d0b08e0ae}</Project>
+        <Name>StoryboardSystem.Core</Name>
+      </ProjectReference>
       <ProjectReference Include="..\StoryboardSystem.Rigging\StoryboardSystem.Rigging.csproj">
         <Project>{baeb49a2-0245-4439-bea2-9d05c06d3c90}</Project>
         <Name>StoryboardSystem.Rigging</Name>

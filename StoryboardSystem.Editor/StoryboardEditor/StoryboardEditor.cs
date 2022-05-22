@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using StoryboardSystem.Core;
 using UnityEngine;
 
 namespace StoryboardSystem.Editor; 
@@ -132,7 +133,7 @@ public class StoryboardEditor : MonoBehaviour {
         double oldTime = frame.Time;
         var frames = lane.Frames;
         int fromIndex = frames.IndexOf(frame);
-        int toIndex = frames.BinarySearch(new Frame(time, new FrameData(), InterpType.Fixed, null));
+        int toIndex = frames.BinarySearch(new Frame(time, 0, new FrameData(), InterpType.Fixed, null));
 
         if (toIndex < 0)
             toIndex = ~toIndex;
