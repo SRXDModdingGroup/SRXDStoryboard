@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace StoryboardSystem.Editor; 
 
-public class RigValueSetup {
+public class RigParameterSetup {
     public string Key { get; }
     
     public string Name { get; }
@@ -20,10 +20,10 @@ public class RigValueSetup {
     
     public bool HasMax { get; }
     
-    public RigValueSetup(RigValueSettings settings) {
+    public RigParameterSetup(RigParameterSettings settings) {
         Key = settings.key;
         Name = settings.name;
-        Type = settings.type;
+        Type = settings.valueType;
         DefaultValue = settings.defaultValue;
         MinValue = settings.minValue;
         MaxValue = settings.maxValue;

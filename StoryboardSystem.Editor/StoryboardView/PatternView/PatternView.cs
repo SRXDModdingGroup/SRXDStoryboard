@@ -5,7 +5,7 @@ namespace StoryboardSystem.Editor;
 public class PatternView : MonoBehaviour {
     [SerializeField] private PatternGridView patternGridView;
     
-    public void UpdateView(Pattern pattern) {
-        patternGridView.UpdateView(pattern);
+    public void UpdateInfo(ProjectSetup setup, Pattern pattern) {
+        patternGridView.UpdateInfo(setup, pattern);
     }
 }

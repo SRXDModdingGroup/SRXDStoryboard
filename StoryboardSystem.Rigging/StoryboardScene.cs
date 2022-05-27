@@ -15,7 +15,7 @@ public class StoryboardScene : MonoBehaviour {
             var rigArray = new StoryboardRig[rigSettings.count];
 
             for (int i = 0; i < rigSettings.count; i++)
-                rigArray[i] = new StoryboardRig(rigSettings);
+                rigArray[i] = new StoryboardRig();
             
             rigsDict.Add(rigSettings.key, rigArray);
         }

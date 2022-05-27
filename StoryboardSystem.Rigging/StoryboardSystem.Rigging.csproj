@@ -32,6 +32,9 @@
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
+    <PropertyGroup>
+      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem.Rigging\bin\Release\StoryboardSystem.Rigging.dll" "C:\Users\domia\Git\SRXDStoryboard\StoryboardEditor\Assets\Libs"</PostBuildEvent>
+    </PropertyGroup>
     <ItemGroup>
         <Reference Include="0Harmony">
           <HintPath>..\Libs\0Harmony.dll</HintPath>
@@ -114,10 +117,8 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="EventBinding.cs" />
-        <Compile Include="PropertyBinding.cs" />
-        <Compile Include="RigEventSettings.cs" />
-        <Compile Include="RigValueSettings.cs" />
+        <Compile Include="RigType.cs" />
+        <Compile Include="RigParameterSettings.cs" />
         <Compile Include="RigValueType.cs" />
         <Compile Include="RigTarget.cs" />
         <Compile Include="RigSettings.cs" />

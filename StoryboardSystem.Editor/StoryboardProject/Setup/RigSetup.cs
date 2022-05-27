@@ -9,21 +9,18 @@ public class RigSetup {
     
     public int Count { get; }
     
-    public RigEventSetup[] Events { get; }
+    public RigType Type { get; }
     
-    public RigValueSetup[] Properties { get; }
+    public RigParameterSetup[] Parameters { get; }
     
     public RigSetup(RigSettings settings) {
         Key = settings.key;
         Name = settings.name;
         Count = settings.count;
-        Events = new RigEventSetup[settings.events.Length];
-        Properties = new RigValueSetup[settings.properties.Length];
+        Type = settings.type;
+        Parameters = new RigParameterSetup[settings.parameters.Length];
 
-        for (int i = 0; i < Events.Length; i++)
-            Events[i] = new RigEventSetup(settings.events[i]);
-
-        for (int i = 0; i < Properties.Length; i++)
-            Properties[i] = new RigValueSetup(settings.properties[i]);
+        for (int i = 0; i < Parameters.Length; i++)
+            Parameters[i] = new RigParameterSetup(settings.parameters[i]);
     }
 }

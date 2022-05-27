@@ -1,17 +1,18 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace StoryboardSystem.Core; 
 
 public class Keyframe {
     public double Time { get; }
     
-    public Vector3 Value { get; }
+    public List<Vector3> Parameters { get; }
     
     public InterpType InterpType { get; }
 
-    public Keyframe(double time, Vector3 value, InterpType interpType) {
+    public Keyframe(double time, List<Vector3> parameters, InterpType interpType) {
         Time = time;
-        Value = value;
+        Parameters = parameters;
         InterpType = interpType;
     }
 }

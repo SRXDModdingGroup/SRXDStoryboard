@@ -1,17 +1,18 @@
 ﻿using System.Collections.Generic;
+using StoryboardSystem.Rigging;
 
 namespace StoryboardSystem.Core; 
 
-public class PropertyController {
-    public PropertyBinding Binding { get; }
+public class CurveController {
+    public StoryboardRig Rig { get; }
     
     public List<Curve> Curves { get; }
 
     private int lastEvaluatedCurveIndex;
     private int lastEvaluatedKeyframeIndex;
 
-    public PropertyController(PropertyBinding binding, List<Curve> curves) {
-        Binding = binding;
+    public CurveController(StoryboardRig rig, List<Curve> curves) {
+        Rig = rig;
         Curves = curves;
     }
 
@@ -41,7 +42,7 @@ public class PropertyController {
                 lastEvaluatedKeyframeIndex = 0;
             }
 
-            Binding.Set(curve.Evaluate(time, lastEvaluatedKeyframeIndex));
+            Rig.Execute(curve.Evaluate(time, ref lastEvaluatedKeyframeIndex));
 
             return;
         }

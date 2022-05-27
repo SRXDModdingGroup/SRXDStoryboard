@@ -10,11 +10,11 @@ public class StoryboardManager {
     private float lastTime;
     private StoryboardScene scene;
     private List<EventController> eventControllers;
-    private List<PropertyController> propertyControllers;
+    private List<CurveController> propertyControllers;
 
     public StoryboardManager() {
         eventControllers = new List<EventController>();
-        propertyControllers = new List<PropertyController>();
+        propertyControllers = new List<CurveController>();
     }
 
     public void Play() {
@@ -44,7 +44,7 @@ public class StoryboardManager {
     public void OpenScene(GameObject prefab) {
         CloseScene();
         
-        if (!prefab.HasComponent<StoryboardScene>())
+        if (prefab.GetComponent<StoryboardScene>() == null)
             return;
 
         scene = Object.Instantiate(prefab).GetComponent<StoryboardScene>();
@@ -68,13 +68,13 @@ public class StoryboardManager {
             return;
 
         foreach (var reference in data.EventCalls) {
-            if (scene.TryGetRig(reference.RigKey, reference.RigIndex, out var rig) && rig.TryGetEventBinding(reference.PropertyKey, out var binding))
-                eventControllers.Add(new EventController(binding, reference.Value));
+            if (scene.TryGetRig(reference.RigKey, reference.RigIndex, out var rig))
+                eventControllers.Add(new EventController(rig, reference.Value));
         }
         
         foreach (var reference in data.Curves) {
-            if (scene.TryGetRig(reference.RigKey, reference.RigIndex, out var rig) && rig.TryGetPropertyBinding(reference.PropertyKey, out var binding))
-                propertyControllers.Add(new PropertyController(binding, reference.Value));
+            if (scene.TryGetRig(reference.RigKey, reference.RigIndex, out var rig))
+                propertyControllers.Add(new CurveController(rig, reference.Value));
         }
     }
 

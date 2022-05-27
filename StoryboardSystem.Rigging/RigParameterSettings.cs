@@ -4,10 +4,10 @@ using UnityEngine;
 namespace StoryboardSystem.Rigging; 
 
 [Serializable]
-public class RigValueSettings {
+public class RigParameterSettings {
     public string key;
     public string name;
-    public RigValueType type;
+    public RigValueType valueType;
     public Vector3 defaultValue;
     public Vector3 minValue;
     public Vector3 maxValue;

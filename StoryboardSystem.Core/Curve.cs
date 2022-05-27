@@ -10,13 +10,15 @@ public class Curve {
     
     public List<Keyframe> Keyframes { get; }
 
+    private List<Vector3> cachedResult = new();
+
     public Curve(double startTime, double endTime, List<Keyframe> keyframes) {
         StartTime = startTime;
         EndTime = endTime;
         Keyframes = keyframes;
     }
 
-    public Vector3 Evaluate(double time, int index) {
+    public List<Vector3> Evaluate(double time, ref int index) {
         if (index < 0)
             index = 0;
         else if (index >= Keyframes.Count - 1)
@@ -27,7 +29,7 @@ public class Curve {
 
             if (time < previous.Time) {
                 if (index == 0)
-                    return previous.Value;
+                    return previous.Parameters;
                 
                 index--;
                 
@@ -38,7 +40,7 @@ public class Curve {
 
             if (time >= next.Time) {
                 if (index == Keyframes.Count - 2)
-                    return next.Value;
+                    return next.Parameters;
 
                 index++;
                 
@@ -48,7 +50,9 @@ public class Curve {
             var interpType = previous.InterpType;
 
             if (interpType == InterpType.Fixed)
-                return previous.Value;
+                return previous.Parameters;
+            
+            cachedResult.Clear();
 
             float interp = (float) (time - previous.Time) / (float) (next.Time - previous.Time);
 
@@ -65,7 +69,10 @@ public class Curve {
                     break;
             }
 
-            return Vector3.LerpUnclamped(previous.Value, next.Value, interp);
+            for (int i = 0; i < previous.Parameters.Count && i < next.Parameters.Count; i++)
+                cachedResult.Add(Vector3.LerpUnclamped(previous.Parameters[i], next.Parameters[i], interp));
+
+            return cachedResult;
         }
     }
 }

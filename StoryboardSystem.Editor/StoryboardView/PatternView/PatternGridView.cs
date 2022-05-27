@@ -14,13 +14,13 @@ public class PatternGridView : MonoBehaviour, IPointerClickHandler, IBeginDragHa
     private float scale = 8f;
     private InstancePool<LaneView> laneViews;
 
-    public void UpdateView(Pattern pattern) {
+    public void UpdateInfo(ProjectSetup setup, Pattern pattern) {
         var lanes = pattern.Lanes;
         
         laneViews.SetCount(lanes.Count);
 
         for (int i = 0; i < lanes.Count; i++) {
-            laneViews[i].UpdateView(lanes[i]);
+            laneViews[i].UpdateInfo(setup.Rigs[lanes[i].RigIndex], lanes[i]);
             laneViews[i].UpdateScroll(scroll, scale);
         }
     }

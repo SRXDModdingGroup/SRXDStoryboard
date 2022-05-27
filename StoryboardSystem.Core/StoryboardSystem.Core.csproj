@@ -32,42 +32,12 @@
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
+    <PropertyGroup>
+      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem.Core\bin\Release\StoryboardSystem.Core.dll" "C:\Users\domia\Git\SRXDStoryboard\StoryboardEditor\Assets\Libs"</PostBuildEvent>
+    </PropertyGroup>
     <ItemGroup>
         <Reference Include="0Harmony">
           <HintPath>..\Libs\0Harmony.dll</HintPath>
-        </Reference>
-        <Reference Include="Assembly-CSharp">
-          <HintPath>..\Libs\Assembly-CSharp.dll</HintPath>
-        </Reference>
-        <Reference Include="BepInEx">
-          <HintPath>..\Libs\BepInEx.dll</HintPath>
-        </Reference>
-        <Reference Include="Newtonsoft.Json">
-          <HintPath>..\Libs\Newtonsoft.Json.dll</HintPath>
-        </Reference>
-        <Reference Include="SpinCore">
-          <HintPath>..\Libs\SpinCore.dll</HintPath>
-        </Reference>
-        <Reference Include="SpinModdingUtilities">
-          <HintPath>..\Libs\SpinModdingUtilities.dll</HintPath>
-        </Reference>
-        <Reference Include="SRXDHelperEvents">
-          <HintPath>..\Libs\SRXDHelperEvents.dll</HintPath>
-        </Reference>
-        <Reference Include="SRXDPostProcessing">
-          <HintPath>..\Libs\SRXDPostProcessing.dll</HintPath>
-        </Reference>
-        <Reference Include="SRXDScoreMod">
-          <HintPath>..\Libs\SRXDScoreMod.dll</HintPath>
-        </Reference>
-        <Reference Include="SSD.Game">
-          <HintPath>..\Libs\SSD.Game.dll</HintPath>
-        </Reference>
-        <Reference Include="SSD.Types">
-          <HintPath>..\Libs\SSD.Types.dll</HintPath>
-        </Reference>
-        <Reference Include="SSD.Utility">
-          <HintPath>..\Libs\SSD.Utility.dll</HintPath>
         </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
@@ -116,10 +86,9 @@
     <ItemGroup>
         <Compile Include="Curve.cs" />
         <Compile Include="EventController.cs" />
-        <Compile Include="EventCall.cs" />
-        <Compile Include="InterpType.cs" />
         <Compile Include="Keyframe.cs" />
-        <Compile Include="PropertyController.cs" />
+        <Compile Include="InterpType.cs" />
+        <Compile Include="CurveController.cs" />
         <Compile Include="RigReference.cs" />
         <Compile Include="StoryboardManager.cs" />
         <Compile Include="StoryboardData.cs" />
