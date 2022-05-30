@@ -70,12 +70,15 @@
         <Compile Include="StoryboardProject\Setup\RigSetup.cs" />
         <Compile Include="StoryboardProject\Setup\RigParameterSetup.cs" />
         <Compile Include="StoryboardProject\StoryboardProject.cs" />
+        <Compile Include="StoryboardView\GrabHandle.cs" />
+        <Compile Include="StoryboardView\GridView\GridElement.cs" />
+        <Compile Include="StoryboardView\GridView\GridView.cs" />
         <Compile Include="StoryboardView\InstancePool.cs" />
-        <Compile Include="StoryboardView\PatternView\LaneView\FrameView\FrameView.cs" />
-        <Compile Include="StoryboardView\PatternView\LaneView\LaneView.cs" />
-        <Compile Include="StoryboardView\PatternView\PatternGridView.cs" />
+        <Compile Include="StoryboardView\PatternView\FrameBlock.cs" />
+        <Compile Include="StoryboardView\PatternView\LaneInfoBox.cs" />
         <Compile Include="StoryboardView\PatternView\PatternView.cs" />
         <Compile Include="StoryboardView\StoryboardView.cs" />
+        <Compile Include="StoryboardView\View.cs" />
         <Compile Include="StoryboardView\ViewInfo.cs" />
     </ItemGroup>
     <ItemGroup>

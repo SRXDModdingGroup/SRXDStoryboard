@@ -41,7 +41,14 @@ public class InstancePool<T> : IReadOnlyList<T> where T : MonoBehaviour {
                 instances.Add(instance);
             }
 
-            instance.gameObject.SetActive(i < count);
+            if (i < count) {
+                instance.gameObject.SetActive(true);
+                instance.transform.SetParent(root);
+            }
+            else {
+                instance.gameObject.SetActive(false);
+                instance.transform.SetParent(null);
+            }
         }
     }
 
