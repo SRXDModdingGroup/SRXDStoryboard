@@ -1,24 +1,22 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace StoryboardSystem.Editor; 
 
 public class StoryboardView : MonoBehaviour {
-    [SerializeField] private PatternView patternView;
+    private HashSet<ViewElement> viewElements;
 
-    private int selectedPatternIndex;
-    private StoryboardProject project;
-    
-    public void UpdateInfo(ViewInfo info) {
-        project = info.Project;
-        UpdatePatternView();
+    public void UpdateView(ViewInfo info) {
+        foreach (var viewElement in viewElements)
+            viewElement.UpdateView(info);
     }
 
-    private void SetSelectedPatternIndex(int index) {
-        selectedPatternIndex = index;
-        UpdatePatternView();
-    }
+    public void AddElement(ViewElement element) => viewElements.Add(element);
 
-    private void UpdatePatternView() {
-        patternView.UpdateInfo(project.Setup, project.Patterns[selectedPatternIndex]);
+    public void RemoveElement(ViewElement element) => viewElements.Remove(element);
+
+    private void Awake() {
+        viewElements = new HashSet<ViewElement>();
     }
 }

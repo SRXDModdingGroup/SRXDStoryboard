@@ -4,14 +4,14 @@ using UnityEngine.EventSystems;
 
 namespace StoryboardSystem.Editor; 
 
-public class GridView : View, IPointerClickHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler {
+public class GridView : ViewElement, IPointerClickHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler {
     [SerializeField] private float laneHeight;
     
     public float Scroll {
         get => scroll;
         set {
             scroll = value;
-            ScheduleUpdate();
+            ViewChanged?.Invoke();
         }
     }
 
@@ -19,9 +19,11 @@ public class GridView : View, IPointerClickHandler, IBeginDragHandler, IEndDragH
         get => scale;
         set {
             scale = value;
-            ScheduleUpdate();
+            ViewChanged?.Invoke();
         }
     }
+
+    public event Action ViewChanged; 
 
     private float scroll;
     private float scale = 1f;
@@ -58,20 +60,7 @@ public class GridView : View, IPointerClickHandler, IBeginDragHandler, IEndDragH
     public Vector2 GridToLocalSpace(float position, int lane) => new(rectTransform.sizeDelta.x * scale * (position - scroll), -laneHeight * lane);
 
     protected override void UpdateView() {
-        for (int i = 0; i < transform.childCount; i++) {
-            var child = transform.GetChild(i);
-            
-            if (child is not RectTransform childRect || !child.TryGetComponent<GridElement>(out var gridElement))
-                continue;
-
-            if (gridElement.Position <= 1f / Scale && gridElement.Position + gridElement.Size >= 0f) {
-                child.gameObject.SetActive(true);
-                childRect.offsetMin = GridToLocalSpace(gridElement.Position, gridElement.Lane);
-                childRect.offsetMax = GridToLocalSpace(gridElement.Position + gridElement.Size, gridElement.Lane + 1);
-            }
-            else
-                child.gameObject.SetActive(false);
-        }
+        ViewChanged?.Invoke();
     }
 
     private void Awake() {

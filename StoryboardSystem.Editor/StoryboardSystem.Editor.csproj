@@ -78,8 +78,9 @@
         <Compile Include="StoryboardView\PatternView\LaneInfoBox.cs" />
         <Compile Include="StoryboardView\PatternView\PatternView.cs" />
         <Compile Include="StoryboardView\StoryboardView.cs" />
-        <Compile Include="StoryboardView\View.cs" />
+        <Compile Include="StoryboardView\ViewElement.cs" />
         <Compile Include="StoryboardView\ViewInfo.cs" />
+        <Compile Include="StoryboardView\ViewState.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\StoryboardSystem.Core\StoryboardSystem.Core.csproj">

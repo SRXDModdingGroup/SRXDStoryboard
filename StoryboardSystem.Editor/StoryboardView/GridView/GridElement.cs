@@ -1,15 +1,16 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace StoryboardSystem.Editor; 
 
 public class GridElement : MonoBehaviour {
+    [SerializeField] private GameObject visuals;
+    
     public int Lane {
         get => lane;
         set {
             lane = value;
-            
-            if (GridView != null)
-                GridView.ScheduleUpdate();
+            needsUpdate = true;
         }
     }
 
@@ -17,9 +18,7 @@ public class GridElement : MonoBehaviour {
         get => position;
         set {
             position = value;
-            
-            if (GridView != null)
-                GridView.ScheduleUpdate();
+            needsUpdate = true;
         }
     }
 
@@ -27,20 +26,38 @@ public class GridElement : MonoBehaviour {
         get => size;
         set {
             size = value;
-            
-            if (GridView != null)
-                GridView.ScheduleUpdate();
+            needsUpdate = true;
         }
     }
     
-    public GridView GridView { get; private set; }
-
+    private bool needsUpdate;
     private int lane;
     private float position;
     private float size;
+    private GridView gridView;
+    private RectTransform rectTransform;
 
     private void Awake() {
-        if (transform.parent.TryGetComponent(out GridView gridView))
-            GridView = gridView;
+        gridView = transform.parent.GetComponent<GridView>();
+        rectTransform = GetComponent<RectTransform>();
+        gridView.ViewChanged += () => needsUpdate = true;
+        UpdateState();
+    }
+
+    private void LateUpdate() {
+        if (needsUpdate)
+            UpdateState();
+    }
+
+    private void UpdateState() {
+        needsUpdate = false;
+        
+        if (Position <= 1f / gridView.Scale && Position + Size >= 0f) {
+            visuals.SetActive(true);
+            rectTransform.offsetMin = gridView.GridToLocalSpace(Position, Lane);
+            rectTransform.offsetMax = gridView.GridToLocalSpace(Position + Size, Lane + 1);
+        }
+        else
+            visuals.SetActive(false);
     }
 }

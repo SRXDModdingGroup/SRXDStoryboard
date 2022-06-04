@@ -1,15 +1,15 @@
 ﻿namespace StoryboardSystem.Editor; 
 
-public struct ViewInfo {
+public class ViewInfo {
     public StoryboardProject Project { get; }
     
-    public bool CanUndo { get; }
+    public StoryboardEditor Editor { get; }
     
-    public bool CanRedo { get; }
+    public ViewState ViewState { get; }
 
-    public ViewInfo(StoryboardProject project, bool canUndo, bool canRedo) {
+    public ViewInfo(StoryboardProject project, StoryboardEditor editor, ViewState viewState) {
         Project = project;
-        CanUndo = canUndo;
-        CanRedo = canRedo;
+        Editor = editor;
+        ViewState = viewState;
     }
 }

@@ -24,9 +24,7 @@ public class StoryboardEditor : MonoBehaviour {
         UpdateView();
     }
 
-    private void UpdateView() {
-        view.UpdateInfo(new ViewInfo(project, undoRedo.CanRedo(), undoRedo.CanRedo()));
-    }
+    private void UpdateView() => view.UpdateView(new ViewInfo(project, this, new ViewState()));
 
     #region InternalActions
 

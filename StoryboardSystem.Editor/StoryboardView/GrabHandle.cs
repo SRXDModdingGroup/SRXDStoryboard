@@ -8,6 +8,12 @@ public class GrabHandle : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDr
     public event Action<PointerEventData> Drag;
     public event Action<PointerEventData> BeginDrag;
     public event Action<PointerEventData> EndDrag;
+
+    public void ClearEvents() {
+        Drag = null;
+        BeginDrag = null;
+        EndDrag = null;
+    }
     
     public void OnDrag(PointerEventData eventData) => Drag?.Invoke(eventData);
 

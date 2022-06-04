@@ -28,7 +28,9 @@ public class InstancePool<T> : IReadOnlyList<T> where T : MonoBehaviour {
         }
     }
 
-    public void SetCount(int count) {
+    public void SetCount(int count) => SetCount(count, (_, _) => { });
+
+    public void SetCount(int count, Action<T, int> init) {
         Count = count;
         
         for (int i = 0; i < count || i < instances.Count; i++) {
@@ -39,6 +41,7 @@ public class InstancePool<T> : IReadOnlyList<T> where T : MonoBehaviour {
             else {
                 instance = Object.Instantiate(prefab, root).GetComponent<T>();
                 instances.Add(instance);
+                init(instance, i);
             }
 
             if (i < count) {
