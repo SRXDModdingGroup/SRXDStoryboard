@@ -54,9 +54,26 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Controller.cs" />
+        <Compile Include="Grid\Grid.cs" />
+        <Compile Include="Grid\GridElement.cs" />
+        <Compile Include="Grid\GridEventData.cs" />
+        <Compile Include="InstancePool.cs" />
+        <Compile Include="PatternEditor\PatternEditorState.cs" />
+        <Compile Include="PatternEditor\FrameBlock.cs" />
+        <Compile Include="PatternEditor\LaneInfoBox.cs" />
+        <Compile Include="PatternEditor\PatternEditorInfo.cs" />
+        <Compile Include="PatternEditor\PatternEditorView.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="StoryboardEditor\StoryboardEditor.cs" />
-        <Compile Include="StoryboardEditor\UndoRedo.cs" />
+        <Compile Include="SongEditor\PatternInstanceBlock.cs" />
+        <Compile Include="SongEditor\SongEditorController.cs" />
+        <Compile Include="SongEditor\SongEditorInfo.cs" />
+        <Compile Include="SongEditor\SongEditorState.cs" />
+        <Compile Include="SongEditor\SongEditorTool\SongEditorAddTool.cs" />
+        <Compile Include="SongEditor\SongEditorTool\SongEditorTool.cs" />
+        <Compile Include="SongEditor\SongEditorView.cs" />
+        <Compile Include="StoryboardModel\StoryboardModel.cs" />
+        <Compile Include="StoryboardModel\UndoRedo.cs" />
         <Compile Include="StoryboardProject\Frame\Frame.cs" />
         <Compile Include="StoryboardProject\Frame\FrameData.cs" />
         <Compile Include="StoryboardProject\Frame\SequenceTimeType.cs" />
@@ -70,17 +87,7 @@
         <Compile Include="StoryboardProject\Setup\RigSetup.cs" />
         <Compile Include="StoryboardProject\Setup\RigParameterSetup.cs" />
         <Compile Include="StoryboardProject\StoryboardProject.cs" />
-        <Compile Include="StoryboardView\GrabHandle.cs" />
-        <Compile Include="StoryboardView\GridView\GridElement.cs" />
-        <Compile Include="StoryboardView\GridView\GridView.cs" />
-        <Compile Include="StoryboardView\InstancePool.cs" />
-        <Compile Include="StoryboardView\PatternView\FrameBlock.cs" />
-        <Compile Include="StoryboardView\PatternView\LaneInfoBox.cs" />
-        <Compile Include="StoryboardView\PatternView\PatternView.cs" />
-        <Compile Include="StoryboardView\StoryboardView.cs" />
-        <Compile Include="StoryboardView\ViewElement.cs" />
-        <Compile Include="StoryboardView\ViewInfo.cs" />
-        <Compile Include="StoryboardView\ViewState.cs" />
+        <Compile Include="View.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\StoryboardSystem.Core\StoryboardSystem.Core.csproj">

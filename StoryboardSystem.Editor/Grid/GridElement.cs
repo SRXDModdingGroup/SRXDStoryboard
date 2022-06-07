@@ -1,10 +1,11 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace StoryboardSystem.Editor; 
 
 public class GridElement : MonoBehaviour {
     [SerializeField] private GameObject visuals;
+    [SerializeField] private RectTransform[] handles;
     
     public int Lane {
         get => lane;
@@ -29,18 +30,22 @@ public class GridElement : MonoBehaviour {
             needsUpdate = true;
         }
     }
-    
+
+    public IReadOnlyList<RectTransform> Handles => handles;
+
     private bool needsUpdate;
     private int lane;
     private float position;
     private float size;
-    private GridView gridView;
+    private Grid grid;
     private RectTransform rectTransform;
 
+    public void UpdateView() => needsUpdate = true;
+
     private void Awake() {
-        gridView = transform.parent.GetComponent<GridView>();
+        grid = transform.parent.GetComponent<Grid>();
+        grid.AddElement(this);
         rectTransform = GetComponent<RectTransform>();
-        gridView.ViewChanged += () => needsUpdate = true;
         UpdateState();
     }
 
@@ -49,13 +54,15 @@ public class GridElement : MonoBehaviour {
             UpdateState();
     }
 
+    private void OnDestroy() => grid.RemoveElement(this);
+
     private void UpdateState() {
         needsUpdate = false;
         
-        if (Position <= 1f / gridView.Scale && Position + Size >= 0f) {
+        if (grid.IsInVisibleBounds(position, position + size)) {
             visuals.SetActive(true);
-            rectTransform.offsetMin = gridView.GridToLocalSpace(Position, Lane);
-            rectTransform.offsetMax = gridView.GridToLocalSpace(Position + Size, Lane + 1);
+            rectTransform.offsetMin = grid.GridToLocalSpace(Position, Lane);
+            rectTransform.offsetMax = grid.GridToLocalSpace(Position + Size, Lane + 1);
         }
         else
             visuals.SetActive(false);

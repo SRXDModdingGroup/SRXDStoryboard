@@ -1,10 +1,9 @@
 ﻿using UnityEngine;
-using UnityEngine.EventSystems;
 
 namespace StoryboardSystem.Editor; 
 
-public class PatternView : ViewElement {
-    [SerializeField] private GridView gridView;
+public class PatternEditorView : View<PatternEditorInfo> {
+    [SerializeField] private Grid grid;
     [SerializeField] private Transform laneInfoBoxLayout;
     [SerializeField] private GameObject frameBlockPrefab;
     [SerializeField] private GameObject laneInfoBoxPrefab;
@@ -12,9 +11,9 @@ public class PatternView : ViewElement {
     private InstancePool<LaneInfoBox> laneInfoBoxes;
     private InstancePool<FrameBlock> frameBlocks;
 
-    protected override void UpdateView() {
-        var project = ViewInfo.Project;
-        var pattern = project.Patterns[ViewInfo.ViewState.SelectedPatternIndex];
+    protected override void DoUpdateView() {
+        var project = Info.Project;
+        var pattern = project.Patterns[Info.State.SelectedPatternIndex];
         var rigs = project.Setup.Rigs;
         var lanes = pattern.Lanes;
         int totalFrameCount = 0;
@@ -29,14 +28,7 @@ public class PatternView : ViewElement {
             totalFrameCount += lane.Frames.Count;
         }
         
-        frameBlocks.SetCount(totalFrameCount, (frameBlock, index) => {
-            var moveHandle = frameBlock.MoveHandle;
-            
-            moveHandle.ClearEvents();
-            moveHandle.Drag += data => OnFrameBlockDrag(index, data);
-            moveHandle.BeginDrag += data => OnFrameBlockBeginDrag(index, data);
-            moveHandle.EndDrag += data => OnFrameBlockEndDrag(index, data);
-        });
+        frameBlocks.SetCount(totalFrameCount);
 
         int frameIndex = 0;
         
@@ -55,22 +47,10 @@ public class PatternView : ViewElement {
 
     private void Awake() {
         laneInfoBoxes = new InstancePool<LaneInfoBox>(laneInfoBoxLayout, laneInfoBoxPrefab);
-        frameBlocks = new InstancePool<FrameBlock>(gridView.transform, frameBlockPrefab);
+        frameBlocks = new InstancePool<FrameBlock>(grid.transform, frameBlockPrefab);
     }
 
     private void OnLaneInfoBoxClicked(int index) {
-        var rig = ViewInfo.Project.Setup.Rigs[index];
-    }
-    
-    private void OnFrameBlockDrag(int index, PointerEventData eventData) {
-        float position = gridView.ScreenXToPosition(eventData.position.x);
-    }
-
-    private void OnFrameBlockBeginDrag(int index, PointerEventData eventData) {
-        float position = gridView.ScreenXToPosition(eventData.position.x);
-    }
-    
-    private void OnFrameBlockEndDrag(int index, PointerEventData eventData) {
-        float position = gridView.ScreenXToPosition(eventData.position.x);
+        var rig = Info.Project.Setup.Rigs[index];
     }
 }

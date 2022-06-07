@@ -41,13 +41,16 @@ public class StoryboardManager {
             controller.Evaluate(time, triggerEvents);
     }
 
-    public void OpenScene(GameObject prefab) {
+    public void OpenScene(SceneSettings settings) {
         CloseScene();
+
+        var prefab = settings.ScenePrefab;
         
         if (prefab.GetComponent<StoryboardScene>() == null)
             return;
 
         scene = Object.Instantiate(prefab).GetComponent<StoryboardScene>();
+        scene.ApplyRigs(settings.Rigs);
         opened = true;
     }
 

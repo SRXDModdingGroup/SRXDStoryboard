@@ -1,40 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
 using StoryboardSystem.Core;
+using StoryboardSystem.Rigging;
 using UnityEngine;
 
 namespace StoryboardSystem.Editor; 
 
-public class StoryboardEditor : MonoBehaviour {
-    [SerializeField] private StoryboardView view;
+public class StoryboardModel : MonoBehaviour {
+    public StoryboardProject Project { get; private set; }
+
+    public event Action Changed;
     
-    private StoryboardProject project;
     private UndoRedo undoRedo;
-    
-    private void Awake() {
-        undoRedo = new UndoRedo();
-    }
 
-    private void BeginEdit() {
-        undoRedo.BeginNewAction();
-    }
-
-    private void EndEdit() {
-        undoRedo.CompleteAction();
-        UpdateView();
-    }
-
-    private void UpdateView() => view.UpdateView(new ViewInfo(project, this, new ViewState()));
-
-    #region InternalActions
-
-    private void CreateNewProject(ProjectSetup setup) {
+    public void CreateNewProject(ProjectSetup setup) {
         undoRedo.Clear();
-        project = new StoryboardProject(setup);
-        UpdateView();
+        Project = new StoryboardProject(setup);
     }
 
-    private void AddPattern(int index, Pattern pattern) {
+    public void BeginEdit() => undoRedo.BeginNewAction();
+
+    public void EndEdit() {
+        undoRedo.CompleteAction();
+        Changed?.Invoke();
+    }
+
+    public void Undo() {
+        if (!undoRedo.CanUndo)
+            return;
+        
+        undoRedo.Undo();
+        Changed?.Invoke();
+    }
+
+    public void Redo() {
+        if (!undoRedo.CanRedo)
+            return;
+        
+        undoRedo.Redo();
+        Changed?.Invoke();
+    }
+
+    public void AddPattern(int index, Pattern pattern) {
         Do(index, pattern);
         undoRedo.AddSubAction(() => Undo(index), () => Do(index, pattern));
         
@@ -43,28 +50,27 @@ public class StoryboardEditor : MonoBehaviour {
         void Undo(int index) => RemovePattern(index);
     }
 
-    private void DeletePattern(Pattern pattern) {
-        int patternIndex = project.Patterns.IndexOf(pattern);
-        var patternInstances = project.PatternInstances;
+    public void DeletePattern(int index) {
+        var pattern = Project.Patterns[index];
+        var patternInstances = Project.PatternInstances;
 
         for (int i = patternInstances.Count - 1; i >= 0; i--) {
-            var patternInstance = patternInstances[i];
-
-            if (patternInstance.PatternIndex == patternIndex)
-                RemovePatternInstance(patternInstance);
+            if (patternInstances[i].PatternIndex == index)
+                RemovePatternInstance(i);
         }
 
-        Do(patternIndex);
-        undoRedo.AddSubAction(() => Undo(patternIndex, pattern), () => Do(patternIndex));
+        Do(index);
+        undoRedo.AddSubAction(() => Undo(index, pattern), () => Do(index));
 
         void Do(int patternIndex) => RemovePattern(patternIndex);
 
         void Undo(int patternIndex, Pattern pattern) => InsertPattern(patternIndex, pattern);
     }
 
-    private void MovePattern(Pattern pattern, int index) => MoveElement(project.Patterns, project.Patterns.IndexOf(pattern), index);
+    public void MovePattern(int fromIndex, int toIndex) => MoveElement(Project.Patterns, fromIndex, toIndex);
 
-    private void RenamePattern(Pattern pattern, string newName) {
+    public void RenamePattern(int index, string newName) {
+        var pattern = Project.Patterns[index];
         string oldName = pattern.Name;
         
         Do(pattern, newName);
@@ -73,24 +79,24 @@ public class StoryboardEditor : MonoBehaviour {
         void Do(Pattern pattern, string newName) => pattern.Name = newName;
     }
 
-    private void AddPatternInstance(PatternInstance instance) => AddSortedElement(project.PatternInstances, instance);
+    public void AddPatternInstance(PatternInstance instance) => AddSortedElement(Project.PatternInstances, instance);
 
-    private void RemovePatternInstance(PatternInstance instance) {
-        int instanceIndex = project.PatternInstances.IndexOf(instance);
+    public void RemovePatternInstance(int index) {
+        var instance = Project.PatternInstances[index];
         
-        Do(instanceIndex);
-        undoRedo.AddSubAction(() => Undo(instanceIndex, instance), () => Do(instanceIndex));
+        Do(index);
+        undoRedo.AddSubAction(() => Undo(index, instance), () => Do(index));
 
-        void Do(int instanceIndex) => project.PatternInstances.RemoveAt(instanceIndex);
+        void Do(int instanceIndex) => Project.PatternInstances.RemoveAt(instanceIndex);
 
-        void Undo(int instanceIndex, PatternInstance instance) => project.PatternInstances.Insert(instanceIndex, instance);
+        void Undo(int instanceIndex, PatternInstance instance) => Project.PatternInstances.Insert(instanceIndex, instance);
     }
 
-    private void MovePatternInstance(PatternInstance instance, double time, int lane) {
+    public void MovePatternInstance(int index, double time, int lane) {
+        var instance = Project.PatternInstances[index];
         double oldTime = instance.Time;
         int oldLane = instance.Lane;
-        var patternInstances = project.PatternInstances;
-        int fromIndex = patternInstances.IndexOf(instance);
+        var patternInstances = Project.PatternInstances;
         int toIndex = patternInstances.BinarySearch(new PatternInstance(0, time, 0d, 0d, lane));
 
         if (toIndex < 0)
@@ -98,7 +104,7 @@ public class StoryboardEditor : MonoBehaviour {
         
         Do(instance, time, lane);
         undoRedo.AddSubAction(() => Do(instance, oldTime, oldLane), () => Do(instance, time, lane));
-        MoveElement(patternInstances, fromIndex, toIndex);
+        MoveElement(patternInstances, index, toIndex);
 
         void Do(PatternInstance instance, double time, int lane) {
             instance.Time = time;
@@ -106,7 +112,7 @@ public class StoryboardEditor : MonoBehaviour {
         }
     }
     
-    private void CropPatternInstance(PatternInstance instance, double cropStart, double cropEnd) {
+    public void CropPatternInstance(PatternInstance instance, double cropStart, double cropEnd) {
         double oldCropStart = instance.CropStart;
         double oldCropEnd = instance.CropEnd;
         
@@ -119,15 +125,15 @@ public class StoryboardEditor : MonoBehaviour {
         }
     }
 
-    private void AddLane(Pattern pattern, int index, Lane lane) => AddElement(pattern.Lanes, index, lane);
+    public void AddLane(Pattern pattern, int index, Lane lane) => AddElement(pattern.Lanes, index, lane);
 
-    private void RemoveLane(Pattern pattern, Lane lane) => RemoveElement(pattern.Lanes, lane);
+    public void RemoveLane(Pattern pattern, int index) => RemoveElement(pattern.Lanes, index);
 
-    private void AddFrame(Lane lane, Frame frame) => AddSortedElement(lane.Frames, frame);
+    public void AddFrame(Lane lane, Frame frame) => AddSortedElement(lane.Frames, frame);
 
-    private void RemoveFrame(Lane lane, Frame frame) => RemoveElement(lane.Frames, frame);
+    public void RemoveFrame(Lane lane, int index) => RemoveElement(lane.Frames, index);
 
-    private void MoveFrame(Lane lane, Frame frame, double time) {
+    public void MoveFrame(Lane lane, Frame frame, double time) {
         double oldTime = frame.Time;
         var frames = lane.Frames;
         int fromIndex = frames.IndexOf(frame);
@@ -143,7 +149,7 @@ public class StoryboardEditor : MonoBehaviour {
         void Do(Frame frame, double time) => frame.Time = time;
     }
 
-    private void ChangeFrameData(Frame frame, FrameData data) {
+    public void ChangeFrameData(Frame frame, FrameData data) {
         var oldData = frame.Data;
         
         Do(frame, data);
@@ -152,7 +158,7 @@ public class StoryboardEditor : MonoBehaviour {
         void Do(Frame frame, FrameData data) => frame.Data = data;
     }
     
-    private void ChangeFrameInterpType(Frame frame, InterpType interpType) {
+    public void ChangeFrameInterpType(Frame frame, InterpType interpType) {
         var oldInterpType = frame.InterpType;
         
         Do(frame, interpType);
@@ -161,13 +167,23 @@ public class StoryboardEditor : MonoBehaviour {
         void Do(Frame frame, InterpType interpType) => frame.InterpType = interpType;
     }
 
-    private void ChangeFrameValue(Frame frame, int valueIndex, ValueData value) {
+    public void ChangeFrameValue(Frame frame, int valueIndex, ValueData value) {
         var oldValue = frame.Values[valueIndex];
         
         Do(frame, valueIndex, value);
         undoRedo.AddSubAction(() => Do(frame, valueIndex, oldValue), () => Do(frame, valueIndex, value));
 
         void Do(Frame frame, int valueIndex, ValueData value) => frame.Values[valueIndex] = value;
+    }
+
+    private void Awake() => undoRedo = new UndoRedo();
+
+    private void Start() {
+        CreateNewProject(new ProjectSetup(new RigSetup[] {
+            new("test", "Test", 1, RigType.Event, new RigParameterSetup[] {
+                new("param", "Param", RigValueType.Int, Vector3.zero, Vector3.zero, Vector3.one, true, true)
+            })
+        }, new [] { 0d, 1d, 2d, 3d }));
     }
 
     private void AddElement<T>(List<T> list, int index, T element) {
@@ -188,8 +204,8 @@ public class StoryboardEditor : MonoBehaviour {
         AddElement(list, index, element);
     }
 
-    private void RemoveElement<T>(List<T> list, T element) {
-        int index = list.IndexOf(element);
+    private void RemoveElement<T>(List<T> list, int index) {
+        var element = list[index];
         
         Do(list, index);
         undoRedo.AddSubAction(() => Undo(list, index, element), () => Do(list, index));
@@ -214,22 +230,20 @@ public class StoryboardEditor : MonoBehaviour {
             }
         }
     }
-
-    #endregion
     
     private void InsertPattern(int patternIndex, Pattern pattern) {
-        project.Patterns.Insert(patternIndex, pattern);
+        Project.Patterns.Insert(patternIndex, pattern);
 
-        foreach (var patternInstance in project.PatternInstances) {
+        foreach (var patternInstance in Project.PatternInstances) {
             if (patternInstance.PatternIndex >= patternIndex)
                 patternInstance.PatternIndex++;
         }
     }
 
     private void RemovePattern(int patternIndex) {
-        project.Patterns.RemoveAt(patternIndex);
+        Project.Patterns.RemoveAt(patternIndex);
         
-        foreach (var patternInstance in project.PatternInstances) {
+        foreach (var patternInstance in Project.PatternInstances) {
             if (patternInstance.PatternIndex > patternIndex)
                 patternInstance.PatternIndex--;
         }
@@ -244,7 +258,7 @@ public class StoryboardEditor : MonoBehaviour {
 
             bool exists = false;
 
-            foreach (var pattern in project.Patterns) {
+            foreach (var pattern in Project.Patterns) {
                 if (patternName != pattern.Name)
                     continue;
 

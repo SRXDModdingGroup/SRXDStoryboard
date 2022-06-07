@@ -7,6 +7,11 @@ public class ProjectSetup {
     
     public double[] BeatArray { get; }
 
+    public ProjectSetup(RigSetup[] rigs, double[] beatArray) {
+        Rigs = rigs;
+        BeatArray = beatArray;
+    }
+
     public ProjectSetup(RigSettings[] settings, double[] beatArray) {
         Rigs = new RigSetup[settings.Length];
 

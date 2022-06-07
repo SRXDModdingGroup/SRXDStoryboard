@@ -5,8 +5,7 @@ namespace StoryboardSystem.Rigging;
 [Serializable]
 public class RigSettings {
     public string key;
-    public string name;
+    public string displayName;
     public int count;
-    public RigType type;
-    public RigParameterSettings[] parameters;
+    public RigDefinition definition;
 }

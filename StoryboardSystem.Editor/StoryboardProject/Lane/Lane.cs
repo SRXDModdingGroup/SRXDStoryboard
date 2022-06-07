@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using StoryboardSystem.Rigging;
 
 namespace StoryboardSystem.Editor;
 

@@ -19,7 +19,18 @@ public class RigParameterSetup {
     public bool HasMin { get; }
     
     public bool HasMax { get; }
-    
+
+    public RigParameterSetup(string key, string name, RigValueType type, Vector3 defaultValue, Vector3 minValue, Vector3 maxValue, bool hasMin, bool hasMax) {
+        Key = key;
+        Name = name;
+        Type = type;
+        DefaultValue = defaultValue;
+        MinValue = minValue;
+        MaxValue = maxValue;
+        HasMin = hasMin;
+        HasMax = hasMax;
+    }
+
     public RigParameterSetup(RigParameterSettings settings) {
         Key = settings.key;
         Name = settings.name;
