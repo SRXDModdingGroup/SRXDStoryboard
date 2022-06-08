@@ -72,8 +72,12 @@
         <Compile Include="SongEditor\SongEditorTool\SongEditorAddTool.cs" />
         <Compile Include="SongEditor\SongEditorTool\SongEditorTool.cs" />
         <Compile Include="SongEditor\SongEditorView.cs" />
+        <Compile Include="StoryboardModel\EditBlock.cs" />
+        <Compile Include="StoryboardModel\IUndoRedoAction.cs" />
         <Compile Include="StoryboardModel\StoryboardModel.cs" />
+        <Compile Include="StoryboardModel\IEditBlock.cs" />
         <Compile Include="StoryboardModel\UndoRedo.cs" />
+        <Compile Include="StoryboardModel\UndoRedoAction.cs" />
         <Compile Include="StoryboardProject\Frame\Frame.cs" />
         <Compile Include="StoryboardProject\Frame\FrameData.cs" />
         <Compile Include="StoryboardProject\Frame\SequenceTimeType.cs" />
