@@ -1,6 +1,6 @@
 ﻿namespace StoryboardSystem.Rigging; 
 
-public enum RigType {
+public enum RigEventType {
     Event,
     Curve
 }

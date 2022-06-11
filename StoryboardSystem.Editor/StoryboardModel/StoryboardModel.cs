@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using StoryboardSystem.Rigging;
 using UnityEngine;
 
@@ -14,6 +15,7 @@ public partial class StoryboardModel : MonoBehaviour {
     public void CreateNewProject(ProjectSetup setup) {
         undoRedo.Clear();
         Project = new StoryboardProject(setup);
+        Changed?.Invoke();
     }
 
     public void Undo() {
@@ -32,19 +34,21 @@ public partial class StoryboardModel : MonoBehaviour {
         Changed?.Invoke();
     }
     
-    public IEditBlock CreateEditBlock() => new EditBlock(Project, undoRedo.CreateAction(), OnEditCompleted);
+    public IEditBlock CreateEditBlock() => new EditBlock(Project, undoRedo.CreateAction(), Changed);
 
     private void Awake() => undoRedo = new UndoRedo();
 
     private void Start() {
-        CreateNewProject(new ProjectSetup(new RigSetup[] {
-            new("test", "Test", 1, RigType.Event, new RigParameterSetup[] {
-                new("param", "Param", RigValueType.Int, Vector3.zero, Vector3.zero, Vector3.one, true, true)
+        var rigDefinitions = new List<RigDefinitionSetup> {
+            new(new List<RigEventSetup> {
+                new("event", "Event", RigEventType.Event, new List<RigParameterSetup> {
+                    new("param", "Param", RigValueType.Float, Vector3.zero, Vector3.zero, Vector3.one, true, false)
+                })
             })
-        }, new [] { 0d, 1d, 2d, 3d }));
+        };
+        
+        CreateNewProject(new ProjectSetup(rigDefinitions, new List<RigSetup> { new("rig", "Rig", 1, rigDefinitions[0]) }, new [] { 0d, 1d, 2d, 3d }));
     }
-    
-    private void OnEditCompleted() => Changed?.Invoke();
 
     private string GetUniquePatternName() {
         string patternName;

@@ -21,11 +21,8 @@ public class PatternEditorView : View<PatternEditorInfo> {
         laneInfoBoxes.SetCount(lanes.Count, (laneInfoBox, index) => laneInfoBox.Button.onClick.AddListener(() => OnLaneInfoBoxClicked(index)));
 
         for (int i = 0; i < lanes.Count; i++) {
-            var lane = lanes[i];
-            var rig = rigs[lane.RigIndex];
-            
-            laneInfoBoxes[i].RigInfoText.SetText(rig.Name);
-            totalFrameCount += lane.Frames.Count;
+            laneInfoBoxes[i].RigInfoText.SetText(rigs[i].Name);
+            totalFrameCount += lanes[i].Frames.Count;
         }
         
         frameBlocks.SetCount(totalFrameCount);
@@ -51,6 +48,6 @@ public class PatternEditorView : View<PatternEditorInfo> {
     }
 
     private void OnLaneInfoBoxClicked(int index) {
-        var rig = Info.Project.Setup.Rigs[index];
+        
     }
 }

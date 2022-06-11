@@ -1,4 +1,5 @@
-﻿using StoryboardSystem.Rigging;
+﻿using System.Collections.Generic;
+using StoryboardSystem.Rigging;
 
 namespace StoryboardSystem.Editor; 
 
@@ -9,29 +10,19 @@ public class RigSetup {
     
     public int Count { get; }
     
-    public RigType Type { get; }
-    
-    public RigParameterSetup[] Parameters { get; }
+    public RigDefinitionSetup Definition { get; }
 
-    public RigSetup(string key, string name, int count, RigType type, RigParameterSetup[] parameters) {
+    public RigSetup(string key, string name, int count, RigDefinitionSetup definition) {
         Key = key;
         Name = name;
         Count = count;
-        Type = type;
-        Parameters = parameters;
+        Definition = definition;
     }
 
-    public RigSetup(RigSettings settings) {
+    public RigSetup(RigSettings settings, RigDefinitionSetup definition) {
         Key = settings.key;
         Name = settings.displayName;
         Count = settings.count;
-
-        var definition = settings.definition;
-        
-        Type = definition.type;
-        Parameters = new RigParameterSetup[definition.parameters.Length];
-
-        for (int i = 0; i < Parameters.Length; i++)
-            Parameters[i] = new RigParameterSetup(definition.parameters[i]);
+        Definition = definition;
     }
 }

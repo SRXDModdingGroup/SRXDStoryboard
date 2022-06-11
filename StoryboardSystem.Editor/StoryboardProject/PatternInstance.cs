@@ -3,7 +3,7 @@
 namespace StoryboardSystem.Editor; 
 
 public class PatternInstance : IComparable<PatternInstance> {
-    public int PatternIndex { get; set; }
+    public Pattern Pattern { get; set; }
     
     public double Time { get; set; }
     
@@ -13,8 +13,8 @@ public class PatternInstance : IComparable<PatternInstance> {
     
     public int Lane { get; set; }
 
-    public PatternInstance(int patternIndex, double time, double cropStart, double cropEnd, int lane) {
-        PatternIndex = patternIndex;
+    public PatternInstance(Pattern pattern, double time, double cropStart, double cropEnd, int lane) {
+        Pattern = pattern;
         Time = time;
         CropStart = cropStart;
         CropEnd = cropEnd;

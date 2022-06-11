@@ -22,9 +22,9 @@ public partial class StoryboardModel {
             Do(index, pattern);
             action.AddSubAction(() => Undo(index), () => Do(index, pattern));
             
-            void Do(int index, Pattern pattern) => InsertPattern(index, pattern);
+            void Do(int index, Pattern pattern) => Project.Patterns.Insert(index, pattern);
 
-            void Undo(int index) => RemovePattern(index);
+            void Undo(int index) => Project.Patterns.RemoveAt(index);
         }
 
         public void DeletePattern(int index) {
@@ -32,16 +32,16 @@ public partial class StoryboardModel {
             var patternInstances = Project.PatternInstances;
 
             for (int i = patternInstances.Count - 1; i >= 0; i--) {
-                if (patternInstances[i].PatternIndex == index)
+                if (patternInstances[i].Pattern == pattern)
                     RemovePatternInstance(i);
             }
 
             Do(index);
             action.AddSubAction(() => Undo(index, pattern), () => Do(index));
 
-            void Do(int patternIndex) => RemovePattern(patternIndex);
+            void Do(int patternIndex) => Project.Patterns.RemoveAt(patternIndex);
 
-            void Undo(int patternIndex, Pattern pattern) => InsertPattern(patternIndex, pattern);
+            void Undo(int patternIndex, Pattern pattern) => Project.Patterns.Insert(patternIndex, pattern);
         }
 
         public void MovePattern(int fromIndex, int toIndex) => MoveElement(Project.Patterns, fromIndex, toIndex);
@@ -74,7 +74,7 @@ public partial class StoryboardModel {
             double oldTime = instance.Time;
             int oldLane = instance.Lane;
             var patternInstances = Project.PatternInstances;
-            int toIndex = patternInstances.BinarySearch(new PatternInstance(0, time, 0d, 0d, lane));
+            int toIndex = patternInstances.BinarySearch(new PatternInstance(null, time, 0d, 0d, lane));
 
             if (toIndex < 0)
                 toIndex = ~toIndex;
@@ -114,7 +114,7 @@ public partial class StoryboardModel {
             double oldTime = frame.Time;
             var frames = lane.Frames;
             int fromIndex = frames.IndexOf(frame);
-            int toIndex = frames.BinarySearch(new Frame(time, 0, new FrameData(), InterpType.Fixed, null));
+            int toIndex = frames.BinarySearch(new Frame(time, new FrameData(), null));
 
             if (toIndex < 0)
                 toIndex = ~toIndex;
@@ -134,15 +134,6 @@ public partial class StoryboardModel {
 
             void Do(Frame frame, FrameData data) => frame.Data = data;
         }
-        
-        public void ChangeFrameInterpType(Frame frame, InterpType interpType) {
-            var oldInterpType = frame.InterpType;
-            
-            Do(frame, interpType);
-            action.AddSubAction(() => Do(frame, oldInterpType), () => Do(frame, interpType));
-
-            void Do(Frame frame, InterpType interpType) => frame.InterpType = interpType;
-        }
 
         public void ChangeFrameValue(Frame frame, int valueIndex, ValueData value) {
             var oldValue = frame.Values[valueIndex];
@@ -158,7 +149,7 @@ public partial class StoryboardModel {
                 return;
             
             action.Dispose();
-            completed.Invoke();
+            completed?.Invoke();
             disposed = true;
         }
         
@@ -204,24 +195,6 @@ public partial class StoryboardModel {
                     list.RemoveAt(fromIndex);
                     list.Insert(toIndex, list[fromIndex]);
                 }
-            }
-        }
-        
-        private void InsertPattern(int patternIndex, Pattern pattern) {
-            Project.Patterns.Insert(patternIndex, pattern);
-
-            foreach (var patternInstance in Project.PatternInstances) {
-                if (patternInstance.PatternIndex >= patternIndex)
-                    patternInstance.PatternIndex++;
-            }
-        }
-
-        private void RemovePattern(int patternIndex) {
-            Project.Patterns.RemoveAt(patternIndex);
-            
-            foreach (var patternInstance in Project.PatternInstances) {
-                if (patternInstance.PatternIndex > patternIndex)
-                    patternInstance.PatternIndex--;
             }
         }
     }

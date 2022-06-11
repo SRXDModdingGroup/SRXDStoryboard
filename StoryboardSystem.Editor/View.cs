@@ -4,19 +4,13 @@ namespace StoryboardSystem.Editor;
 
 public abstract class View : MonoBehaviour {
     private bool needsUpdate;
-    
-    public void UpdateView() {
-        if (gameObject.activeInHierarchy) {
-            needsUpdate = false;
-            DoUpdateView();
-        }
-        else
-            needsUpdate = true;
-    }
+
+    public void UpdateView() => needsUpdate = true;
     
     protected abstract void DoUpdateView();
     
-    private void OnEnable() {
+    // ReSharper disable Unity.PerformanceAnalysis
+    private void LateUpdate() {
         if (!needsUpdate)
             return;
 

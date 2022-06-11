@@ -32,7 +32,5 @@ public interface IEditBlock : IDisposable {
 
     public void ChangeFrameData(Frame frame, FrameData data);
 
-    public void ChangeFrameInterpType(Frame frame, InterpType interpType);
-
     public void ChangeFrameValue(Frame frame, int valueIndex, ValueData value);
 }

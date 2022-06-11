@@ -118,7 +118,8 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="RigDefinition.cs" />
-        <Compile Include="RigType.cs" />
+        <Compile Include="RigEventSettings.cs" />
+        <Compile Include="RigEventType.cs" />
         <Compile Include="RigParameterSettings.cs" />
         <Compile Include="RigValueType.cs" />
         <Compile Include="RigTarget.cs" />

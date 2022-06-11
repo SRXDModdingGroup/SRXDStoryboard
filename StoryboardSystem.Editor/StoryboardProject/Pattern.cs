@@ -7,9 +7,12 @@ public class Pattern {
     
     public List<Lane> Lanes { get; }
 
-    public Pattern(string name) {
+    public Pattern(string name, int laneCount) {
         Name = name;
-        Lanes = new List<Lane>();
+        Lanes = new List<Lane>(laneCount);
+
+        for (int i = 0; i < laneCount; i++)
+            Lanes.Add(new Lane());
     }
 
     public double GetLength() {

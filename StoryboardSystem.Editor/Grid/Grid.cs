@@ -29,7 +29,6 @@ public class Grid : View, IPointerClickHandler, IBeginDragHandler, IEndDragHandl
         }
     }
 
-
     private float scroll;
     private float scale = 1f;
     private bool dragging;
