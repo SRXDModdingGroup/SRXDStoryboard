@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+    <PropertyGroup>
+        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+        <ProjectGuid>{036694C2-6A6B-4D59-B7D1-B7DECA40428D}</ProjectGuid>
+        <OutputType>Library</OutputType>
+        <AppDesignerFolder>Properties</AppDesignerFolder>
+        <RootNamespace>VisualizerSystem.Editor</RootNamespace>
+        <AssemblyName>VisualizerSystem.Editor</AssemblyName>
+        <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+        <FileAlignment>512</FileAlignment>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>full</DebugType>
+        <Optimize>false</Optimize>
+        <OutputPath>bin\Debug\</OutputPath>
+        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <DebugType>pdbonly</DebugType>
+        <Optimize>true</Optimize>
+        <OutputPath>bin\Release\</OutputPath>
+        <DefineConstants>TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+    <PropertyGroup>
+      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem.Editor\bin\Release\StoryboardSystem.Editor.dll" "C:\Users\domia\Git\SRXDStoryboard\StoryboardEditor\Assets\Libs"</PostBuildEvent>
+    </PropertyGroup>
+    <ItemGroup>
+        <Reference Include="System" />
+        <Reference Include="System.Core" />
+        <Reference Include="System.Data" />
+        <Reference Include="System.Xml" />
+        <Reference Include="Unity.TextMeshPro">
+          <HintPath>..\Libs\Unity.TextMeshPro.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+          <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.InputLegacyModule">
+          <HintPath>..\Libs\UnityEngine.InputLegacyModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.UI">
+          <HintPath>..\Libs\UnityEngine.UI.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="Controller.cs" />
+        <Compile Include="Grid\Grid.cs" />
+        <Compile Include="Grid\GridElement.cs" />
+        <Compile Include="Grid\GridEventData.cs" />
+        <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="SongEditor\FrameBlock.cs" />
+        <Compile Include="SongEditor\LaneInfoBox.cs" />
+        <Compile Include="SongEditor\SongEditorController.cs" />
+        <Compile Include="SongEditor\SongEditorInfo.cs" />
+        <Compile Include="SongEditor\SongEditorState.cs" />
+        <Compile Include="SongEditor\SongEditorTool\SongEditorAddTool.cs" />
+        <Compile Include="SongEditor\SongEditorTool\SongEditorTool.cs" />
+        <Compile Include="SongEditor\SongEditorView.cs" />
+        <Compile Include="VisualizerModel\EditBlock.cs" />
+        <Compile Include="VisualizerModel\IUndoRedoAction.cs" />
+        <Compile Include="VisualizerModel\VisualizerModel.cs" />
+        <Compile Include="VisualizerModel\IEditBlock.cs" />
+        <Compile Include="VisualizerModel\UndoRedo.cs" />
+        <Compile Include="VisualizerModel\UndoRedoAction.cs" />
+        <Compile Include="VisualizerProject\Frame\Frame.cs" />
+        <Compile Include="VisualizerProject\Frame\FrameData.cs" />
+        <Compile Include="VisualizerProject\Frame\SequenceTimeType.cs" />
+        <Compile Include="VisualizerProject\Frame\ValueData.cs" />
+        <Compile Include="VisualizerProject\Frame\ValueDataType.cs" />
+        <Compile Include="VisualizerProject\Lane\Lane.cs" />
+        <Compile Include="VisualizerProject\Setup\ProjectSetup.cs" />
+        <Compile Include="VisualizerProject\Setup\RigDefinitionSetup.cs" />
+        <Compile Include="VisualizerProject\Setup\RigEventSetup.cs" />
+        <Compile Include="VisualizerProject\Setup\RigSetup.cs" />
+        <Compile Include="VisualizerProject\Setup\RigParameterSetup.cs" />
+        <Compile Include="VisualizerProject\VisualizerProject.cs" />
+        <Compile Include="Util\InstancePool.cs" />
+        <Compile Include="Util\ITimedElement.cs" />
+        <Compile Include="View.cs" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\VisualizerSystem.Core\VisualizerSystem.Core.csproj">
+        <Project>{eb695cf1-788b-4552-9188-301d0b08e0ae}</Project>
+        <Name>VisualizerSystem.Core</Name>
+      </ProjectReference>
+      <ProjectReference Include="..\VisualizerSystem.Rigging\VisualizerSystem.Rigging.csproj">
+        <Project>{baeb49a2-0245-4439-bea2-9d05c06d3c90}</Project>
+        <Name>VisualizerSystem.Rigging</Name>
+      </ProjectReference>
+      <ProjectReference Include="..\VisualizerSystem.Types\VisualizerSystem.Types.csproj">
+        <Project>{bfc77673-c289-4ae1-8761-f552fbf9589f}</Project>
+        <Name>VisualizerSystem.Types</Name>
+      </ProjectReference>
+    </ItemGroup>
+    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+         Other similar extension points exist, see Microsoft.Common.targets.
+    <Target Name="BeforeBuild">
+    </Target>
+    <Target Name="AfterBuild">
+    </Target>
+    -->
+
+</Project>
