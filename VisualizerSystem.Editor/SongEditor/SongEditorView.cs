@@ -8,6 +8,8 @@ public class SongEditorView : View<SongEditorInfo> {
     [SerializeField] private GameObject frameBlockPrefab;
     [SerializeField] private GameObject laneInfoBoxPrefab;
 
+    public Grid Grid => grid;
+
     private InstancePool<LaneInfoBox> laneInfoBoxes;
     private InstancePool<FrameBlock> frameBlocks;
 
@@ -16,7 +18,8 @@ public class SongEditorView : View<SongEditorInfo> {
         var rigs = project.Setup.Rigs;
         var lanes = project.Lanes;
         int totalFrameCount = 0;
-        
+
+        grid.LaneCount = lanes.Count;
         laneInfoBoxes.SetCount(lanes.Count, (laneInfoBox, index) => laneInfoBox.Button.onClick.AddListener(() => OnLaneInfoBoxClicked(index)));
 
         for (int i = 0; i < lanes.Count; i++) {

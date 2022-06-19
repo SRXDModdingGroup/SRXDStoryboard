@@ -1,24 +1,18 @@
 ﻿namespace VisualizerSystem.Editor; 
 
 public class GridEventData {
-    public float Position { get; }
+    public double Position { get; }
     
     public int Lane { get; }
     
-    public float DragStartPosition { get; }
+    public double DragStartPosition { get; }
     
-    public float DragStartLane { get; }
-    
-    public int HoveredElementIndex { get; }
-    
-    public int HoveredHandleIndex { get; }
+    public int DragStartLane { get; }
 
-    public GridEventData(float position, int lane, float dragStartPosition, float dragStartLane, int hoveredElementIndex, int hoveredHandleIndex) {
+    public GridEventData(double position, int lane, double dragStartPosition, int dragStartLane) {
         Position = position;
         Lane = lane;
         DragStartPosition = dragStartPosition;
         DragStartLane = dragStartLane;
-        HoveredElementIndex = hoveredElementIndex;
-        HoveredHandleIndex = hoveredHandleIndex;
     }
 }

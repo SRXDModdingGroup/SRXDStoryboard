@@ -5,7 +5,6 @@ namespace VisualizerSystem.Editor;
 
 public class GridElement : View {
     [SerializeField] private GameObject visuals;
-    [SerializeField] private RectTransform[] handles;
     
     public int Lane {
         get => lane;
@@ -30,8 +29,6 @@ public class GridElement : View {
             UpdateView();
         }
     }
-
-    public IReadOnlyList<RectTransform> Handles => handles;
 
     private int lane;
     private float position;

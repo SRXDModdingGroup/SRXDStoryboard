@@ -33,7 +33,7 @@
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <PropertyGroup>
-      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\StoryboardSystem.Editor\bin\Release\StoryboardSystem.Editor.dll" "C:\Users\domia\Git\SRXDStoryboard\StoryboardEditor\Assets\Libs"</PostBuildEvent>
+      <PostBuildEvent>copy /Y "C:\Users\domia\Git\SRXDStoryboard\VisualizerSystem.Editor\bin\Release\VisualizerSystem.Editor.dll" "C:\Users\domia\Git\SRXDStoryboard\StoryboardEditor\Assets\Libs"</PostBuildEvent>
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="System" />

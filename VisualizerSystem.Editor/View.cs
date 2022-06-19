@@ -5,9 +5,9 @@ namespace VisualizerSystem.Editor;
 public abstract class View : MonoBehaviour {
     private bool needsUpdate;
 
-    public void UpdateView() => needsUpdate = true;
+    public virtual void UpdateView() => needsUpdate = true;
     
-    protected abstract void DoUpdateView();
+    protected virtual void DoUpdateView() { }
     
     // ReSharper disable Unity.PerformanceAnalysis
     private void LateUpdate() {
