@@ -10,8 +10,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualizerSystem.Rigging", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualizerSystem.Core", "VisualizerSystem.Core\VisualizerSystem.Core.csproj", "{EB695CF1-788B-4552-9188-301D0B08E0AE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualizerSystem.Editor", "VisualizerSystem.Editor\VisualizerSystem.Editor.csproj", "{036694C2-6A6B-4D59-B7D1-B7DECA40428D}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualizerSystem.Types", "VisualizerSystem.Types\VisualizerSystem.Types.csproj", "{BFC77673-C289-4AE1-8761-F552FBF9589F}"
 EndProject
 Global
@@ -40,10 +38,6 @@ Global
 		{EB695CF1-788B-4552-9188-301D0B08E0AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB695CF1-788B-4552-9188-301D0B08E0AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB695CF1-788B-4552-9188-301D0B08E0AE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{036694C2-6A6B-4D59-B7D1-B7DECA40428D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{036694C2-6A6B-4D59-B7D1-B7DECA40428D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{036694C2-6A6B-4D59-B7D1-B7DECA40428D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{036694C2-6A6B-4D59-B7D1-B7DECA40428D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BFC77673-C289-4AE1-8761-F552FBF9589F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BFC77673-C289-4AE1-8761-F552FBF9589F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFC77673-C289-4AE1-8761-F552FBF9589F}.Release|Any CPU.ActiveCfg = Release|Any CPU

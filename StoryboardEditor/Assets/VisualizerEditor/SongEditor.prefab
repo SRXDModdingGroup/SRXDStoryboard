@@ -113,11 +113,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 3097205910483449879}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1253271004, guid: de16e48e2e76047439849a63e9e4135e, type: 3}
+  m_Script: {fileID: 11500000, guid: 6995ee96f648b5d4488ab49956a9fa6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   model: {fileID: 0}
-  view: {fileID: 8221239194136142167}
+  view: {fileID: 0}
 --- !u!114 &8221239194136142167
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -127,13 +127,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 3097205910483449879}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: -2100869622, guid: de16e48e2e76047439849a63e9e4135e, type: 3}
+  m_Script: {fileID: 11500000, guid: 6995ee96f648b5d4488ab49956a9fa6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  grid: {fileID: 2887400387957741552}
-  laneInfoBoxLayout: {fileID: 1394207905437415579}
-  frameBlockPrefab: {fileID: 5991829127326548642, guid: 1f8ad81b47af65649bf6d9c8f9a3ff5d, type: 3}
-  laneInfoBoxPrefab: {fileID: 6812097581460957736, guid: 3862d731b2cd46845b854f915aa45c5c, type: 3}
+  model: {fileID: 0}
+  view: {fileID: 0}
 --- !u!1 &7784899127526515879
 GameObject:
   m_ObjectHideFlags: 0
@@ -345,14 +343,3 @@ MonoBehaviour:
   m_FlexibleWidth: 1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
---- !u!114 &2887400387957741552 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6447278488260068997, guid: 2e6aabef114518240a58f3f32ba15582, type: 3}
-  m_PrefabInstance: {fileID: 8172712788406931829}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 809452053672275185}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -338516301, guid: de16e48e2e76047439849a63e9e4135e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

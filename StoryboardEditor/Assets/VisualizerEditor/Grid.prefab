@@ -47,7 +47,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 8813701289777118596}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: -338516301, guid: de16e48e2e76047439849a63e9e4135e, type: 3}
+  m_Script: {fileID: 11500000, guid: a433c9bf254f04248a8fa94573009be9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   laneHeight: 40
